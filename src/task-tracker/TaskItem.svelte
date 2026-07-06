@@ -62,6 +62,10 @@
     dispatch("delete", { task });
   }
 
+  function handleMove() {
+    dispatch("move", { task });
+  }
+
   function openNote() {
     if (!task.notePath) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,5 +220,14 @@
     aria-label="Удалить задачу"
   >
     &#10005;
+  </button>
+
+  <button
+    class="task-move-btn"
+    on:click={handleMove}
+    aria-label="Переместить задачу"
+    title="Переместить на другую дату"
+  >
+    &#8644;
   </button>
 </div>

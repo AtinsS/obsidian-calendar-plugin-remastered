@@ -904,6 +904,31 @@ content: attr(data-task-count);
   border-color: var(--mcp-danger);
 }
 
+/* Move button (mobile alternative to drag-and-drop) */
+.task-move-btn {
+  opacity: 0;
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 4px 7px;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: var(--mcp-radius-sm);
+  transition: all var(--mcp-transition);
+  flex-shrink: 0;
+}
+
+.task-item:hover .task-move-btn {
+  opacity: 1;
+}
+
+.task-move-btn:hover {
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+}
+
 /* ============================================
    MODALS
    ============================================ */
@@ -1515,7 +1540,7 @@ content: attr(data-task-count);
   .task-tracker-panel,
   .habit-tracker-panel {
     padding: 10px 12px;
-    max-height: 55vh;
+    max-height: 50vh;
   }
 
   /* Header */
@@ -1591,7 +1616,8 @@ content: attr(data-task-count);
   }
 
   .task-description-preview {
-    display: none;
+    display: block;
+    max-width: 120px;
   }
 
   .task-recurring-icon {
@@ -1610,7 +1636,8 @@ content: attr(data-task-count);
 
   /* Edit/delete always visible on touch */
   .task-edit-btn,
-  .task-delete-btn {
+  .task-delete-btn,
+  .task-move-btn {
     opacity: 0.6;
     padding: 6px 10px;
     font-size: 14px;
@@ -1694,6 +1721,15 @@ content: attr(data-task-count);
     font-size: 11px;
   }
 
+  /* Time logs modal — adapt for keyboard */
+  .time-logs-modal {
+    max-height: 50vh;
+  }
+
+  .time-logs-body {
+    max-height: 35vh;
+  }
+
   /* Group headers */
   .task-group-header {
     padding: 10px 0 4px;
@@ -1734,7 +1770,7 @@ content: attr(data-task-count);
   .task-tracker-panel,
   .habit-tracker-panel {
     padding: 8px 8px;
-    max-height: 50vh;
+    max-height: 45vh;
   }
 
   .task-tracker-title,
@@ -1767,14 +1803,61 @@ content: attr(data-task-count);
     font-size: 10px;
     min-height: 30px;
   }
+
+  /* Hide description on smallest screens */
+  .task-description-preview {
+    display: none;
+  }
+
+  /* Habit panel even more compact */
+  .habit-tracker-panel {
+    max-height: 35vh;
+  }
+}
+
+/* ============================================
+   RESPONSIVE — MOBILE LANDSCAPE (keyboard open)
+   ============================================ */
+@media (max-width: 480px) and (orientation: landscape) {
+  .task-tracker-panel {
+    max-height: 40vh;
+  }
+  .habit-tracker-panel {
+    max-height: 30vh;
+  }
 }
 
 /* ============================================
    TOUCH DEVICES — always show action buttons
    ============================================ */
 @media (hover: none) and (pointer: coarse) {
+  /* Quick action buttons — always visible on touch */
+  .task-quick-actions {
+    opacity: 1 !important;
+  }
+
+  .quick-btn {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 14px;
+  }
+
+  /* Task status button — larger for touch */
+  .task-status-btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  /* Note icon — larger for touch */
+  .note-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   .task-edit-btn,
   .task-delete-btn,
+  .task-move-btn,
   .habit-edit-btn,
   .habit-delete-btn {
     opacity: 0.6;
@@ -1797,5 +1880,23 @@ content: attr(data-task-count);
   .habit-check-btn {
     min-width: 44px;
     min-height: 44px;
+  }
+
+  /* Color swatches — 44px touch targets */
+  .task-tracker-color-swatch {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Recurrence day buttons — 44px */
+  .task-tracker-recurrence-day-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Filter dots — slightly larger */
+  .filter-dot {
+    width: 10px;
+    height: 10px;
   }
 }

@@ -197,6 +197,40 @@
     modal.open();
   }
 
+  function handleMoveTask(event: CustomEvent<{ task: ITask }>) {
+    const task = event.detail.task;
+    const input = document.createElement("input");
+    input.type = "date";
+    input.style.position = "fixed";
+    input.style.left = "-9999px";
+    document.body.appendChild(input);
+
+    // Pre-fill with task's current date
+    const match = task.dateUID.match(/day-(\d{4}-\d{2}-\d{2})/);
+    if (match) {
+      input.value = match[1];
+    }
+
+    input.addEventListener("change", () => {
+      if (input.value) {
+        const tz = window.moment().format("Z");
+        const newDateUID = `day-${input.value}T00:00:00${tz}`;
+        moveTask(task.id, newDateUID);
+      }
+      document.body.removeChild(input);
+    });
+
+    input.addEventListener("blur", () => {
+      setTimeout(() => {
+        if (document.body.contains(input)) {
+          document.body.removeChild(input);
+        }
+      }, 300);
+    });
+
+    input.showPicker?.() || input.click();
+  }
+
   function handleDrop(event: DragEvent) {
     event.preventDefault();
     const taskId = event.dataTransfer?.getData("text/plain");
@@ -395,6 +429,7 @@
               {task}
               on:complete={(e) => handleTaskComplete(e.detail.task)}
               on:delete={(e) => handleTaskDelete(e.detail.task)}
+              on:move={handleMoveTask}
             />
           {/each}
         {/each}
