@@ -8,7 +8,14 @@ import {
   CalendarSettingsTab,
   ISettings,
 } from "./settings";
+import { TFile } from "obsidian";
 import CalendarView from "./view";
+import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
+import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
+import { setupNoteTaskSync } from "./task-tracker/noteTasks";
+import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
+import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
+import { initNotifications, destroyNotifications } from "./notifications/NotificationService";
 
 declare global {
   interface Window {
@@ -21,8 +28,11 @@ declare global {
 export default class CalendarPlugin extends Plugin {
   public options: ISettings;
   private view: CalendarView;
+  private syncReloadTimer: ReturnType<typeof setTimeout> | null = null;
 
   onunload(): void {
+    destroyNotifications();
+    if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_CALENDAR)
       .forEach((leaf) => leaf.detach());
@@ -32,6 +42,8 @@ export default class CalendarPlugin extends Plugin {
     this.register(
       settings.subscribe((value) => {
         this.options = value;
+        setTaskSync(!!value.syncToVault);
+        setHabitSync(!!value.syncToVault);
       })
     );
 
@@ -71,6 +83,40 @@ export default class CalendarPlugin extends Plugin {
     });
 
     await this.loadOptions();
+
+    // Initialize task tracker
+    initTaskStores(this);
+    setupNoteTaskSync(this.app);
+
+    // Initialize habit tracker
+    initHabitStores(this);
+
+    // Watch for vault sync file changes (modify + create)
+    const debouncedSyncReload = () => {
+      if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
+      this.syncReloadTimer = setTimeout(() => {
+        reloadTaskStores(this);
+        reloadHabitStores(this);
+      }, 500);
+    };
+
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (file instanceof TFile && file.path === "calendar-data.json") {
+          debouncedSyncReload();
+        }
+      })
+    );
+    this.registerEvent(
+      this.app.vault.on("create", (file) => {
+        if (file instanceof TFile && file.path === "calendar-data.json") {
+          debouncedSyncReload();
+        }
+      })
+    );
+
+    // Initialize notification system
+    initNotifications(this);
 
     this.addSettingTab(new CalendarSettingsTab(this.app, this));
 

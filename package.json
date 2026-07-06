@@ -39,6 +39,7 @@
     "typescript": "4.2.3"
   },
   "jest": {
+    "setupFiles": ["./jest.setup.js"],
     "moduleNameMapper": {
       "src/(.*)": "<rootDir>/src/$1"
     },

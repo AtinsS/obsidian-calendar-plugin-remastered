@@ -18,6 +18,18 @@ export interface ISettings {
   weeklyNoteFolder: string;
 
   localeOverride: ILocaleOverride;
+
+  // Task Tracker settings
+  showTaskTracker: boolean;
+  taskTrackerCollapsed: boolean;
+  archiveCompletedNotes: boolean;
+  archiveFolderPath: string;
+
+  // Habit Tracker settings
+  showHabitTracker: boolean;
+
+  // Sync settings
+  syncToVault: boolean;
 }
 
 const weekdays = [
@@ -42,6 +54,15 @@ export const defaultSettings = Object.freeze({
   weeklyNoteFolder: "",
 
   localeOverride: "system-default",
+
+  showTaskTracker: true,
+  taskTrackerCollapsed: false,
+  archiveCompletedNotes: false,
+  archiveFolderPath: "Archive",
+
+  showHabitTracker: true,
+
+  syncToVault: false,
 });
 
 export function appHasPeriodicNotesPluginLoaded(): boolean {
@@ -64,18 +85,18 @@ export class CalendarSettingsTab extends PluginSettingTab {
     if (!appHasDailyNotesPluginLoaded()) {
       this.containerEl.createDiv("settings-banner", (banner) => {
         banner.createEl("h3", {
-          text: "⚠️ Daily Notes plugin not enabled",
+          text: "⚠️ Плагин Daily Notes не включён",
         });
         banner.createEl("p", {
           cls: "setting-item-description",
           text:
-            "The calendar is best used in conjunction with either the Daily Notes plugin or the Periodic Notes plugin (available in the Community Plugins catalog).",
+            "Календарь лучше всего работает в связке с плагинами Daily Notes или Periodic Notes (доступны в каталоге плагинов).",
         });
       });
     }
 
     this.containerEl.createEl("h3", {
-      text: "General Settings",
+      text: "Основные настройки",
     });
     this.addDotThresholdSetting();
     this.addWeekStartSetting();
@@ -87,12 +108,12 @@ export class CalendarSettingsTab extends PluginSettingTab {
       !appHasPeriodicNotesPluginLoaded()
     ) {
       this.containerEl.createEl("h3", {
-        text: "Weekly Note Settings",
+        text: "Настройки недельных заметок",
       });
       this.containerEl.createEl("p", {
         cls: "setting-item-description",
         text:
-          "Note: Weekly Note settings are moving. You are encouraged to install the 'Periodic Notes' plugin to keep the functionality in the future.",
+          "Примечание: Настройки недельных заметок будут перенесены. Рекомендуется установить плагин «Periodic Notes» для сохранения функциональности.",
       });
       this.addWeeklyNoteFormatSetting();
       this.addWeeklyNoteTemplateSetting();
@@ -100,15 +121,27 @@ export class CalendarSettingsTab extends PluginSettingTab {
     }
 
     this.containerEl.createEl("h3", {
-      text: "Advanced Settings",
+      text: "Трекер задач",
     });
-    this.addLocaleOverrideSetting();
+    this.addShowTaskTrackerSetting();
+
+    this.containerEl.createEl("h3", {
+      text: "Трекер привычек",
+    });
+    this.addShowHabitTrackerSetting();
+
+    this.containerEl.createEl("h3", {
+      text: "Синхронизация",
+    });
+    this.addSyncToVaultSetting();
+    this.addSyncAdvice();
+    // Locale is forced to Russian
   }
 
   addDotThresholdSetting(): void {
     new Setting(this.containerEl)
-      .setName("Words per dot")
-      .setDesc("How many words should be represented by a single dot?")
+      .setName("Слов на точку")
+      .setDesc("Сколько слов должно соответствовать одной точке?")
       .addText((textfield) => {
         textfield.setPlaceholder(String(DEFAULT_WORDS_PER_DOT));
         textfield.inputEl.type = "number";
@@ -129,12 +162,12 @@ export class CalendarSettingsTab extends PluginSettingTab {
     const localeWeekStart = moment.weekdays()[localeWeekStartNum];
 
     new Setting(this.containerEl)
-      .setName("Start week on:")
+      .setName("Начало недели:")
       .setDesc(
-        "Choose what day of the week to start. Select 'Locale default' to use the default specified by moment.js"
+        "Выберите день начала недели. «По умолчанию» использует настройки moment.js"
       )
       .addDropdown((dropdown) => {
-        dropdown.addOption("locale", `Locale default (${localeWeekStart})`);
+        dropdown.addOption("locale", `По умолчанию (${localeWeekStart})`);
         localizedWeekdays.forEach((day, i) => {
           dropdown.addOption(weekdays[i], day);
         });
@@ -149,8 +182,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addConfirmCreateSetting(): void {
     new Setting(this.containerEl)
-      .setName("Confirm before creating new note")
-      .setDesc("Show a confirmation modal before creating a new note")
+      .setName("Подтверждение перед созданием заметки")
+      .setDesc("Показывать модальное окно подтверждения перед созданием заметки")
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.shouldConfirmBeforeCreate);
         toggle.onChange(async (value) => {
@@ -163,21 +196,21 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addShowWeeklyNoteSetting(): void {
     new Setting(this.containerEl)
-      .setName("Show week number")
-      .setDesc("Enable this to add a column with the week number")
+      .setName("Показывать номер недели")
+      .setDesc("Добавить столбец с номером недели")
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.showWeeklyNote);
         toggle.onChange(async (value) => {
           this.plugin.writeOptions(() => ({ showWeeklyNote: value }));
-          this.display(); // show/hide weekly settings
+          this.display();
         });
       });
   }
 
   addWeeklyNoteFormatSetting(): void {
     new Setting(this.containerEl)
-      .setName("Weekly note format")
-      .setDesc("For more syntax help, refer to format reference")
+      .setName("Формат недельной заметки")
+      .setDesc("Для справки по синтаксису см. документацию по форматам")
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.weeklyNoteFormat);
         textfield.setPlaceholder(DEFAULT_WEEK_FORMAT);
@@ -189,9 +222,9 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addWeeklyNoteTemplateSetting(): void {
     new Setting(this.containerEl)
-      .setName("Weekly note template")
+      .setName("Шаблон недельной заметки")
       .setDesc(
-        "Choose the file you want to use as the template for your weekly notes"
+        "Выберите файл для использования в качестве шаблона недельных заметок"
       )
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.weeklyNoteTemplate);
@@ -203,12 +236,72 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addWeeklyNoteFolderSetting(): void {
     new Setting(this.containerEl)
-      .setName("Weekly note folder")
-      .setDesc("New weekly notes will be placed here")
+      .setName("Папка недельных заметок")
+      .setDesc("Новые недельные заметки будут сохраняться сюда")
       .addText((textfield) => {
         textfield.setValue(this.plugin.options.weeklyNoteFolder);
         textfield.onChange(async (value) => {
           this.plugin.writeOptions(() => ({ weeklyNoteFolder: value }));
+        });
+      });
+  }
+
+  addShowTaskTrackerSetting(): void {
+    new Setting(this.containerEl)
+      .setName("Показывать трекер задач")
+      .setDesc("Отображать панель трекера задач под календарём")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.showTaskTracker);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ showTaskTracker: value }));
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Архивировать заметки-задачи")
+      .setDesc("При завершении задачи-заметки перемещать её в папку архива")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.archiveCompletedNotes);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ archiveCompletedNotes: value }));
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Папка архива")
+      .setDesc("Папка для перемещения завершённых заметок-задач")
+      .addText((textfield) => {
+        textfield
+          .setPlaceholder("Archive")
+          .setValue(this.plugin.options.archiveFolderPath);
+        textfield.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ archiveFolderPath: value }));
+        });
+      });
+  }
+
+  addShowHabitTrackerSetting(): void {
+    new Setting(this.containerEl)
+      .setName("Показывать трекер привычек")
+      .setDesc("Отображать панель трекера привычек под календарём")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.showHabitTracker);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ showHabitTracker: value }));
+        });
+      });
+  }
+
+  addSyncToVaultSetting(): void {
+    new Setting(this.containerEl)
+      .setName("Синхронизация в корень хранилища")
+      .setDesc(
+        "Сохранять данные в calendar-data.json в корне хранилища вместо папки плагина. Позволяет синхронизировать задачи и привычки через Obsidian Sync, iCloud или Git."
+      )
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.syncToVault);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions(() => ({ syncToVault: value }));
         });
       });
   }
@@ -219,12 +312,12 @@ export class CalendarSettingsTab extends PluginSettingTab {
     const sysLocale = navigator.language?.toLowerCase();
 
     new Setting(this.containerEl)
-      .setName("Override locale:")
+      .setName("Переопределение языка:")
       .setDesc(
-        "Set this if you want to use a locale different from the default"
+        "Установите, если хотите использовать язык отличный от системного"
       )
       .addDropdown((dropdown) => {
-        dropdown.addOption("system-default", `Same as system (${sysLocale})`);
+        dropdown.addOption("system-default", `Системный (${sysLocale})`);
         moment.locales().forEach((locale) => {
           dropdown.addOption(locale, locale);
         });
@@ -235,5 +328,23 @@ export class CalendarSettingsTab extends PluginSettingTab {
           }));
         });
       });
+  }
+
+  addSyncAdvice(): void {
+    const desc = document.createElement("div");
+    desc.addClass("setting-item-description");
+    desc.style.marginTop = "8px";
+    desc.innerHTML = `
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Remotely Save:</b> В настройках плагина добавьте <code>calendar-data.json</code> в список синхронизируемых файлов (Include Files).
+      </p>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Obsidian Sync:</b> Включите синхронизацию файлов — <code>calendar-data.json</code> будет синхронизирован автоматически.
+      </p>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>iCloud / Google Drive:</b> Убедитесь, что хранилище синхронизируется полностью.
+      </p>
+    `;
+    this.containerEl.appendChild(desc);
   }
 }

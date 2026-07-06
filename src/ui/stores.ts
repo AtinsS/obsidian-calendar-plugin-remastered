@@ -65,6 +65,9 @@ function createSelectedFileStore() {
       const id = getDateUIDFromFile(file);
       store.set(id);
     },
+    setUID: (uid: string) => {
+      store.set(uid);
+    },
     ...store,
   };
 }

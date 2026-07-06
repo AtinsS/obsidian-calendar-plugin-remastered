@@ -11,10 +11,26 @@
 
   import type { ISettings } from "src/settings";
   import { activeFile, dailyNotes, settings, weeklyNotes } from "./stores";
+  import { tasks } from "../task-tracker/stores";
+  import { habitLogs } from "../habit-tracker/stores";
 
-  let today: Moment;
+  let today: Moment = window.moment();
+  let lastWeekStart: string = null;
 
-  $: today = getToday($settings);
+  // When tasks or habits change, re-render calendar so badges update
+  const unsubTasks = tasks.subscribe(() => { today = window.moment(); });
+  const unsubHabits = habitLogs.subscribe(() => { today = window.moment(); });
+
+  $: {
+    const ws = $settings.weekStart;
+    if (ws !== lastWeekStart) {
+      lastWeekStart = ws;
+      configureGlobalMomentLocale("ru", ws);
+      dailyNotes.reindex();
+      weeklyNotes.reindex();
+      today = window.moment();
+    }
+  }
 
   export let displayedMonth: Moment = today;
   export let sources: ICalendarSource[];
@@ -29,27 +45,24 @@
     today = window.moment();
   }
 
-  function getToday(settings: ISettings) {
-    configureGlobalMomentLocale(settings.localeOverride, settings.weekStart);
-    dailyNotes.reindex();
-    weeklyNotes.reindex();
-    return window.moment();
-  }
+  let lastHeartbeatDay: string = today.format("YYYY-MM-DD");
 
-  // 1 minute heartbeat to keep `today` reflecting the current day
-  let heartbeat = setInterval(() => {
-    tick();
+  const heartbeat = setInterval(() => {
+    const currentDay = window.moment().format("YYYY-MM-DD");
+    if (currentDay !== lastHeartbeatDay) {
+      lastHeartbeatDay = currentDay;
+      today = window.moment();
 
-    const isViewingCurrentMonth = displayedMonth.isSame(today, "day");
-    if (isViewingCurrentMonth) {
-      // if it's midnight on the last day of the month, this will
-      // update the display to show the new month.
-      displayedMonth = today;
+      if (displayedMonth.isSame(today, "month")) {
+        displayedMonth = today;
+      }
     }
-  }, 1000 * 60);
+  }, 1000 * 30);
 
   onDestroy(() => {
     clearInterval(heartbeat);
+    unsubTasks();
+    unsubHabits();
   });
 </script>
 

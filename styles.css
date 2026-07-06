@@ -1,11 +1,1403 @@
+/* ============================================
+   GLASSMORPHISM CALENDAR PLUGIN
+   ============================================ */
+
+:root {
+  /* Основной акцент — холодный синий */
+  --mcp-accent: rgba(95, 153, 225, 0.479);
+  --mcp-accent-dim: rgba(95, 153, 225, 0.08);
+  --mcp-accent-hover: rgba(68, 190, 190, 0.15);   /* переход в мягкую бирюзу */
+  --mcp-accent-glow: rgba(68, 190, 190, 0.15);    /* свечение с бирюзовым отливом */
+  
+  /* Успех — мягкий зеленый (без изменений) */
+  --mcp-success: rgba(80, 200, 160, 0.8);
+  --mcp-success-dim: rgba(80, 200, 160, 0.08);
+  
+  /* Опасность — мягкий красный (без изменений) */
+  --mcp-danger: rgba(220, 150, 150, 0.8);
+  --mcp-danger-dim: rgba(220, 150, 150, 0.08);
+  
+  /* Предупреждение — мягкий янтарный (без изменений) */
+  --mcp-warning: rgba(220, 190, 130, 0.8);
+  
+  /* Стеклянные поверхности — с лёгким синим отливом */
+  --mcp-glass-bg: rgba(35, 40, 55, 0.4);
+  --mcp-glass-border: rgba(255, 255, 255, 0.04);
+  --mcp-glass-highlight: rgba(255, 255, 255, 0.02);
+  
+  /* Поверхности — чуть более холодные */
+  --mcp-surface: rgba(45, 50, 65, 0.4);
+  --mcp-surface-hover: rgba(55, 60, 75, 0.5);
+  
+  /* Текст */
+  --mcp-text: rgba(230, 235, 240, 0.92);
+  --mcp-text-muted: rgba(200, 210, 220, 0.5);
+  --mcp-text-faint: rgba(200, 210, 220, 0.25);
+  
+  /* Скругления */
+  --mcp-radius: 14px;
+  --mcp-radius-lg: 20px;
+  --mcp-radius-sm: 10px;
+  
+  /* Тени — мягкое бирюзово-голубое свечение */
+  --mcp-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --mcp-shadow-glow: 0 0 40px rgba(80, 170, 210, 0.06);
+  
+  /* Размытие и переходы */
+  --mcp-blur: blur(20px);
+  --mcp-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   SETTINGS BANNER
+   ============================================ */
 .settings-banner {
-  background-color: var(--background-secondary-alt);
-  border-radius: 4px;
+  background: var(--mcp-glass-bg);
+  backdrop-filter: var(--mcp-blur);
+  -webkit-backdrop-filter: var(--mcp-blur);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius-lg);
   margin-bottom: 2em;
-  padding: 1.5em;
-  text-align: left;
+  padding: 2em;
+  box-shadow: var(--mcp-shadow);
 }
 
 .settings-banner h4 {
-  margin: 0;
+  margin: 0 0 0.5em;
+  font-size: 1.25em;
+  font-weight: 700;
+  color: var(--mcp-text);
+}
+
+/* ============================================
+   CALENDAR GRID
+   ============================================ */
+#calendar-container {
+  width: 100%;
+  min-width: 0;
+}
+
+#calendar-container .calendar {
+  border-collapse: separate;
+  border-spacing: 4px;
+  width: 100%;
+  table-layout: fixed;
+}
+
+#calendar-container .calendar th {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--mcp-text-faint);
+  padding: 6px 0;
+}
+
+#calendar-container .day,
+#calendar-container .week-num {
+  border-radius: var(--mcp-radius-sm);
+  transition: all var(--mcp-transition);
+  position: relative;
+  padding: 8px 4px;
+  font-size: 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--mcp-text);
+  background: var(--mcp-glass-highlight);
+  border: 1px solid transparent;
+}
+
+#calendar-container .day:hover {
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+  transform: scale(1.1);
+  box-shadow: var(--mcp-shadow-glow);
+}
+
+#calendar-container .day.active {
+  background: var(--mcp-accent);
+  color: #000;
+  font-weight: 700;
+  border-color: var(--mcp-accent);
+  box-shadow: 0 0 16px var(--mcp-accent-glow);
+}
+
+#calendar-container .day.today {
+  background: var(--mcp-accent);
+  color: #000;
+  font-weight: 700;
+  border-color: var(--mcp-accent);
+  box-shadow:
+    0 0 0 3px rgba(45, 212, 191, 0.2),
+    0 0 20px var(--mcp-accent-glow);
+}
+
+/* ============================================
+   TASK BADGE
+   ============================================ */
+#calendar-container .day[data-task-count] {
+  position: relative;
+}
+
+#calendar-container .day[data-task-count]::after {
+content: attr(data-task-count);
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    font-size: 14px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    text-align: center;
+    color: #fff9f9;
+    background: #a734349e;
+    border: 1px solid #44b9a8;
+    border-radius: 5px;
+    padding: 0px 2px;
+    pointer-events: none;
+}
+
+#calendar-container .day.all-completed[data-task-count]::after {
+  background: var(--mcp-success);
+}
+
+#calendar-container .day.has-overdue[data-task-count]::after {
+  background: var(--mcp-danger);
+  color: #fff;
+  animation: pulse-danger 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.4); }
+  50% { box-shadow: 0 0 8px 2px rgba(248, 113, 113, 0.3); }
+}
+
+/* ============================================
+   HABIT BADGE
+   ============================================ */
+#calendar-container .day[data-habit-count] {
+  position: relative;
+}
+
+#calendar-container .day[data-habit-count]::before {
+  content: attr(data-habit-count);
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-size: 14px;
+  font-weight: 700;
+
+  text-align: center;
+  color: #ffffff;
+
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ============================================
+   PANELS
+   ============================================ */
+.task-tracker-panel,
+.habit-tracker-panel {
+  background: var(--mcp-glass-bg);
+  backdrop-filter: var(--mcp-blur);
+  -webkit-backdrop-filter: var(--mcp-blur);
+  border-top: 1px solid var(--mcp-glass-border);
+  padding: 14px 16px;
+  max-height: 58vh;
+  overflow-y: auto;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.task-tracker-panel.collapsed .task-tracker-list,
+.task-tracker-panel.collapsed .task-tracker-filter-bar,
+.task-tracker-panel.collapsed .task-tracker-search-bar {
+  display: none;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.task-tracker-header,
+.habit-tracker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+  border-radius: var(--mcp-radius-sm);
+  transition: background var(--mcp-transition);
+}
+
+.task-tracker-header:hover,
+.habit-tracker-header:hover {
+  background: var(--mcp-accent-dim);
+}
+
+.task-tracker-header:focus-visible,
+.habit-tracker-header:focus-visible {
+  outline: 2px solid var(--mcp-accent);
+  outline-offset: 2px;
+}
+
+.task-tracker-header-left,
+.habit-tracker-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.task-tracker-header-right,
+.habit-tracker-header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.task-tracker-chevron,
+.habit-tracker-chevron {
+  font-size: 11px;
+  transition: transform var(--mcp-transition);
+  color: var(--mcp-text-muted);
+}
+
+.task-tracker-chevron.rotated,
+.habit-tracker-chevron.rotated {
+  transform: rotate(-90deg);
+}
+
+.task-tracker-title,
+.habit-tracker-title {
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--mcp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.task-tracker-date {
+  font-size: 12px;
+  color: var(--mcp-text-faint);
+}
+
+.task-tracker-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.habit-tracker-streak {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mcp-warning);
+  background: rgba(251, 191, 36, 0.12);
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.task-tracker-btn,
+.habit-tracker-btn {
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 5px 10px;
+  font-size: 15px;
+  line-height: 1;
+  border-radius: var(--mcp-radius-sm);
+  transition: all var(--mcp-transition);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.task-tracker-btn:hover,
+.habit-tracker-btn:hover {
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+  box-shadow: var(--mcp-shadow-glow);
+}
+
+/* ============================================
+   SEARCH & SORT
+   ============================================ */
+.task-tracker-search-bar {
+  display: flex;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--mcp-glass-border);
+  margin-bottom: 6px;
+}
+
+.task-tracker-search-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius-sm);
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--mcp-text);
+  outline: none;
+  transition: all var(--mcp-transition);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.task-tracker-search-input::placeholder {
+  color: var(--mcp-text-faint);
+}
+
+.task-tracker-search-input:focus {
+  border-color: var(--mcp-accent);
+  box-shadow: 0 0 0 3px var(--mcp-accent-dim), var(--mcp-shadow-glow);
+}
+
+.task-tracker-sort-select {
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius-sm);
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  outline: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ============================================
+   FILTER BAR
+   ============================================ */
+.task-tracker-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mcp-glass-border);
+  margin-bottom: 8px;
+}
+
+.task-tracker-filter-btn {
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  transition: all var(--mcp-transition);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.task-tracker-filter-btn:hover {
+  color: var(--mcp-text);
+  background: var(--mcp-surface-hover);
+  border-color: var(--mcp-glass-border);
+}
+
+.task-tracker-filter-btn.active {
+  color: #000;
+  background: var(--mcp-accent);
+  border-color: var(--mcp-accent);
+  box-shadow: var(--mcp-shadow-glow);
+}
+
+.task-tracker-filter-separator {
+  width: 1px;
+  background: var(--mcp-glass-border);
+  margin: 0 6px;
+}
+
+.filter-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+/* ============================================
+   TASK LIST
+   ============================================ */
+.task-tracker-list {
+  padding-top: 6px;
+}
+
+.task-tracker-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--mcp-text-faint);
+  font-size: 13px;
+}
+
+.task-group-header {
+  display: flex;
+  align-items: center;
+  padding: 12px 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--mcp-text-muted);
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.project-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.group-name { flex: 1; }
+
+.group-count {
+  font-size: 10px;
+  color: var(--mcp-text-faint);
+  background: var(--mcp-surface);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ============================================
+   TASK ITEM
+   ============================================ */
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--mcp-radius-sm);
+  cursor: pointer;
+  transition: all var(--mcp-transition);
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 2px;
+  background: var(--mcp-glass-highlight);
+  border: 1px solid transparent;
+}
+
+.task-item:hover {
+  background: var(--mcp-surface-hover);
+  border-color: var(--mcp-glass-border);
+  transform: translateX(3px);
+  box-shadow: var(--mcp-shadow);
+}
+
+.task-item:focus-visible {
+  outline: 2px solid var(--mcp-accent);
+  outline-offset: 1px;
+}
+
+.task-item.completed {
+  opacity: 0.4;
+}
+
+.task-project-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Checkbox */
+.task-checkbox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.task-checkbox input {
+  opacity: 0;
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--mcp-glass-border);
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--mcp-transition);
+  background: var(--mcp-surface);
+}
+
+.task-checkbox input:checked + .checkmark {
+  background: var(--mcp-accent);
+  border-color: var(--mcp-accent);
+  box-shadow: 0 0 10px var(--mcp-accent-glow);
+}
+
+.task-checkbox input:checked + .checkmark::after {
+  content: "";
+  width: 5px;
+  height: 10px;
+  border: solid #000;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
+}
+
+/* Title */
+.task-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mcp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.task-title.strikethrough {
+  text-decoration: line-through;
+  color: var(--mcp-text-faint);
+}
+
+.task-title.note-link {
+  cursor: pointer;
+  color: var(--mcp-accent);
+}
+
+.task-title.note-link:hover {
+  text-decoration: underline;
+}
+
+.task-recurring-icon {
+  font-size: 12px;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+
+.task-description-preview {
+  font-size: 11px;
+  color: var(--mcp-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100px;
+  flex-shrink: 0;
+}
+
+.task-priority {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.task-priority.high {
+  color: var(--mcp-danger);
+  background: var(--mcp-danger-dim);
+}
+
+.task-priority.medium {
+  color: var(--mcp-warning);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.task-edit-btn,
+.task-delete-btn {
+  opacity: 0;
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 4px 7px;
+  font-size: 13px;
+  line-height: 1;
+  border-radius: var(--mcp-radius-sm);
+  transition: all var(--mcp-transition);
+  flex-shrink: 0;
+}
+
+.task-item:hover .task-edit-btn,
+.task-item:hover .task-delete-btn {
+  opacity: 1;
+}
+
+.task-edit-btn:hover {
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+}
+
+.task-delete-btn:hover {
+  color: var(--mcp-danger);
+  background: var(--mcp-danger-dim);
+  border-color: var(--mcp-danger);
+}
+
+/* ============================================
+   MODALS
+   ============================================ */
+.task-tracker-modal .modal-content,
+.task-tracker-project-modal .modal-content {
+  padding: 28px;
+}
+
+.task-tracker-modal .modal-content h2,
+.task-tracker-project-modal .modal-content h2 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--mcp-text);
+}
+
+.task-tracker-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--mcp-glass-border);
+}
+
+.task-tracker-modal-buttons button {
+  cursor: pointer;
+  border-radius: var(--mcp-radius-sm);
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all var(--mcp-transition);
+  border: 1px solid var(--mcp-glass-border);
+  background: var(--mcp-surface);
+  color: var(--mcp-text);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.task-tracker-modal-buttons button:hover {
+  background: var(--mcp-surface-hover);
+}
+
+.task-tracker-modal-buttons button.mod-cta {
+  background: var(--mcp-accent);
+  border-color: var(--mcp-accent);
+  color: #000;
+}
+
+.task-tracker-modal-buttons button.mod-cta:hover {
+  box-shadow: var(--mcp-shadow-glow);
+  transform: translateY(-1px);
+}
+
+.task-tracker-project-modal h3 {
+  margin: 20px 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mcp-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+/* Color picker */
+.task-tracker-color-picker {
+  padding: 12px 0;
+}
+
+.task-tracker-color-picker label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mcp-text-muted);
+  margin-bottom: 10px;
+  display: block;
+}
+
+.task-tracker-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-tracker-color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all var(--mcp-transition);
+}
+
+.task-tracker-color-swatch:hover {
+  transform: scale(1.2);
+}
+
+.task-tracker-color-swatch.active {
+  border-color: var(--mcp-text);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px var(--mcp-glass-bg), 0 0 0 5px currentColor;
+}
+
+/* Project items */
+.task-tracker-project-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: var(--mcp-radius-sm);
+  margin-bottom: 4px;
+  transition: background var(--mcp-transition);
+  background: var(--mcp-glass-highlight);
+  border: 1px solid transparent;
+}
+
+.task-tracker-project-item:hover {
+  background: var(--mcp-surface-hover);
+  border-color: var(--mcp-glass-border);
+}
+
+.task-tracker-project-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.task-tracker-project-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.task-tracker-project-icon { font-size: 16px; }
+
+.task-tracker-project-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.task-tracker-project-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.task-tracker-btn-small {
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: var(--mcp-radius-sm);
+  transition: all var(--mcp-transition);
+}
+
+.task-tracker-btn-small:hover {
+  color: var(--mcp-text);
+  background: var(--mcp-surface-hover);
+}
+
+.task-tracker-btn-small.mod-warning:hover {
+  color: var(--mcp-danger);
+  background: var(--mcp-danger-dim);
+}
+
+.task-tracker-new-project {
+  padding: 18px;
+  background: var(--mcp-glass-bg);
+  backdrop-filter: var(--mcp-blur);
+  -webkit-backdrop-filter: var(--mcp-blur);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius);
+  margin-bottom: 18px;
+  box-shadow: var(--mcp-shadow);
+}
+
+.task-tracker-existing-projects {
+  padding: 0 8px;
+}
+
+/* ============================================
+   RECURRENCE DAY PICKER
+   ============================================ */
+.task-tracker-recurrence-days {
+  display: flex;
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.task-tracker-recurrence-day-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px solid var(--mcp-glass-border);
+  background: var(--mcp-surface);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  transition: all var(--mcp-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-tracker-recurrence-day-btn:hover {
+  background: var(--mcp-surface-hover);
+  color: var(--mcp-text);
+}
+
+.task-tracker-recurrence-day-btn.active {
+  background: var(--mcp-accent);
+  border-color: var(--mcp-accent);
+  color: #000;
+  box-shadow: 0 0 10px var(--mcp-accent-glow);
+}
+
+/* ============================================
+   HABIT ITEM
+   ============================================ */
+.habit-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--mcp-radius-sm);
+  gap: 8px;
+  transition: background var(--mcp-transition);
+  background: var(--mcp-glass-highlight);
+  border: 1px solid transparent;
+}
+
+.habit-item:hover {
+  background: var(--mcp-surface-hover);
+  border-color: var(--mcp-glass-border);
+}
+
+.habit-item.completed {
+  opacity: 0.45;
+}
+
+.habit-check-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--habit-color, var(--mcp-text-muted));
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--mcp-transition);
+  flex-shrink: 0;
+  color: transparent;
+  padding: 0;
+}
+
+.habit-check-btn:hover {
+  transform: scale(1.2);
+}
+
+.habit-check-btn.checked {
+  background: var(--habit-color);
+  border-color: var(--habit-color);
+  color: #fff;
+  box-shadow: 0 0 12px var(--habit-color);
+}
+
+.habit-check-icon {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.habit-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.habit-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--mcp-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.habit-title.completed-text {
+  text-decoration: line-through;
+  color: var(--mcp-text-faint);
+}
+
+.habit-streak {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mcp-warning);
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(251, 191, 36, 0.1);
+  flex-shrink: 0;
+}
+
+.habit-edit-btn,
+.habit-delete-btn {
+  opacity: 0;
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 3px 6px;
+  font-size: 12px;
+  line-height: 1;
+  border-radius: var(--mcp-radius-sm);
+  transition: all var(--mcp-transition);
+}
+
+.habit-item:hover .habit-edit-btn,
+.habit-item:hover .habit-delete-btn {
+  opacity: 1;
+}
+
+.habit-edit-btn:hover {
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+}
+
+.habit-delete-btn:hover {
+  color: var(--mcp-danger);
+  background: var(--mcp-danger-dim);
+  border-color: var(--mcp-danger);
+}
+
+.habit-tracker-panel {
+  border-top: 1px solid var(--mcp-glass-border);
+  padding: 12px 16px;
+  max-height: 42vh;
+  overflow-y: auto;
+}
+
+.habit-tracker-panel.collapsed .habit-tracker-list {
+  display: none;
+}
+
+.habit-tracker-list {
+  padding-top: 6px;
+}
+
+.habit-tracker-empty {
+  text-align: center;
+  padding: 18px;
+  color: var(--mcp-text-faint);
+  font-size: 12px;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+.task-tracker-panel::-webkit-scrollbar,
+.habit-tracker-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.task-tracker-panel::-webkit-scrollbar-track,
+.habit-tracker-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-tracker-panel::-webkit-scrollbar-thumb,
+.habit-tracker-panel::-webkit-scrollbar-thumb {
+  background: var(--mcp-glass-border);
+  border-radius: 3px;
+}
+
+.task-tracker-panel::-webkit-scrollbar-thumb:hover,
+.habit-tracker-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--mcp-text-faint);
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   RESPONSIVE — LARGE SCREENS
+   ============================================ */
+@media (min-width: 1400px) {
+  #calendar-container .day,
+  #calendar-container .week-num {
+    min-height: 48px;
+    font-size: 16px;
+    padding: 10px 6px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE — TABLET (481–768px)
+   ============================================ */
+@media (min-width: 481px) and (max-width: 768px) {
+  #calendar-container .day[data-task-count]::after {
+    font-size: 7px;
+    min-width: 11px;
+    height: 11px;
+  }
+
+  #calendar-container .day[data-habit-count]::before {
+    font-size: 6px;
+    min-width: 10px;
+    height: 10px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE — PHONE (≤480px)
+   ============================================ */
+@media (max-width: 480px) {
+  /* Calendar */
+  #calendar-container .calendar {
+    border-spacing: 2px;
+  }
+
+  #calendar-container .calendar th {
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    padding: 3px 0;
+  }
+
+  #calendar-container .day,
+  #calendar-container .week-num {
+    min-height: 36px;
+    font-size: 13px;
+    padding: 6px 3px;
+    border-radius: 6px;
+  }
+
+  #calendar-container .day[data-task-count]::after {
+    font-size: 7px;
+    min-width: 10px;
+    height: 10px;
+    border-radius: 5px;
+  }
+
+  #calendar-container .day[data-habit-count]::before {
+    font-size: 6px;
+    min-width: 9px;
+    height: 9px;
+    border-radius: 5px;
+  }
+
+  /* Panels */
+  .task-tracker-panel,
+  .habit-tracker-panel {
+    padding: 10px 12px;
+    max-height: 55vh;
+  }
+
+  /* Header */
+  .task-tracker-header,
+  .habit-tracker-header {
+    padding: 6px 4px;
+    gap: 6px;
+  }
+
+  .task-tracker-title,
+  .habit-tracker-title {
+    font-size: 11px;
+  }
+
+  .task-tracker-date {
+    font-size: 10px;
+  }
+
+  .task-tracker-count {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  /* Buttons — touch targets */
+  .task-tracker-btn,
+  .habit-tracker-btn {
+    padding: 6px 10px;
+    font-size: 16px;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Search bar */
+  .task-tracker-search-bar {
+    gap: 6px;
+    padding: 8px 0;
+  }
+
+  .task-tracker-search-input {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .task-tracker-sort-select {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Filter bar */
+  .task-tracker-filter-bar {
+    gap: 4px;
+    padding: 8px 0;
+  }
+
+  .task-tracker-filter-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+    min-height: 32px;
+  }
+
+  /* Task items — larger tap targets */
+  .task-item {
+    padding: 10px 8px;
+    gap: 8px;
+    min-height: 44px;
+  }
+
+  .task-title {
+    font-size: 14px;
+  }
+
+  .task-description-preview {
+    display: none;
+  }
+
+  .task-recurring-icon {
+    display: none;
+  }
+
+  .checkmark {
+    width: 22px;
+    height: 22px;
+  }
+
+  .task-priority {
+    font-size: 11px;
+    padding: 2px 8px;
+  }
+
+  /* Edit/delete always visible on touch */
+  .task-edit-btn,
+  .task-delete-btn {
+    opacity: 0.6;
+    padding: 6px 10px;
+    font-size: 14px;
+    min-width: 36px;
+    min-height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Habit items */
+  .habit-item {
+    padding: 10px 8px;
+    gap: 8px;
+    min-height: 44px;
+  }
+
+  .habit-check-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .habit-icon {
+    font-size: 18px;
+  }
+
+  .habit-title {
+    font-size: 14px;
+  }
+
+  .habit-streak {
+    font-size: 12px;
+    padding: 2px 10px;
+  }
+
+  .habit-edit-btn,
+  .habit-delete-btn {
+    opacity: 0.6;
+    padding: 5px 8px;
+    font-size: 14px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* Modals */
+  .task-tracker-modal .modal-content,
+  .task-tracker-project-modal .modal-content {
+    padding: 16px;
+  }
+
+  .task-tracker-modal .modal-content h2,
+  .task-tracker-project-modal .modal-content h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  .task-tracker-modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 12px;
+  }
+
+  .task-tracker-modal-buttons button {
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+    min-height: 44px;
+  }
+
+  /* Color picker */
+  .task-tracker-color-swatch {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Day picker */
+  .task-tracker-recurrence-day-btn {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  /* Group headers */
+  .task-group-header {
+    padding: 10px 0 4px;
+  }
+
+  /* Project items */
+  .task-tracker-project-item {
+    padding: 12px 10px;
+  }
+
+  .task-tracker-project-name {
+    font-size: 14px;
+  }
+
+  .task-tracker-btn-small {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-height: 36px;
+  }
+}
+
+/* ============================================
+   RESPONSIVE — SMALL PHONE (≤360px)
+   ============================================ */
+@media (max-width: 360px) {
+  #calendar-container .day,
+  #calendar-container .week-num {
+    min-height: 30px;
+    font-size: 11px;
+    padding: 4px 2px;
+    border-radius: 4px;
+  }
+
+  #calendar-container .calendar th {
+    font-size: 7px;
+  }
+
+  .task-tracker-panel,
+  .habit-tracker-panel {
+    padding: 8px 8px;
+    max-height: 50vh;
+  }
+
+  .task-tracker-title,
+  .habit-tracker-title {
+    font-size: 10px;
+  }
+
+  .task-item {
+    padding: 8px 6px;
+    gap: 6px;
+    min-height: 40px;
+  }
+
+  .task-title {
+    font-size: 13px;
+  }
+
+  .habit-item {
+    padding: 8px 6px;
+    gap: 6px;
+    min-height: 40px;
+  }
+
+  .habit-title {
+    font-size: 13px;
+  }
+
+  .task-tracker-filter-btn {
+    padding: 5px 10px;
+    font-size: 10px;
+    min-height: 30px;
+  }
+}
+
+/* ============================================
+   TOUCH DEVICES — always show action buttons
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  .task-edit-btn,
+  .task-delete-btn,
+  .habit-edit-btn,
+  .habit-delete-btn {
+    opacity: 0.6;
+    padding: 6px 10px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .task-tracker-btn,
+  .habit-tracker-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 14px;
+  }
+
+  .task-tracker-filter-btn {
+    min-height: 36px;
+  }
+
+  .habit-check-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
