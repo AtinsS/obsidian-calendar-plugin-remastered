@@ -15,7 +15,6 @@ import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
-import { initNotifications, destroyNotifications } from "./notifications/NotificationService";
 
 declare global {
   interface Window {
@@ -31,7 +30,6 @@ export default class CalendarPlugin extends Plugin {
   private syncReloadTimer: ReturnType<typeof setTimeout> | null = null;
 
   onunload(): void {
-    destroyNotifications();
     if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_CALENDAR)
@@ -114,9 +112,6 @@ export default class CalendarPlugin extends Plugin {
         }
       })
     );
-
-    // Initialize notification system
-    initNotifications(this);
 
     this.addSettingTab(new CalendarSettingsTab(this.app, this));
 

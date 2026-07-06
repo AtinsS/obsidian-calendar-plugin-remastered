@@ -13,10 +13,6 @@ export function setSyncEnabled(enabled: boolean): void {
   syncEnabled = enabled;
 }
 
-export function isSyncEnabled(): boolean {
-  return syncEnabled;
-}
-
 export function generateId(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
@@ -37,7 +33,7 @@ export async function loadTaskData(
       }
       return data;
     }
-    return { tasks: [], projects: [], version: TASK_TRACKER_DATA_VERSION };
+    return { tasks: [], projects: [], timeLogs: [], version: TASK_TRACKER_DATA_VERSION };
   }
 
   const raw = await plugin.loadData();
@@ -49,7 +45,7 @@ export async function loadTaskData(
     }
     return data;
   }
-  return { tasks: [], projects: [], version: TASK_TRACKER_DATA_VERSION };
+  return { tasks: [], projects: [], timeLogs: [], version: TASK_TRACKER_DATA_VERSION };
 }
 
 export async function saveTaskData(
@@ -81,6 +77,27 @@ function migrateData(data: ITaskTrackerData): ITaskTrackerData {
         recurrence: undefined,
       })),
       version: 2,
+    };
+  }
+
+  // v2 -> v3: add status field, migrate completed -> status
+  if (data.version < 3) {
+    migrated = {
+      ...migrated,
+      tasks: migrated.tasks.map((t) => ({
+        ...t,
+        status: t.completed ? "done" : ("todo" as const),
+      })),
+      version: 3,
+    };
+  }
+
+  // v3 -> v4: add timeLogs array
+  if (data.version < 4) {
+    migrated = {
+      ...migrated,
+      timeLogs: [],
+      version: 4,
     };
   }
 

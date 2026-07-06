@@ -20,6 +20,9 @@ export class TaskModal extends Modal {
   private recurrenceType: "none" | "daily" | "weekly" | "monthly" = "none";
   private recurrenceInterval = 1;
   private recurrenceDaysOfWeek: number[] = [];
+  private estimatedTimeHours = "";
+  private estimatedTimeMinutes = "";
+  private scheduledTime = "";
 
   constructor(
     app: App,
@@ -43,6 +46,14 @@ export class TaskModal extends Modal {
         this.recurrenceType = this.task.recurrence.type;
         this.recurrenceInterval = this.task.recurrence.interval || 1;
         this.recurrenceDaysOfWeek = this.task.recurrence.daysOfWeek || [];
+      }
+      if (this.task.estimatedTime) {
+        const totalMin = this.task.estimatedTime;
+        this.estimatedTimeHours = String(Math.floor(totalMin / 60));
+        this.estimatedTimeMinutes = String(totalMin % 60);
+      }
+      if (this.task.scheduledTime) {
+        this.scheduledTime = this.task.scheduledTime;
       }
     } else {
       this.dateUID = get(selectedDate) || "";
@@ -134,6 +145,50 @@ export class TaskModal extends Modal {
         dropdown.onChange((value) => {
           this.priority = value as "low" | "medium" | "high";
         });
+      });
+
+    new Setting(contentEl)
+      .setName("Ожидаемое время")
+      .setDesc("Необязательно. Часы и минуты.")
+      .addText((text) => {
+        text
+          .setPlaceholder("ч")
+          .setValue(this.estimatedTimeHours)
+          .onChange((value) => {
+            this.estimatedTimeHours = value;
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.max = "24";
+        text.inputEl.style.maxWidth = "50px";
+        text.inputEl.placeholder = "ч";
+      })
+      .addText((text) => {
+        text
+          .setPlaceholder("мин")
+          .setValue(this.estimatedTimeMinutes)
+          .onChange((value) => {
+            this.estimatedTimeMinutes = value;
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.max = "59";
+        text.inputEl.style.maxWidth = "50px";
+        text.inputEl.placeholder = "мин";
+      });
+
+    new Setting(contentEl)
+      .setName("Запланировано на")
+      .setDesc("Необязательно. Время выполнения задачи.")
+      .addText((text) => {
+        text
+          .setPlaceholder("14:30")
+          .setValue(this.scheduledTime)
+          .onChange((value) => {
+            this.scheduledTime = value;
+          });
+        text.inputEl.type = "time";
+        text.inputEl.style.maxWidth = "120px";
       });
 
     // Recurrence section
@@ -305,6 +360,8 @@ export class TaskModal extends Modal {
       notePath: this.isNoteTask ? this.notePathInput || null : null,
       description: this.descriptionInput || undefined,
       recurrence,
+      estimatedTime: (parseInt(this.estimatedTimeHours) || 0) * 60 + (parseInt(this.estimatedTimeMinutes) || 0) || undefined,
+      scheduledTime: this.scheduledTime || undefined,
     });
 
     this.close();

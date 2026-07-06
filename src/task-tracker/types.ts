@@ -4,10 +4,13 @@ export interface RecurrenceConfig {
   daysOfWeek?: number[];
 }
 
+export type TaskStatus = "todo" | "progress" | "done";
+
 export interface ITask {
   id: string;
   title: string;
   completed: boolean;
+  status: TaskStatus;
   dateUID: string;
   projectId: string | null;
   notePath: string | null;
@@ -18,6 +21,10 @@ export interface ITask {
   updatedAt: number;
   description?: string;
   recurrence?: RecurrenceConfig;
+  timerStartedAt?: number;
+  totalWorkTime?: number;
+  estimatedTime?: number;
+  scheduledTime?: string;
 }
 
 export interface IProject {
@@ -31,15 +38,27 @@ export interface IProject {
   createdAt: number;
 }
 
+export interface TimeLog {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  date: string;
+}
+
 export interface ITaskTrackerData {
   tasks: ITask[];
   projects: IProject[];
+  timeLogs: TimeLog[];
   version: number;
 }
 
 export type DateUID = string;
 
-export const TASK_TRACKER_DATA_VERSION = 2;
+export const TASK_TRACKER_DATA_VERSION = 4;
+export const MAX_TIME_LOGS = 30;
 
 export const DEFAULT_PROJECT_COLORS = [
   "#ff6b6b",

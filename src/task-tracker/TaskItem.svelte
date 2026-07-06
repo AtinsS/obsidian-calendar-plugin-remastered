@@ -1,14 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import type { ITask } from "./types";
-  import { updateTask, removeTask, projects } from "./stores";
+  import type { ITask, TaskStatus } from "./types";
+  import { updateTask, updateTaskStatus, removeTask, projects } from "./stores";
+  import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
 
   export let task: ITask;
 
   const dispatch = createEventDispatcher();
-
-  let isEditing = false;
 
   $: project = $projects.find((p) => p.id === task.projectId);
   $: projectColor = project?.color || "var(--text-muted)";
@@ -16,12 +15,38 @@
     ? task.description.substring(0, 60) + (task.description.length > 60 ? "..." : "")
     : "";
 
-  function toggleComplete() {
-    dispatch("complete", { task });
+  // Timer display
+  $: elapsed = $timerTick && task.status === "progress" && task.timerStartedAt
+    ? getActiveTimer(task.id)
+    : null;
+  $: timerDisplay = elapsed !== null ? formatDuration(elapsed) : null;
+
+  // Estimate vs actual
+  $: hasEstimate = !!task.estimatedTime;
+  $: hasActual = !!task.totalWorkTime;
+  $: estimateOver = hasEstimate && hasActual && task.totalWorkTime > task.estimatedTime * 60000;
+  $: estimateUnder = hasEstimate && hasActual && task.totalWorkTime <= task.estimatedTime * 60000;
+
+  $: scheduledTimePassed = task.scheduledTime ? isTimePassed(task.scheduledTime) : false;
+
+  function isTimePassed(time: string): boolean {
+    const [h, m] = time.split(":").map(Number);
+    const now = new Date();
+    return now.getHours() > h || (now.getHours() === h && now.getMinutes() > m);
+  }
+
+  const statusIcons: Record<TaskStatus, string> = {
+    todo: "\u25CB",
+    progress: "\u23F3",
+    done: "\u2714",
+  };
+
+  function quickStatus(status: TaskStatus) {
+    if (task.status === status) return;
+    updateTaskStatus(task.id, status);
   }
 
   function handleEdit() {
-    isEditing = true;
     const modal = new TaskModal(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (window as any).app,
@@ -51,7 +76,7 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      toggleComplete();
+      quickStatus("progress");
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       handleDelete();
@@ -71,7 +96,9 @@
 
 <div
   class="task-item"
-  class:completed={task.completed}
+  class:completed={task.status === "done"}
+  class:is-note-task={!!task.notePath}
+  data-status={task.status}
   draggable="true"
   on:dragstart={handleDragStart}
   on:keydown={handleKeydown}
@@ -84,34 +111,71 @@
     style="background-color: {projectColor}"
   ></span>
 
-  <label class="task-checkbox">
-    <input
-      type="checkbox"
-      checked={task.completed}
-      on:change={toggleComplete}
-      aria-label="Отметить выполнение"
-    />
-    <span class="checkmark"></span>
-  </label>
+  {#if task.notePath}
+    <button
+      class="note-icon"
+      on:click|stopPropagation={openNote}
+      title="Открыть заметку"
+      aria-label="Открыть заметку"
+    >
+      &#128221;
+    </button>
+  {:else}
+    <button
+      class="task-status-btn status-{task.status}"
+      on:click|stopPropagation={() => quickStatus(task.status === "done" ? "todo" : "done")}
+      title="Статус: {task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : 'Готово'}"
+      aria-label="Изменить статус"
+    >
+      {statusIcons[task.status]}
+    </button>
+  {/if}
 
   {#if task.notePath}
     <a
       class="task-title note-link"
-      class:strikethrough={task.completed}
+      class:strikethrough={task.status === "done"}
       href={task.notePath}
       on:click|preventDefault={openNote}
       title="Открыть заметку: {task.notePath}"
     >
-      [[{task.title}]]
+      {task.title}
     </a>
   {:else}
-    <span class="task-title" class:strikethrough={task.completed}>
+    <span class="task-title" class:strikethrough={task.status === "done"}>
       {task.title}
     </span>
   {/if}
 
   {#if task.recurrence}
     <span class="task-recurring-icon" title="Повторяющаяся задача">&#8635;</span>
+  {/if}
+
+  {#if task.scheduledTime}
+    <span class="task-scheduled {scheduledTimePassed ? 'passed' : ''}" title={scheduledTimePassed ? "Время прошло" : "Запланировано"}>
+      {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
+    </span>
+  {/if}
+
+  {#if timerDisplay}
+    <span class="task-timer" title="Текущее время">
+      &#9201; {timerDisplay}
+    </span>
+  {:else if hasEstimate && !hasActual}
+    <span class="task-estimate" title="План">
+      &#9201; {formatEstimate(task.estimatedTime)}
+    </span>
+  {:else if hasEstimate && hasActual}
+    <span
+      class="task-estimate-compare {estimateOver ? 'over' : 'under'}"
+      title="План → Факт"
+    >
+      &#9201; {formatEstimate(task.estimatedTime)} → &#10003; {formatDuration(task.totalWorkTime)}
+    </span>
+  {:else if hasActual}
+    <span class="task-timer total" title="Общее время">
+      &#9201; {formatDuration(task.totalWorkTime)}
+    </span>
   {/if}
 
   {#if descriptionPreview}
@@ -125,6 +189,18 @@
   {:else if task.priority === "medium"}
     <span class="task-priority medium" aria-label="Средний приоритет">~</span>
   {/if}
+
+  <div class="task-quick-actions">
+    <button
+      class="quick-btn progress-btn"
+      disabled={task.status === "progress"}
+      on:click|stopPropagation={() => quickStatus("progress")}
+      title="В работу"
+      aria-label="Перевести в работу"
+    >
+      &#9203;
+    </button>
+  </div>
 
   <button
     class="task-edit-btn"

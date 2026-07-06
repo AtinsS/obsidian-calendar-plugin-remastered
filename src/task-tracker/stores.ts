@@ -3,9 +3,10 @@ import { writable, get } from "svelte/store";
 import type CalendarPlugin from "src/main";
 import { getDateUID } from "obsidian-daily-notes-interface";
 
-import type { ITask, IProject, ITaskTrackerData, DateUID } from "./types";
+import type { ITask, IProject, ITaskTrackerData, TimeLog, TaskStatus, DateUID } from "./types";
 import { TASK_TRACKER_DATA_VERSION } from "./types";
 import { loadTaskData, saveTaskData, generateId } from "./storage";
+import { startTimer, stopTimer, addTimeLog } from "./TimerManager";
 
 let pluginInstance: CalendarPlugin = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -30,18 +31,18 @@ function autoCleanupCompleted(): void {
 export const tasks = writable<ITask[]>([]);
 export const projects = writable<IProject[]>([]);
 export const selectedDate = writable<DateUID>(null);
+export const activeTab = writable<TaskStatus>("todo");
 export const taskFilter = writable<{
   projectId: string | null;
-  showCompleted: boolean;
+  searchQuery: string;
+  sortMode: "date" | "priority" | "alpha" | "created";
 }>({
   projectId: null,
-  showCompleted: true,
+  searchQuery: "",
+  sortMode: "date",
 });
 
-export const taskSearchQuery = writable<string>("");
-export const taskSortMode = writable<"date" | "priority" | "alpha" | "created">(
-  "date"
-);
+export const timeLogs = writable<TimeLog[]>([]);
 
 function debouncedSave(): void {
   if (saveTimeout) {
@@ -51,6 +52,7 @@ function debouncedSave(): void {
     const data: ITaskTrackerData = {
       tasks: get(tasks),
       projects: get(projects),
+      timeLogs: get(timeLogs),
       version: TASK_TRACKER_DATA_VERSION,
     };
     if (pluginInstance) {
@@ -64,6 +66,7 @@ export function initTaskStores(plugin: CalendarPlugin): void {
   loadTaskData(plugin).then((data) => {
     tasks.set(data.tasks);
     projects.set(data.projects);
+    timeLogs.set(data.timeLogs || []);
     autoCleanupCompleted();
   });
 }
@@ -72,6 +75,7 @@ export function reloadTaskStores(plugin: CalendarPlugin): void {
   loadTaskData(plugin).then((data) => {
     tasks.set(data.tasks);
     projects.set(data.projects);
+    timeLogs.set(data.timeLogs || []);
   });
 }
 
@@ -100,6 +104,67 @@ export function updateTask(id: string, changes: Partial<ITask>): void {
   if (changes.completed !== undefined) {
     autoCleanupCompleted();
   }
+}
+
+export function updateTaskStatus(id: string, status: TaskStatus): void {
+  const allTasks = get(tasks);
+  const task = allTasks.find((t) => t.id === id);
+  const oldStatus = task?.status;
+
+  // Start timer when entering progress
+  if (oldStatus !== "progress" && status === "progress") {
+    startTimer(id);
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? { ...t, status, completed: false, timerStartedAt: Date.now(), updatedAt: Date.now() }
+          : t
+      )
+    );
+  }
+  // Stop timer when leaving progress
+  else if (oldStatus === "progress" && status !== "progress") {
+    const log = stopTimer(id);
+    if (log && task) {
+      log.taskTitle = task.title;
+      const updatedLogs = addTimeLog(log, get(timeLogs));
+      timeLogs.set(updatedLogs);
+      tasks.update((current) =>
+        current.map((t) =>
+          t.id === id
+            ? {
+                ...t,
+                status,
+                completed: status === "done",
+                totalWorkTime: (t.totalWorkTime || 0) + log.duration,
+                timerStartedAt: undefined,
+                updatedAt: Date.now(),
+              }
+            : t
+        )
+      );
+    } else {
+      tasks.update((current) =>
+        current.map((t) =>
+          t.id === id
+            ? { ...t, status, completed: status === "done", timerStartedAt: undefined, updatedAt: Date.now() }
+            : t
+        )
+      );
+    }
+  }
+  // Simple status change (not involving progress)
+  else {
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? { ...t, status, completed: status === "done", updatedAt: Date.now() }
+          : t
+      )
+    );
+  }
+
+  debouncedSave();
 }
 
 export function removeTask(id: string): void {
@@ -173,6 +238,7 @@ export function completeRecurringTask(taskId: string): void {
   addTask({
     title: task.title,
     completed: false,
+    status: "todo",
     dateUID: newDateUID,
     projectId: task.projectId,
     notePath: null,
@@ -214,8 +280,4 @@ export function removeProject(id: string): void {
 
 export function getTasksForDate(dateUID: string): ITask[] {
   return get(tasks).filter((t) => t.dateUID === dateUID);
-}
-
-export function getTasksForProject(projectId: string): ITask[] {
-  return get(tasks).filter((t) => t.projectId === projectId);
 }

@@ -4,11 +4,11 @@
     tasks,
     projects,
     selectedDate,
+    activeTab,
     taskFilter,
-    taskSearchQuery,
-    taskSortMode,
     addTask,
     updateTask,
+    updateTaskStatus,
     removeTask,
     moveTask,
     completeRecurringTask,
@@ -16,13 +16,13 @@
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
   import { settings } from "../ui/stores";
   import TaskItem from "./TaskItem.svelte";
+  import KanbanTabs from "./KanbanTabs.svelte";
+  import TimeLogsModal from "./TimeLogsModal.svelte";
   import { TaskModal } from "./TaskModal";
   import { ProjectModal } from "./ProjectModal";
 
   let collapsed = false;
-  let filterTab: "all" | "active" | "completed" = "all";
-  let searchInput = "";
-  let sortMode: "date" | "priority" | "alpha" | "created" = "date";
+  let showTimeLogs = false;
 
   $: currentDate = $selectedDate;
   $: allTasksForDate = currentDate
@@ -30,23 +30,22 @@
     : [];
   $: filteredTasks = allTasksForDate
     .filter((t) => {
-      if (filterTab === "active" && t.completed) return false;
-      if (filterTab === "completed" && !t.completed) return false;
+      if (t.status !== $activeTab) return false;
       if ($taskFilter.projectId && t.projectId !== $taskFilter.projectId)
         return false;
-      if (searchInput) {
-        const q = searchInput.toLowerCase();
+      if ($taskFilter.searchQuery) {
+        const q = $taskFilter.searchQuery.toLowerCase();
         const matchTitle = t.title.toLowerCase().includes(q);
         const matchDesc = t.description?.toLowerCase().includes(q) || false;
         if (!matchTitle && !matchDesc) return false;
       }
       return true;
     })
-    .sort((a, b) => sortTasks(a, b, sortMode));
+    .sort((a, b) => sortTasks(a, b, $taskFilter.sortMode));
 
   $: taskGroups = groupTasksByProject(filteredTasks, $projects);
   $: totalCount = allTasksForDate.length;
-  $: completedCount = allTasksForDate.filter((t) => t.completed).length;
+  $: doneCount = allTasksForDate.filter((t) => t.status === "done").length;
 
   const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
 
@@ -55,6 +54,15 @@
     b: ITask,
     mode: string
   ): number {
+    // In todo column: scheduledTime tasks first, sorted by time
+    if (a.status === "todo" && b.status === "todo") {
+      if (a.scheduledTime && !b.scheduledTime) return -1;
+      if (!a.scheduledTime && b.scheduledTime) return 1;
+      if (a.scheduledTime && b.scheduledTime) {
+        return a.scheduledTime.localeCompare(b.scheduledTime);
+      }
+    }
+
     switch (mode) {
       case "priority":
         return (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1);
@@ -126,6 +134,7 @@
         const task = addTask({
           ...taskData,
           completed: false,
+          status: "todo",
           notePath: null,
           tags: [],
           sortOrder: allTasksForDate.length,
@@ -155,16 +164,16 @@
   }
 
   async function handleTaskComplete(task: ITask) {
-    const newCompleted = !task.completed;
-    updateTask(task.id, { completed: newCompleted });
+    const newStatus = task.status === "done" ? "todo" : "done";
+    updateTaskStatus(task.id, newStatus);
 
     // Generate next occurrence for recurring tasks
-    if (newCompleted && task.recurrence) {
+    if (newStatus === "done" && task.recurrence) {
       completeRecurringTask(task.id);
     }
 
     // Archive note task if enabled and completing
-    if (newCompleted && task.notePath && $settings.archiveCompletedNotes) {
+    if (newStatus === "done" && task.notePath && $settings.archiveCompletedNotes) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const app = (window as any).app;
       if (app) {
@@ -204,15 +213,15 @@
 
   function handleSearchKeydown(e: KeyboardEvent) {
     if (e.key === "Escape") {
-      searchInput = "";
+      taskFilter.update((f) => ({ ...f, searchQuery: "" }));
     }
   }
 
   function cleanupCompletedTasks() {
-    const completed = $tasks.filter((t) => t.completed);
-    if (completed.length === 0) return;
-    if (!confirm(`Удалить ${completed.length} завершённых задач?`)) return;
-    for (const t of completed) {
+    const done = $tasks.filter((t) => t.status === "done");
+    if (done.length === 0) return;
+    if (!confirm(`Удалить ${done.length} завершённых задач?`)) return;
+    for (const t of done) {
       removeTask(t.id);
     }
   }
@@ -250,10 +259,18 @@
     <div class="task-tracker-header-right">
       {#if totalCount > 0}
         <span class="task-tracker-count">
-          {completedCount}/{totalCount}
+          {doneCount}/{totalCount}
         </span>
       {/if}
-      {#if completedCount > 0}
+      <button
+        class="task-tracker-btn"
+        on:click|stopPropagation={() => (showTimeLogs = true)}
+        aria-label="Логи времени"
+        title="Посмотреть логи времени"
+      >
+        &#9201;
+      </button>
+      {#if doneCount > 0}
         <button
           class="task-tracker-btn"
           on:click|stopPropagation={cleanupCompletedTasks}
@@ -283,17 +300,26 @@
   </div>
 
   {#if !collapsed}
+    <KanbanTabs />
+
     <div class="task-tracker-search-bar">
       <input
         class="task-tracker-search-input"
         type="text"
         placeholder="Поиск задач..."
-        bind:value={searchInput}
+        value={$taskFilter.searchQuery}
+        on:input={(e) =>
+          taskFilter.update((f) => ({ ...f, searchQuery: e.target.value }))}
         on:keydown={handleSearchKeydown}
       />
       <select
         class="task-tracker-sort-select"
-        bind:value={sortMode}
+        value={$taskFilter.sortMode}
+        on:change={(e) =>
+          taskFilter.update((f) => ({
+            ...f,
+            sortMode: e.target.value,
+          }))}
       >
         <option value="date">По дате</option>
         <option value="priority">По приоритету</option>
@@ -302,31 +328,8 @@
       </select>
     </div>
 
-    <div class="task-tracker-filter-bar">
-      <button
-        class="task-tracker-filter-btn"
-        class:active={filterTab === "all"}
-        on:click={() => (filterTab = "all")}
-      >
-        Все
-      </button>
-      <button
-        class="task-tracker-filter-btn"
-        class:active={filterTab === "active"}
-        on:click={() => (filterTab = "active")}
-      >
-        Активные
-      </button>
-      <button
-        class="task-tracker-filter-btn"
-        class:active={filterTab === "completed"}
-        on:click={() => (filterTab = "completed")}
-      >
-        Завершённые
-      </button>
-
-      {#if $projects.length > 0}
-        <div class="task-tracker-filter-separator"></div>
+    {#if $projects.length > 0}
+      <div class="task-tracker-filter-bar">
         <button
           class="task-tracker-filter-btn"
           class:active={$taskFilter.projectId === null}
@@ -353,8 +356,8 @@
             {project.name}
           </button>
         {/each}
-      {/if}
-    </div>
+      </div>
+    {/if}
 
     <div class="task-tracker-list">
       {#if filteredTasks.length === 0}
@@ -363,7 +366,7 @@
             Выберите дату на календаре
           {:else if allTasksForDate.length === 0}
             Нет задач на эту дату
-          {:else if searchInput}
+          {:else if $taskFilter.searchQuery}
             Нет задач, соответствующих поиску
           {:else}
             Нет задач, соответствующих фильтру
@@ -399,3 +402,7 @@
     </div>
   {/if}
 </div>
+
+{#if showTimeLogs}
+  <TimeLogsModal onClose={() => (showTimeLogs = false)} />
+{/if}
