@@ -50,7 +50,9 @@ export async function createNoteTask(
     .filter((line) => line !== "")
     .join("\n");
 
-  const content = [frontmatter, "", `# ${task.title}`, ""].join("\n");
+  const inProgressLine = task.status === "progress" ? "- [x] В работу" : "- [ ] В работу";
+  const doneLine = task.completed ? "- [x] Готово" : "- [ ] Готово";
+  const content = [frontmatter, "", `# ${task.title}`, "", inProgressLine, doneLine, ""].join("\n");
 
   const file = await app.vault.create(path, content);
   return file;
@@ -123,9 +125,19 @@ export async function syncTaskToFrontmatter(
 
   newFrontmatter.push("---");
 
+  const bodyLines = lines.slice(fmEnd + 1).map((line) => {
+    if (/^- \[[ x]\] В работу/.test(line)) {
+      return task.status === "progress" ? "- [x] В работу" : "- [ ] В работу";
+    }
+    if (/^- \[[ x]\] Готово/.test(line)) {
+      return task.completed ? "- [x] Готово" : "- [ ] Готово";
+    }
+    return line;
+  });
+
   const newContent = [
     ...newFrontmatter,
-    ...lines.slice(fmEnd + 1),
+    ...bodyLines,
   ].join("\n");
 
   isSyncing = true;
@@ -169,6 +181,27 @@ export function setupNoteTaskSync(app: App): void {
       frontmatter.priority !== task.priority
     ) {
       changes.priority = frontmatter.priority;
+    }
+
+    // Check body for checkbox toggles
+    const content = await app.vault.cachedRead(file);
+    const lines = content.split("\n");
+
+    const progressLine = lines.find((l) => /^- \[[ x]\] В работу/.test(l));
+    const doneLine = lines.find((l) => /^- \[[ x]\] Готово/.test(l));
+
+    const progressChecked = progressLine?.startsWith("- [x]") ?? false;
+    const doneChecked = doneLine?.startsWith("- [x]") ?? false;
+
+    if (doneChecked) {
+      changes.completed = true;
+      changes.status = "done";
+    } else if (progressChecked) {
+      changes.completed = false;
+      changes.status = "progress";
+    } else {
+      changes.completed = false;
+      changes.status = "todo";
     }
 
     if (Object.keys(changes).length > 0) {

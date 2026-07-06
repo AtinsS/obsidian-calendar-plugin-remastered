@@ -51,6 +51,11 @@
 /* ============================================
    SETTINGS BANNER
    ============================================ */
+
+.calendar {
+  margin-left: 0;
+}
+
 .settings-banner {
   background: var(--mcp-glass-bg);
   backdrop-filter: var(--mcp-blur);
@@ -214,6 +219,16 @@ content: attr(data-task-count);
   box-sizing: border-box;
 }
 
+.task-tracker-panel {
+  position: relative;
+  z-index: 10;
+}
+
+.habit-tracker-panel {
+  position: relative;
+  z-index: 1;
+}
+
 .task-tracker-panel.collapsed .task-tracker-list,
 .task-tracker-panel.collapsed .task-tracker-filter-bar,
 .task-tracker-panel.collapsed .task-tracker-search-bar {
@@ -331,6 +346,19 @@ content: attr(data-task-count);
   background: var(--mcp-accent-dim);
   border-color: var(--mcp-accent);
   box-shadow: var(--mcp-shadow-glow);
+}
+
+/* Dropdown labels — desktop shows full, mobile shows short */
+.dropdown-label-full {
+  display: inline;
+}
+
+.dropdown-label-short {
+  display: none;
+}
+
+.mobile-only {
+  display: none !important;
 }
 
 /* ============================================
@@ -927,6 +955,175 @@ content: attr(data-task-count);
   color: var(--mcp-accent);
   background: var(--mcp-accent-dim);
   border-color: var(--mcp-accent);
+}
+
+/* Task actions dropdown */
+.task-actions-dropdown {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.task-actions-toggle {
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: var(--mcp-radius-sm);
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--mcp-transition);
+  flex-shrink: 0;
+}
+
+.task-actions-toggle:hover {
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+}
+
+.task-actions-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 9999;
+  min-width: 160px;
+  overflow: hidden;
+}
+
+.task-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-normal);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.task-actions-item:hover {
+  background: var(--background-modifier-hover);
+}
+
+.task-actions-item.danger {
+  color: var(--text-error);
+}
+
+.task-actions-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Task info button */
+.task-info-btn {
+  background: none;
+  border: none;
+  color: var(--mcp-text-muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  min-width: 22px;
+  min-height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.task-info-btn:hover {
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
+}
+
+/* Task description popup */
+.task-description-popup {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  max-height: 40vh;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1100;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-description-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.task-description-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.task-description-close:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.task-description-body {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-normal);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.task-description-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.badge-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  color: var(--mcp-text-muted);
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: 12px;
+}
+
+.badge-item.passed {
+  color: var(--text-error);
+  border-color: var(--text-error);
 }
 
 /* ============================================
@@ -1537,10 +1734,14 @@ content: attr(data-task-count);
   }
 
   /* Panels */
-  .task-tracker-panel,
+  .task-tracker-panel {
+    padding: 8px 10px;
+    max-height: 38vh;
+  }
+
   .habit-tracker-panel {
-    padding: 10px 12px;
-    max-height: 50vh;
+    padding: 6px 10px;
+    max-height: 32vh;
   }
 
   /* Header */
@@ -1567,10 +1768,10 @@ content: attr(data-task-count);
   /* Buttons — touch targets */
   .task-tracker-btn,
   .habit-tracker-btn {
-    padding: 6px 10px;
-    font-size: 16px;
-    min-width: 36px;
-    min-height: 36px;
+    padding: 4px 8px;
+    font-size: 14px;
+    min-width: 32px;
+    min-height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1604,29 +1805,42 @@ content: attr(data-task-count);
     min-height: 32px;
   }
 
-  /* Task items — larger tap targets */
+  /* Task items — compact on mobile */
   .task-item {
-    padding: 10px 8px;
-    gap: 8px;
-    min-height: 44px;
+    padding: 6px 4px;
+    gap: 4px;
+    min-height: 38px;
   }
 
   .task-title {
-    font-size: 14px;
+    font-size: 13px;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .task-description-preview {
-    display: block;
-    max-width: 120px;
-  }
-
-  .task-recurring-icon {
     display: none;
   }
 
+  .task-recurring-icon,
+  .task-scheduled,
+  .task-timer,
+  .task-estimate,
+  .task-estimate-compare {
+    display: none;
+  }
+
+  .task-edit-btn,
+  .task-delete-btn {
+    padding: 4px 6px;
+    font-size: 12px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+
   .checkmark {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
   }
 
   .task-priority {
@@ -1650,36 +1864,36 @@ content: attr(data-task-count);
 
   /* Habit items */
   .habit-item {
-    padding: 10px 8px;
-    gap: 8px;
-    min-height: 44px;
+    padding: 6px 4px;
+    gap: 6px;
+    min-height: 36px;
   }
 
   .habit-check-btn {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
   }
 
   .habit-icon {
-    font-size: 18px;
+    font-size: 15px;
   }
 
   .habit-title {
-    font-size: 14px;
+    font-size: 12px;
   }
 
   .habit-streak {
-    font-size: 12px;
-    padding: 2px 10px;
+    font-size: 11px;
+    padding: 1px 6px;
   }
 
   .habit-edit-btn,
   .habit-delete-btn {
     opacity: 0.6;
-    padding: 5px 8px;
-    font-size: 14px;
-    min-width: 36px;
-    min-height: 36px;
+    padding: 4px 6px;
+    font-size: 12px;
+    min-width: 30px;
+    min-height: 30px;
   }
 
   /* Modals */
@@ -1749,6 +1963,133 @@ content: attr(data-task-count);
     font-size: 13px;
     min-height: 36px;
   }
+
+  /* Mobile-only / desktop-only visibility */
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+
+  /* Compact kanban tabs on mobile */
+  .kanban-tabs {
+    gap: 2px;
+  }
+
+  .kanban-tab {
+    padding: 4px 6px;
+    font-size: 11px;
+    gap: 3px;
+  }
+
+  .kanban-tab-label {
+    font-size: 10px;
+  }
+
+  .kanban-tab-count {
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+
+  /* Dropdown menu */
+  .task-tracker-menu-wrapper {
+    position: relative;
+  }
+
+  .task-tracker-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 4px;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 180px;
+    overflow: hidden;
+  }
+
+  .task-tracker-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-normal);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .task-tracker-dropdown-item .dropdown-label-full {
+    display: none;
+  }
+
+  .task-tracker-dropdown-item .dropdown-label-short {
+    display: inline;
+  }
+
+  .task-tracker-dropdown-item:hover {
+    background: var(--background-modifier-hover);
+  }
+
+  /* Task actions dropdown */
+  /* Description popup */
+  .task-description-popup {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    max-height: 40vh;
+    background: var(--background-primary);
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 10px;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 200;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .task-description-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    border-bottom: 1px solid var(--background-modifier-border);
+  }
+
+  .task-description-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  .task-description-close:hover {
+    color: var(--text-normal);
+    background: var(--background-modifier-hover);
+  }
+
+  .task-description-body {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-normal);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
 }
 
 /* ============================================
@@ -1789,19 +2130,19 @@ content: attr(data-task-count);
   }
 
   .habit-item {
-    padding: 8px 6px;
-    gap: 6px;
-    min-height: 40px;
+    padding: 5px 4px;
+    gap: 4px;
+    min-height: 32px;
   }
 
   .habit-title {
-    font-size: 13px;
+    font-size: 11px;
   }
 
   .task-tracker-filter-btn {
-    padding: 5px 10px;
+    padding: 4px 8px;
     font-size: 10px;
-    min-height: 30px;
+    min-height: 28px;
   }
 
   /* Hide description on smallest screens */
@@ -1811,6 +2152,10 @@ content: attr(data-task-count);
 
   /* Habit panel even more compact */
   .habit-tracker-panel {
+    max-height: 28vh;
+  }
+
+  .task-tracker-panel {
     max-height: 35vh;
   }
 }

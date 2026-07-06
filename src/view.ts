@@ -209,17 +209,38 @@ export default class CalendarView extends ItemView {
       pointer-events: none;
     `;
 
-    const items = uncompleted.slice(0, 5);
+    const items = uncompleted.slice(0, 7);
     for (const t of items) {
       const row = document.createElement("div");
-      row.style.cssText = "padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;";
-      row.textContent = (t.priority === "high" ? "! " : "") + t.title;
+      row.style.cssText = "padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;";
+
+      const statusIcon = t.status === "progress" ? "\u23F3" : t.status === "done" ? "\u2714" : "\u25CB";
+      const priorityIcon = t.priority === "high" ? "!" : t.priority === "medium" ? "~" : "";
+      const noteIcon = t.notePath ? " \uD83D\uDCDD" : "";
+      const timeIcon = t.scheduledTime ? ` \uD83D\uDD52${t.scheduledTime}` : "";
+      const recurringIcon = t.recurrence ? " \u21BB" : "";
+
+      const iconSpan = document.createElement("span");
+      iconSpan.style.cssText = "color: var(--text-faint); font-size: 10px; min-width: 14px; text-align: center;";
+      iconSpan.textContent = statusIcon;
+
+      const textSpan = document.createElement("span");
+      textSpan.style.cssText = "overflow: hidden; text-overflow: ellipsis;";
+      textSpan.textContent = (priorityIcon ? priorityIcon + " " : "") + t.title;
+
+      const metaSpan = document.createElement("span");
+      metaSpan.style.cssText = "color: var(--text-faint); font-size: 10px; flex-shrink: 0;";
+      metaSpan.textContent = `${noteIcon}${timeIcon}${recurringIcon}`;
+
+      row.appendChild(iconSpan);
+      row.appendChild(textSpan);
+      row.appendChild(metaSpan);
       tooltip.appendChild(row);
     }
-    if (uncompleted.length > 5) {
+    if (uncompleted.length > 7) {
       const more = document.createElement("div");
-      more.style.cssText = "padding: 2px 0; color: var(--text-faint); font-size: 11px;";
-      more.textContent = `+${uncompleted.length - 5} ещё`;
+      more.style.cssText = "padding: 3px 0; color: var(--text-faint); font-size: 11px; text-align: center;";
+      more.textContent = `+${uncompleted.length - 7} ещё`;
       tooltip.appendChild(more);
     }
 

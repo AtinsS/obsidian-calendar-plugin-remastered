@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { get } from "svelte/store";
   import type { ITask, IProject } from "./types";
   import {
     tasks,
@@ -10,7 +11,6 @@
     updateTask,
     updateTaskStatus,
     removeTask,
-    moveTask,
     completeRecurringTask,
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
@@ -23,58 +23,22 @@
 
   let collapsed = false;
   let showTimeLogs = false;
+  let showMenu = false;
 
   $: currentDate = $selectedDate;
   $: allTasksForDate = currentDate
     ? $tasks.filter((t) => t.dateUID === currentDate)
     : [];
-  $: filteredTasks = allTasksForDate
-    .filter((t) => {
-      if (t.status !== $activeTab) return false;
-      if ($taskFilter.projectId && t.projectId !== $taskFilter.projectId)
-        return false;
-      if ($taskFilter.searchQuery) {
-        const q = $taskFilter.searchQuery.toLowerCase();
-        const matchTitle = t.title.toLowerCase().includes(q);
-        const matchDesc = t.description?.toLowerCase().includes(q) || false;
-        if (!matchTitle && !matchDesc) return false;
-      }
-      return true;
-    })
-    .sort((a, b) => sortTasks(a, b, $taskFilter.sortMode));
+  $: filteredTasks = allTasksForDate.filter((t) => {
+    if (t.status !== $activeTab) return false;
+    if ($taskFilter.projectId && t.projectId !== $taskFilter.projectId)
+      return false;
+    return true;
+  });
 
   $: taskGroups = groupTasksByProject(filteredTasks, $projects);
   $: totalCount = allTasksForDate.length;
   $: doneCount = allTasksForDate.filter((t) => t.status === "done").length;
-
-  const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 };
-
-  function sortTasks(
-    a: ITask,
-    b: ITask,
-    mode: string
-  ): number {
-    // In todo column: scheduledTime tasks first, sorted by time
-    if (a.status === "todo" && b.status === "todo") {
-      if (a.scheduledTime && !b.scheduledTime) return -1;
-      if (!a.scheduledTime && b.scheduledTime) return 1;
-      if (a.scheduledTime && b.scheduledTime) {
-        return a.scheduledTime.localeCompare(b.scheduledTime);
-      }
-    }
-
-    switch (mode) {
-      case "priority":
-        return (priorityOrder[a.priority] ?? 1) - (priorityOrder[b.priority] ?? 1);
-      case "alpha":
-        return a.title.localeCompare(b.title, "ru");
-      case "created":
-        return b.createdAt - a.createdAt;
-      case "date":
-      default:
-        return a.sortOrder - b.sortOrder;
-    }
-  }
 
   function groupTasksByProject(
     taskList: ITask[],
@@ -167,24 +131,54 @@
     const newStatus = task.status === "done" ? "todo" : "done";
     updateTaskStatus(task.id, newStatus);
 
-    // Generate next occurrence for recurring tasks
     if (newStatus === "done" && task.recurrence) {
       completeRecurringTask(task.id);
     }
 
-    // Archive note task if enabled and completing
-    if (newStatus === "done" && task.notePath && $settings.archiveCompletedNotes) {
+    // Always archive note tasks when completing
+    if (newStatus === "done" && task.notePath) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const app = (window as any).app;
       if (app) {
-        const newPath = await archiveNoteTask(
-          task.notePath,
-          $settings.archiveFolderPath,
-          app
-        );
+        const archivePath = $settings.archiveFolderPath || "Archive";
+        const newPath = await archiveNoteTask(task.notePath, archivePath, app);
         if (newPath) {
           updateTask(task.id, { notePath: newPath });
         }
+      }
+    }
+  }
+
+  async function clearArchive() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).app;
+    if (!app) return;
+
+    const archivePath = $settings.archiveFolderPath || "Archive";
+    const folder = app.vault.getAbstractFileByPath(archivePath);
+    if (!folder) {
+      alert("Архив пуст");
+      return;
+    }
+
+    const files = app.vault.getFiles().filter((f: any) => f.path.startsWith(archivePath + "/"));
+    if (files.length === 0) {
+      alert("Архив пуст");
+      return;
+    }
+
+    if (!confirm(`Удалить ${files.length} файлов из архива?`)) return;
+
+    for (const file of files) {
+      await app.vault.delete(file);
+    }
+
+    // Remove tasks that pointed to archived files
+    const archivedPaths = new Set(files.map((f: any) => f.path));
+    const allTasks = get(tasks);
+    for (const t of allTasks) {
+      if (t.notePath && archivedPaths.has(t.notePath)) {
+        removeTask(t.id);
       }
     }
   }
@@ -197,67 +191,20 @@
     modal.open();
   }
 
-  function handleMoveTask(event: CustomEvent<{ task: ITask }>) {
-    const task = event.detail.task;
-    const input = document.createElement("input");
-    input.type = "date";
-    input.style.position = "fixed";
-    input.style.left = "-9999px";
-    document.body.appendChild(input);
-
-    // Pre-fill with task's current date
-    const match = task.dateUID.match(/day-(\d{4}-\d{2}-\d{2})/);
-    if (match) {
-      input.value = match[1];
-    }
-
-    input.addEventListener("change", () => {
-      if (input.value) {
-        const tz = window.moment().format("Z");
-        const newDateUID = `day-${input.value}T00:00:00${tz}`;
-        moveTask(task.id, newDateUID);
-      }
-      document.body.removeChild(input);
-    });
-
-    input.addEventListener("blur", () => {
-      setTimeout(() => {
-        if (document.body.contains(input)) {
-          document.body.removeChild(input);
-        }
-      }, 300);
-    });
-
-    input.showPicker?.() || input.click();
-  }
-
   function handleDrop(event: DragEvent) {
     event.preventDefault();
-    const taskId = event.dataTransfer?.getData("text/plain");
-    if (!taskId || !currentDate) return;
-    moveTask(taskId, currentDate);
   }
 
   function handleDragOver(event: DragEvent) {
     event.preventDefault();
-    if (event.dataTransfer) {
-      event.dataTransfer.dropEffect = "move";
-    }
   }
 
-  function handleSearchKeydown(e: KeyboardEvent) {
-    if (e.key === "Escape") {
-      taskFilter.update((f) => ({ ...f, searchQuery: "" }));
-    }
+  function toggleMenu() {
+    showMenu = !showMenu;
   }
 
-  function cleanupCompletedTasks() {
-    const done = $tasks.filter((t) => t.status === "done");
-    if (done.length === 0) return;
-    if (!confirm(`Удалить ${done.length} завершённых задач?`)) return;
-    for (const t of done) {
-      removeTask(t.id);
-    }
+  function closeMenu() {
+    showMenu = false;
   }
 </script>
 
@@ -297,23 +244,21 @@
         </span>
       {/if}
       <button
-        class="task-tracker-btn"
+        class="task-tracker-btn desktop-only"
         on:click|stopPropagation={() => (showTimeLogs = true)}
         aria-label="Логи времени"
-        title="Посмотреть логи времени"
+        title="Логи времени"
       >
         &#9201;
       </button>
-      {#if doneCount > 0}
-        <button
-          class="task-tracker-btn"
-          on:click|stopPropagation={cleanupCompletedTasks}
-          aria-label="Очистить завершённые"
-          title="Удалить все завершённые задачи"
-        >
-          &#10005;
-        </button>
-      {/if}
+      <button
+        class="task-tracker-btn desktop-only"
+        on:click|stopPropagation={clearArchive}
+        aria-label="Очистить архив"
+        title="Очистить архив"
+      >
+        &#128465;
+      </button>
       <button
         class="task-tracker-btn"
         on:click|stopPropagation={openCreateTask}
@@ -322,8 +267,40 @@
       >
         +
       </button>
+      <div class="task-tracker-menu-wrapper mobile-only">
+        <button
+          class="task-tracker-btn"
+          on:click|stopPropagation={toggleMenu}
+          aria-label="Ещё"
+          title="Ещё"
+        >
+          &#8942;
+        </button>
+        {#if showMenu}
+          <div class="task-tracker-dropdown">
+            <button
+              class="task-tracker-dropdown-item"
+              on:click|stopPropagation={() => { showTimeLogs = true; closeMenu(); }}
+            >
+              &#9201; <span class="dropdown-label-full">Логи времени</span><span class="dropdown-label-short">Логи</span>
+            </button>
+            <button
+              class="task-tracker-dropdown-item"
+              on:click|stopPropagation={() => { clearArchive(); closeMenu(); }}
+            >
+              &#128465; <span class="dropdown-label-full">Очистить архив</span><span class="dropdown-label-short">Очистить</span>
+            </button>
+            <button
+              class="task-tracker-dropdown-item"
+              on:click|stopPropagation={() => { openProjectSettings(); closeMenu(); }}
+            >
+              &#9881; <span class="dropdown-label-full">Настройки проектов</span><span class="dropdown-label-short">Проекты</span>
+            </button>
+          </div>
+        {/if}
+      </div>
       <button
-        class="task-tracker-btn"
+        class="task-tracker-btn desktop-only"
         on:click|stopPropagation={openProjectSettings}
         aria-label="Настройки проектов"
         title="Настройки проектов"
@@ -336,33 +313,7 @@
   {#if !collapsed}
     <KanbanTabs />
 
-    <div class="task-tracker-search-bar">
-      <input
-        class="task-tracker-search-input"
-        type="text"
-        placeholder="Поиск задач..."
-        value={$taskFilter.searchQuery}
-        on:input={(e) =>
-          taskFilter.update((f) => ({ ...f, searchQuery: e.target.value }))}
-        on:keydown={handleSearchKeydown}
-      />
-      <select
-        class="task-tracker-sort-select"
-        value={$taskFilter.sortMode}
-        on:change={(e) =>
-          taskFilter.update((f) => ({
-            ...f,
-            sortMode: e.target.value,
-          }))}
-      >
-        <option value="date">По дате</option>
-        <option value="priority">По приоритету</option>
-        <option value="alpha">По алфавиту</option>
-        <option value="created">По созданию</option>
-      </select>
-    </div>
-
-    {#if $projects.length > 0}
+    {#if $projects.filter((p) => !p.archived).length > 0}
       <div class="task-tracker-filter-bar">
         <button
           class="task-tracker-filter-btn"
@@ -370,7 +321,7 @@
           on:click={() =>
             taskFilter.update((f) => ({ ...f, projectId: null }))}
         >
-          Все проекты
+          Все
         </button>
         {#each $projects.filter((p) => !p.archived) as project (project.id)}
           <button
@@ -400,10 +351,8 @@
             Выберите дату на календаре
           {:else if allTasksForDate.length === 0}
             Нет задач на эту дату
-          {:else if $taskFilter.searchQuery}
-            Нет задач, соответствующих поиску
           {:else}
-            Нет задач, соответствующих фильтру
+            Нет задач в этом статусе
           {/if}
         </div>
       {:else}
@@ -429,7 +378,6 @@
               {task}
               on:complete={(e) => handleTaskComplete(e.detail.task)}
               on:delete={(e) => handleTaskDelete(e.detail.task)}
-              on:move={handleMoveTask}
             />
           {/each}
         {/each}

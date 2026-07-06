@@ -62,10 +62,6 @@
     dispatch("delete", { task });
   }
 
-  function handleMove() {
-    dispatch("move", { task });
-  }
-
   function openNote() {
     if (!task.notePath) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,6 +91,21 @@
       event.dataTransfer.setData("text/plain", task.id);
       event.dataTransfer.effectAllowed = "move";
     }
+  }
+
+  let showActionsMenu = false;
+  let showDescription = false;
+
+  function toggleActionsMenu() {
+    showActionsMenu = !showActionsMenu;
+  }
+
+  function closeActionsMenu() {
+    showActionsMenu = false;
+  }
+
+  function toggleDescription() {
+    showDescription = !showDescription;
   }
 </script>
 
@@ -182,11 +193,14 @@
     </span>
   {/if}
 
-  {#if descriptionPreview}
-    <span class="task-description-preview" title={task.description}>
-      {descriptionPreview}
-    </span>
-  {/if}
+  <button
+    class="task-info-btn"
+    on:click|stopPropagation={toggleDescription}
+    title="Подробнее"
+    aria-label="Подробнее о задаче"
+  >
+    &#8505;
+  </button>
 
   {#if task.priority === "high"}
     <span class="task-priority high" aria-label="Высокий приоритет">!</span>
@@ -194,40 +208,73 @@
     <span class="task-priority medium" aria-label="Средний приоритет">~</span>
   {/if}
 
-  <div class="task-quick-actions">
+  <div class="task-actions-dropdown">
     <button
-      class="quick-btn progress-btn"
-      disabled={task.status === "progress"}
-      on:click|stopPropagation={() => quickStatus("progress")}
-      title="В работу"
-      aria-label="Перевести в работу"
+      class="task-actions-toggle"
+      on:click|stopPropagation={toggleActionsMenu}
+      aria-label="Действия"
     >
-      &#9203;
+      &#8942;
     </button>
+    {#if showActionsMenu}
+      <div class="task-actions-menu" on:click|stopPropagation role="menu">
+        <button
+          class="task-actions-item"
+          disabled={task.status === "progress"}
+          on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
+        >
+          &#9203; В работу
+        </button>
+        {#if task.notePath}
+          <button
+            class="task-actions-item"
+            disabled={task.status === "done"}
+            on:click|stopPropagation={() => { dispatch("complete", { task }); closeActionsMenu(); }}
+          >
+            &#10003; Готово
+          </button>
+        {/if}
+        <button
+          class="task-actions-item"
+          on:click|stopPropagation={() => { handleEdit(); closeActionsMenu(); }}
+        >
+          &#9998; Редактировать
+        </button>
+        <button
+          class="task-actions-item danger"
+          on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}
+        >
+          &#10005; Удалить
+        </button>
+      </div>
+    {/if}
   </div>
 
-  <button
-    class="task-edit-btn"
-    on:click={handleEdit}
-    aria-label="Редактировать задачу"
-  >
-    &#9998;
-  </button>
-
-  <button
-    class="task-delete-btn"
-    on:click={handleDelete}
-    aria-label="Удалить задачу"
-  >
-    &#10005;
-  </button>
-
-  <button
-    class="task-move-btn"
-    on:click={handleMove}
-    aria-label="Переместить задачу"
-    title="Переместить на другую дату"
-  >
-    &#8644;
-  </button>
+  {#if showDescription}
+    <div class="task-description-popup" on:click|stopPropagation role="dialog">
+      <div class="task-description-header">
+        <span>{task.title}</span>
+        <button class="task-description-close" on:click={toggleDescription}>&#10005;</button>
+      </div>
+      <div class="task-description-badges">
+        {#if task.recurrence}
+          <span class="badge-item">&#8635; Повторяется</span>
+        {/if}
+        {#if task.scheduledTime}
+          <span class="badge-item {scheduledTimePassed ? 'passed' : ''}">
+            {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
+          </span>
+        {/if}
+        {#if hasEstimate}
+          <span class="badge-item">&#9201; План: {formatEstimate(task.estimatedTime)}</span>
+        {/if}
+        {#if hasActual}
+          <span class="badge-item">&#9201; Факт: {formatDuration(task.totalWorkTime)}</span>
+        {/if}
+      </div>
+      {#if task.description}
+        <div class="task-description-body">{task.description}</div>
+      {/if}
+    </div>
+  {/if}
 </div>

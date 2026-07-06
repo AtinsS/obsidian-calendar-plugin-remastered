@@ -270,14 +270,44 @@ export class CalendarSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Папка архива")
       .setDesc("Папка для перемещения завершённых заметок-задач")
-      .addText((textfield) => {
-        textfield
-          .setPlaceholder("Archive")
-          .setValue(this.plugin.options.archiveFolderPath);
-        textfield.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ archiveFolderPath: value }));
+      .addDropdown((dropdown) => {
+        const folders = this.getVaultFolders();
+        folders.forEach((folder) => {
+          dropdown.addOption(folder, folder);
+        });
+        dropdown.addOption("__custom", "Другая...");
+        const current = this.plugin.options.archiveFolderPath || "Archive";
+        if (!folders.includes(current)) {
+          dropdown.addOption(current, current);
+        }
+        dropdown.setValue(current);
+        dropdown.onChange(async (value) => {
+          if (value === "__custom") {
+            const custom = prompt("Введите путь к папке:");
+            if (custom) {
+              this.plugin.writeOptions(() => ({ archiveFolderPath: custom }));
+              this.display();
+            }
+          } else {
+            this.plugin.writeOptions(() => ({ archiveFolderPath: value }));
+          }
         });
       });
+  }
+
+  private getVaultFolders(): string[] {
+    const folders: string[] = [];
+    const root = this.app.vault.getRoot();
+    const walk = (folder: any) => {
+      for (const child of folder.children) {
+        if (child.children) {
+          folders.push(child.path);
+          walk(child);
+        }
+      }
+    };
+    walk(root);
+    return folders.sort();
   }
 
   addShowHabitTrackerSetting(): void {

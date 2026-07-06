@@ -34,12 +34,8 @@ export const selectedDate = writable<DateUID>(null);
 export const activeTab = writable<TaskStatus>("todo");
 export const taskFilter = writable<{
   projectId: string | null;
-  searchQuery: string;
-  sortMode: "date" | "priority" | "alpha" | "created";
 }>({
   projectId: null,
-  searchQuery: "",
-  sortMode: "date",
 });
 
 export const timeLogs = writable<TimeLog[]>([]);
