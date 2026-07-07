@@ -2,7 +2,11 @@ import moment from "moment";
 import type { Moment, WeekSpec } from "moment";
 import { App, Plugin, WorkspaceLeaf } from "obsidian";
 
-import { VIEW_TYPE_CALENDAR, VIEW_TYPE_SCHEDULE } from "./constants";
+import {
+  VIEW_TYPE_CALENDAR,
+  VIEW_TYPE_SCHEDULE,
+  VIEW_TYPE_HABIT_ANALYTICS,
+} from "./constants";
 import { settings } from "./ui/stores";
 import { app as appStore } from "./stores/appStore";
 import {
@@ -13,6 +17,7 @@ import {
 import { TFile } from "obsidian";
 import CalendarView from "./view";
 import ScheduleView from "./views/ScheduleView";
+import HabitAnalyticsView from "./views/HabitAnalyticsView";
 import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
@@ -43,6 +48,9 @@ export default class CalendarPlugin extends Plugin {
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_SCHEDULE)
       .forEach((leaf) => leaf.detach());
+    this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_HABIT_ANALYTICS)
+      .forEach((leaf) => leaf.detach());
   }
 
   async onload(): Promise<void> {
@@ -66,6 +74,11 @@ export default class CalendarPlugin extends Plugin {
     this.registerView(
       VIEW_TYPE_SCHEDULE,
       (leaf: WorkspaceLeaf) => new ScheduleView(leaf, this)
+    );
+
+    this.registerView(
+      VIEW_TYPE_HABIT_ANALYTICS,
+      (leaf: WorkspaceLeaf) => new HabitAnalyticsView(leaf, this)
     );
 
     this.addCommand({
@@ -102,6 +115,12 @@ export default class CalendarPlugin extends Plugin {
       id: "open-schedule-view",
       name: "Открыть расписание",
       callback: () => this.activateScheduleView(),
+    });
+
+    this.addCommand({
+      id: "open-habit-analytics",
+      name: "Open Habit Analytics",
+      callback: () => this.activateHabitAnalyticsView(),
     });
 
     this.addRibbonIcon("calendar-range", "Расписание", () => {
@@ -180,6 +199,25 @@ export default class CalendarPlugin extends Plugin {
     if (leaf) {
       await leaf.setViewState({
         type: VIEW_TYPE_SCHEDULE,
+        active: true,
+      });
+      workspace.revealLeaf(leaf);
+    }
+  }
+
+  async activateHabitAnalyticsView(): Promise<void> {
+    const { workspace } = this.app;
+
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_HABIT_ANALYTICS);
+    if (existing.length) {
+      workspace.revealLeaf(existing[0]);
+      return;
+    }
+
+    const leaf = workspace.getLeaf("tab");
+    if (leaf) {
+      await leaf.setViewState({
+        type: VIEW_TYPE_HABIT_ANALYTICS,
         active: true,
       });
       workspace.revealLeaf(leaf);

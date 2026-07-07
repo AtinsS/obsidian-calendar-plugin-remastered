@@ -165,3 +165,146 @@ function getHabitLogsSorted(habitId: string): IHabitLog[] {
         new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 }
+
+// --- Analytics ---
+
+export interface HeatmapCell {
+  date: string;
+  count: number;
+  level: number; // 0-4 for color intensity
+}
+
+export interface WeeklyStats {
+  weekStart: string;
+  total: number;
+}
+
+export interface HabitStats {
+  habitId: string;
+  totalCompletions: number;
+  currentStreak: number;
+  longestStreak: number;
+  completionRate: number; // 0-100
+  lastCompleted: string | null;
+}
+
+export function getHeatmapData(habitId?: string): HeatmapCell[] {
+  const today = moment();
+  const yearAgo = today.clone().subtract(1, "year");
+  const logs = habitId
+    ? cachedLogs.filter((l) => l.habitId === habitId && l.completed)
+    : cachedLogs.filter((l) => l.completed);
+
+  // Count completions per date
+  const countByDate = new Map<string, number>();
+  for (const log of logs) {
+    if (moment(log.date).isBefore(yearAgo)) continue;
+    countByDate.set(log.date, (countByDate.get(log.date) || 0) + 1);
+  }
+
+  // Build cells for every day in the year
+  const cells: HeatmapCell[] = [];
+  const day = yearAgo.clone();
+  while (day.isSameOrBefore(today)) {
+    const dateStr = day.format("YYYY-MM-DD");
+    const count = countByDate.get(dateStr) || 0;
+    cells.push({ date: dateStr, count, level: 0 });
+    day.add(1, "day");
+  }
+
+  // Compute levels (0-4 quartiles)
+  const counts = cells.map((c) => c.count).filter((c) => c > 0);
+  if (counts.length > 0) {
+    counts.sort((a, b) => a - b);
+    const q1 = counts[Math.floor(counts.length * 0.25)] || 1;
+    const q2 = counts[Math.floor(counts.length * 0.5)] || 1;
+    const q3 = counts[Math.floor(counts.length * 0.75)] || 1;
+    for (const cell of cells) {
+      if (cell.count === 0) cell.level = 0;
+      else if (cell.count <= q1) cell.level = 1;
+      else if (cell.count <= q2) cell.level = 2;
+      else if (cell.count <= q3) cell.level = 3;
+      else cell.level = 4;
+    }
+  }
+
+  return cells;
+}
+
+export function getWeeklyStats(weeksBack = 12): WeeklyStats[] {
+  const today = moment().startOf("week");
+  const results: WeeklyStats[] = [];
+
+  for (let i = weeksBack - 1; i >= 0; i--) {
+    const weekStart = today.clone().subtract(i, "weeks");
+    const weekEnd = weekStart.clone().endOf("week");
+    let total = 0;
+    for (const log of cachedLogs) {
+      if (
+        log.completed &&
+        moment(log.date).isSameOrAfter(weekStart) &&
+        moment(log.date).isSameOrBefore(weekEnd)
+      ) {
+        total++;
+      }
+    }
+    results.push({
+      weekStart: weekStart.format("YYYY-MM-DD"),
+      total,
+    });
+  }
+
+  return results;
+}
+
+export function getHabitStats(habitId: string): HabitStats {
+  const logs = getHabitLogsSorted(habitId);
+  const totalCompletions = logs.length;
+
+  const currentStreak = calculateStreak(habitId);
+
+  // Longest streak
+  let longestStreak = 0;
+  if (logs.length > 0) {
+    let streak = 1;
+    const sortedAsc = [...logs].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    for (let i = 1; i < sortedAsc.length; i++) {
+      const prev = moment(sortedAsc[i - 1].date).startOf("day");
+      const curr = moment(sortedAsc[i].date).startOf("day");
+      if (curr.diff(prev, "days") === 1) {
+        streak++;
+      } else {
+        longestStreak = Math.max(longestStreak, streak);
+        streak = 1;
+      }
+    }
+    longestStreak = Math.max(longestStreak, streak);
+  }
+
+  // Completion rate (based on days since creation)
+  const habit = get(habits).find((h) => h.id === habitId);
+  let completionRate = 0;
+  if (habit) {
+    const created = moment(habit.createdAt).startOf("day");
+    const today = moment().startOf("day");
+    const daysSinceCreation = today.diff(created, "days") + 1;
+    if (daysSinceCreation > 0) {
+      completionRate = Math.round(
+        (totalCompletions / daysSinceCreation) * 100
+      );
+    }
+  }
+
+  const lastCompleted = logs.length > 0 ? logs[0].date : null;
+
+  return {
+    habitId,
+    totalCompletions,
+    currentStreak,
+    longestStreak,
+    completionRate,
+    lastCompleted,
+  };
+}
