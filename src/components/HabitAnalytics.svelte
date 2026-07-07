@@ -7,8 +7,10 @@
     getHabitStats,
   } from "../habit-tracker/stores";
   import type { IHabit } from "../habit-tracker/types";
-  import Heatmap from "./Heatmap.svelte";
   import HabitCard from "./HabitCard.svelte";
+  import BarChart from "./BarChart.svelte";
+  import { timeLogs } from "../task-tracker/stores";
+  import { formatDuration } from "../task-tracker/TimerManager";
 
   let selectedHabitId: string = "all";
   let weeklyStats = getWeeklyStats(12);
@@ -34,13 +36,18 @@
       0
     ),
   };
+
+  // Time logs stats
+  $: totalTimeMs = $timeLogs.reduce((sum, log) => sum + log.duration, 0);
+  $: uniqueDays = new Set($timeLogs.map(log => log.date)).size;
+  $: avgPerDay = uniqueDays > 0 ? totalTimeMs / uniqueDays : 0;
 </script>
 
 <div class="habit-analytics">
   <div class="habit-analytics-header">
-    <h2>Habit Analytics</h2>
+    <h2>Аналитика</h2>
     <select bind:value={selectedHabitId} class="habit-analytics-select">
-      <option value="all">All Habits</option>
+      <option value="all">Все привычки</option>
       {#each activeHabits as habit}
         <option value={habit.id}>
           {habit.icon} {habit.title}
@@ -51,7 +58,7 @@
 
   {#if activeHabits.length === 0}
     <div class="habit-analytics-empty">
-      No habits to analyze. Create some habits first!
+      Нет привычек для анализа. Сначала создайте привычки!
     </div>
   {:else}
     <!-- Summary Cards -->
@@ -59,30 +66,22 @@
       <div class="habit-analytics-summary">
         <div class="summary-card">
           <span class="summary-value">{aggregateStats.totalHabits}</span>
-          <span class="summary-label">Active Habits</span>
+          <span class="summary-label">Активных</span>
         </div>
         <div class="summary-card">
           <span class="summary-value">{aggregateStats.totalCompletions}</span>
-          <span class="summary-label">Total Completions</span>
+          <span class="summary-label">Выполнено</span>
         </div>
         <div class="summary-card">
           <span class="summary-value">{aggregateStats.bestStreak}</span>
-          <span class="summary-label">Best Streak</span>
+          <span class="summary-label">Лучшая серия</span>
         </div>
       </div>
     {/if}
 
-    <!-- Heatmap -->
-    <div class="habit-analytics-section">
-      <h3>Activity Heatmap</h3>
-      <Heatmap
-        habitId={selectedHabitId === "all" ? undefined : selectedHabitId}
-      />
-    </div>
-
     <!-- Weekly Bar Chart -->
     <div class="habit-analytics-section">
-      <h3>Weekly Activity (Last 12 Weeks)</h3>
+      <h3>Активность по неделям (12 нед.)</h3>
       <div class="weekly-chart">
         {#each weeklyStats as week}
           <div class="weekly-bar-wrapper">
@@ -104,7 +103,7 @@
     <!-- Per-habit cards -->
     {#if selectedHabitId === "all"}
       <div class="habit-analytics-section">
-        <h3>Habit Details</h3>
+        <h3>Детали по привычкам</h3>
         <div class="habit-cards-grid">
           {#each activeHabits as habit (habit.id)}
             <HabitCard {habit} />
@@ -114,11 +113,37 @@
     {:else}
       {#each activeHabits.filter((h) => h.id === selectedHabitId) as habit (habit.id)}
         <div class="habit-analytics-section">
-          <h3>{habit.icon} {habit.title} Details</h3>
+          <h3>{habit.icon} {habit.title}</h3>
           <HabitCard {habit} />
         </div>
       {/each}
     {/if}
+
+    <!-- Time Logs Section -->
+    <div class="habit-analytics-section">
+      <h3>Логи задач по времени</h3>
+      {#if $timeLogs.length === 0}
+        <div class="time-logs-empty">Нет логов времени</div>
+      {:else}
+        <div class="time-logs-stats">
+          <div class="time-stat">
+            <span class="time-stat-value">{formatDuration(totalTimeMs)}</span>
+            <span class="time-stat-label">Общее время</span>
+          </div>
+          <div class="time-stat">
+            <span class="time-stat-value">{uniqueDays}</span>
+            <span class="time-stat-label">Дней с работой</span>
+          </div>
+          <div class="time-stat">
+            <span class="time-stat-value">{formatDuration(avgPerDay)}</span>
+            <span class="time-stat-label">Среднее в день</span>
+          </div>
+        </div>
+        <div class="time-logs-chart">
+          <BarChart logs={$timeLogs} />
+        </div>
+      {/if}
+    </div>
   {/if}
 </div>
 
@@ -240,6 +265,48 @@
     gap: 12px;
   }
 
+  .time-logs-empty {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .time-logs-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .time-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+  }
+
+  .time-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-accent);
+  }
+
+  .time-stat-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  .time-logs-chart {
+    margin-top: 12px;
+  }
+
   @media (max-width: 768px) {
     .habit-analytics-summary {
       grid-template-columns: 1fr;
@@ -251,6 +318,10 @@
 
     .weekly-chart {
       height: 80px;
+    }
+
+    .time-logs-stats {
+      grid-template-columns: 1fr;
     }
   }
 

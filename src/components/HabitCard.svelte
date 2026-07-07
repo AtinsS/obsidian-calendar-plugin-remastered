@@ -13,37 +13,46 @@
     $habitLogs;
     stats = getHabitStats(habit.id);
   }
+
+  function translateFrequency(freq: string): string {
+    switch (freq) {
+      case "daily": return "ежедн.";
+      case "weekly": return "еженед.";
+      case "custom": return "по расп.";
+      default: return freq;
+    }
+  }
 </script>
 
 <div class="habit-card" style="--habit-color: {habit.color}">
   <div class="habit-card-header">
     <span class="habit-card-icon">{habit.icon}</span>
     <span class="habit-card-title">{habit.title}</span>
-    <span class="habit-card-freq">{habit.frequency}</span>
+    <span class="habit-card-freq">{translateFrequency(habit.frequency)}</span>
   </div>
 
   <div class="habit-card-stats">
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.currentStreak}</span>
-      <span class="habit-stat-label">Current Streak</span>
+      <span class="habit-stat-label">Серия</span>
     </div>
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.longestStreak}</span>
-      <span class="habit-stat-label">Longest Streak</span>
+      <span class="habit-stat-label">Макс.</span>
     </div>
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.totalCompletions}</span>
-      <span class="habit-stat-label">Total</span>
+      <span class="habit-stat-label">Всего</span>
     </div>
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.completionRate}%</span>
-      <span class="habit-stat-label">Rate</span>
+      <span class="habit-stat-label">Процент</span>
     </div>
   </div>
 
   {#if stats.lastCompleted}
     <div class="habit-card-last">
-      Last: {stats.lastCompleted}
+      Последнее: {stats.lastCompleted}
     </div>
   {/if}
 </div>
@@ -75,7 +84,6 @@
   .habit-card-freq {
     font-size: 11px;
     color: var(--text-muted);
-    text-transform: capitalize;
   }
 
   .habit-card-stats {
