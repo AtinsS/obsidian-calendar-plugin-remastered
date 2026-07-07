@@ -1,4 +1,3 @@
-шшшшшOO
 
 # 📅 Calendar Plugin Remastered
 
