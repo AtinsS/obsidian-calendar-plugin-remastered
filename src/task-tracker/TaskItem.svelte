@@ -27,11 +27,19 @@
   $: estimateOver = hasEstimate && hasActual && task.totalWorkTime > task.estimatedTime * 60000;
   $: estimateUnder = hasEstimate && hasActual && task.totalWorkTime <= task.estimatedTime * 60000;
 
-  $: scheduledTimePassed = task.scheduledTime ? isTimePassed(task.scheduledTime) : false;
+  $: scheduledTimePassed = task.scheduledTime && task.dateUID ? isTimePassed(task.scheduledTime, task.dateUID) : false;
 
-  function isTimePassed(time: string): boolean {
+  function isTimePassed(time: string, dateUID: string): boolean {
     const [h, m] = time.split(":").map(Number);
     const now = new Date();
+    const match = dateUID.match(/^day-(\d{4}-\d{2}-\d{2})/);
+    if (!match) {
+      return now.getHours() > h || (now.getHours() === h && now.getMinutes() > m);
+    }
+    const taskDate = new Date(match[1] + "T00:00:00");
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (taskDate.getTime() < today.getTime()) return true;
+    if (taskDate.getTime() > today.getTime()) return false;
     return now.getHours() > h || (now.getHours() === h && now.getMinutes() > m);
   }
 

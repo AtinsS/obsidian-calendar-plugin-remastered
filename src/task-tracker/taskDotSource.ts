@@ -79,9 +79,7 @@ function getMetadataForDate(dateUID: string): IDayMetadata {
     classes.push("has-overdue");
   }
 
-  if (uncompletedCount > 0 || allCompleted) {
-    classes.push("has-task-tracker-tasks");
-  }
+  classes.push("has-task-tracker-tasks");
 
   return {
     dataAttributes: {

@@ -179,7 +179,7 @@ export function moveTask(taskId: string, newDateUID: string): void {
   debouncedSave();
 }
 
-export function completeRecurringTask(taskId: string): void {
+export function createNextRecurringInstance(taskId: string): void {
   const allTasks = get(tasks);
   const task = allTasks.find((t) => t.id === taskId);
   if (!task || !task.recurrence) return;

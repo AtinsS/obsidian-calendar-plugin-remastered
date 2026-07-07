@@ -173,14 +173,17 @@ export default class CalendarPlugin extends Plugin {
 
   async loadOptions(): Promise<void> {
     const options = await this.loadData();
-    settings.update((old) => {
+    const old = { ...this.options };
+    settings.update((current) => {
       return {
-        ...old,
+        ...current,
         ...(options || {}),
       };
     });
 
-    await this.saveData(this.options);
+    if (JSON.stringify(old) !== JSON.stringify(this.options)) {
+      await this.saveData(this.options);
+    }
   }
 
   async writeOptions(

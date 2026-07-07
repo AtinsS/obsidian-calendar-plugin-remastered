@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { tasks, addTask, updateTask, completeRecurringTask } from "../stores";
+import { tasks, addTask, updateTask, createNextRecurringInstance } from "../stores";
 
 const TEST_DATE = "day-2026-07-05T00:00:00";
 
@@ -7,7 +7,7 @@ beforeEach(() => {
   tasks.set([]);
 });
 
-describe("completeRecurringTask", () => {
+describe("createNextRecurringInstance", () => {
   it("should not create new task if task has no recurrence", () => {
     const task = addTask({
       title: "One-off",
@@ -21,13 +21,13 @@ describe("completeRecurringTask", () => {
       status: "todo",
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     expect(get(tasks).length).toBe(1);
   });
 
   it("should not create new task if task not found", () => {
-    completeRecurringTask("nonexistent-id");
+    createNextRecurringInstance("nonexistent-id");
     expect(get(tasks).length).toBe(0);
   });
 
@@ -45,7 +45,7 @@ describe("completeRecurringTask", () => {
       recurrence: { type: "daily" },
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     const allTasks = get(tasks);
     expect(allTasks.length).toBe(2);
@@ -71,7 +71,7 @@ describe("completeRecurringTask", () => {
       recurrence: { type: "daily", interval: 3 },
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     const allTasks = get(tasks);
     const newTask = allTasks.find((t) => t.id !== task.id);
@@ -94,7 +94,7 @@ describe("completeRecurringTask", () => {
       recurrence: { type: "weekly" },
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     const allTasks = get(tasks);
     const newTask = allTasks.find((t) => t.id !== task.id);
@@ -117,7 +117,7 @@ describe("completeRecurringTask", () => {
       recurrence: { type: "monthly" },
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     const allTasks = get(tasks);
     const newTask = allTasks.find((t) => t.id !== task.id);
@@ -140,7 +140,7 @@ describe("completeRecurringTask", () => {
       recurrence: { type: "daily" },
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     const allTasks = get(tasks);
     const newTask = allTasks.find((t) => t.id !== task.id);
@@ -163,7 +163,7 @@ describe("completeRecurringTask", () => {
       recurrence: { type: "daily" },
     });
 
-    completeRecurringTask(task.id);
+    createNextRecurringInstance(task.id);
 
     const allTasks = get(tasks);
     const newTask = allTasks.find((t) => t.id !== task.id);

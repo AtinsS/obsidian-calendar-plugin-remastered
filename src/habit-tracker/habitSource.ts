@@ -36,7 +36,7 @@ function getMetadataForDate(dateStr: string): IDayMetadata {
   const allHabits = get(habits);
   const activeCount = allHabits.filter((h) => !h.archived).length;
   const allCompleted = activeCount > 0 && count >= activeCount;
-  const badge = allCompleted ? "\uD83C\uDFC6" : "\uD83D\uDD25" + String(count);
+  const badge = allCompleted ? "\uD83C\uDFC6" : "\uD83D\uDD25" + " " + String(count);
 
   return {
     dataAttributes: {

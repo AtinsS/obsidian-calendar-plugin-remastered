@@ -14,7 +14,15 @@ export function calculateEndTime(
   const totalMinutes = hours * 60 + minutes + durationMin;
   const endHours = Math.floor(totalMinutes / 60) % 24;
   const endMinutes = totalMinutes % 60;
-  return `${date}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
+
+  let endDate = date;
+  if (totalMinutes >= 1440) {
+    const d = new Date(date + "T00:00:00");
+    d.setDate(d.getDate() + 1);
+    endDate = d.toISOString().split("T")[0];
+  }
+
+  return `${endDate}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
 }
 
 /** Десaturация цвета проекта для glassmorphism-стиля */

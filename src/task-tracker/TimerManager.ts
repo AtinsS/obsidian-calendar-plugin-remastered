@@ -81,6 +81,8 @@ export function addTimeLog(log: TimeLog, logs: TimeLog[]): TimeLog[] {
 }
 
 export function formatDuration(ms: number): string {
+  if (ms <= 0) return "< 1 мин";
+
   const totalMinutes = Math.floor(ms / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -91,7 +93,8 @@ export function formatDuration(ms: number): string {
   if (hours > 0) {
     return `${hours} ч`;
   }
-  return `${Math.max(1, minutes)} мин`;
+  if (minutes === 0) return "< 1 мин";
+  return `${minutes} мин`;
 }
 
 export function formatEstimate(minutes: number): string {

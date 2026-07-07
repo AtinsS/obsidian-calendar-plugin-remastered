@@ -11,7 +11,7 @@
     updateTask,
     updateTaskStatus,
     removeTask,
-    completeRecurringTask,
+    createNextRecurringInstance,
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
   import { settings } from "../ui/stores";
@@ -132,7 +132,7 @@
     updateTaskStatus(task.id, newStatus);
 
     if (newStatus === "done" && task.recurrence) {
-      completeRecurringTask(task.id);
+      createNextRecurringInstance(task.id);
     }
 
     // Always archive note tasks when completing
