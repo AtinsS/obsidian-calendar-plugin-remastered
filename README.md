@@ -1,6 +1,4 @@
-Вот более краткая и структурированная версия README:
 
----
 
 # 📅 Calendar Plugin Remastered
 
