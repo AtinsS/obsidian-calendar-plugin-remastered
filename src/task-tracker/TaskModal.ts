@@ -4,6 +4,7 @@ import { getDateUID } from "obsidian-daily-notes-interface";
 
 import type { ITask, RecurrenceConfig } from "./types";
 import { projects, selectedDate } from "./stores";
+import { FolderSuggestModal } from "../modals/FolderSuggestModal";
 
 export class TaskModal extends Modal {
   private task: ITask | null;
@@ -261,6 +262,20 @@ export class TaskModal extends Modal {
           .setValue(this.notePathInput)
           .onChange((value) => {
             this.notePathInput = value;
+          })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("...")
+          .setTooltip("Выбрать папку")
+          .onClick(() => {
+            new FolderSuggestModal(this.app, (folder) => {
+              this.notePathInput = folder;
+              const input = notePathSetting.settingEl.querySelector(
+                "input"
+              ) as HTMLInputElement | null;
+              if (input) input.value = folder;
+            }).open();
           })
       );
     this.notePathSetting = notePathSetting;

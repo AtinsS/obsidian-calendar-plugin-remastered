@@ -9,6 +9,7 @@ import {
   updateProject,
   removeProject,
 } from "./stores";
+import { FolderSuggestModal } from "../modals/FolderSuggestModal";
 
 export class ProjectModal extends Modal {
   constructor(app: App) {
@@ -75,6 +76,20 @@ export class ProjectModal extends Modal {
         text.setPlaceholder("Проекты/МойПроект").onChange((value) => {
           newFolder = value;
         })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("...")
+          .setTooltip("Выбрать папку")
+          .onClick(() => {
+            new FolderSuggestModal(this.app, (folder) => {
+              newFolder = folder;
+              const input = newProjectSection.querySelector(
+                ".task-tracker-new-project input[type='text']"
+              ) as HTMLInputElement | null;
+              if (input) input.value = folder;
+            }).open();
+          })
       );
 
     const createBtn = newProjectSection.createEl("button", {
@@ -231,6 +246,20 @@ class EditProjectModal extends Modal {
         text.setValue(folder).onChange((value) => {
           folder = value;
         })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("...")
+          .setTooltip("Выбрать папку")
+          .onClick(() => {
+            new FolderSuggestModal(this.app, (selectedFolder) => {
+              folder = selectedFolder;
+              const input = contentEl.querySelector(
+                ".task-tracker-project-modal input[type='text']"
+              ) as HTMLInputElement | null;
+              if (input) input.value = selectedFolder;
+            }).open();
+          })
       );
 
     const buttonsEl = contentEl.createDiv("task-tracker-modal-buttons");
