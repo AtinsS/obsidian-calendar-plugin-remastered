@@ -3,6 +3,7 @@ import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
 import { DEFAULT_WORDS_PER_DOT } from "src/constants";
+import { defaultNotificationSettings } from "src/services/NotificationService";
 import { FolderSuggestModal } from "./modals/FolderSuggestModal";
 
 import type CalendarPlugin from "./main";
@@ -31,6 +32,11 @@ export interface ISettings {
 
   // Sync settings
   syncToVault: boolean;
+
+  // Notification settings
+  notificationsEnabled: boolean;
+  reminderMinutesBefore: number;
+  checkIntervalMs: number;
 }
 
 const weekdays = [
@@ -64,6 +70,10 @@ export const defaultSettings = Object.freeze({
   showHabitTracker: true,
 
   syncToVault: false,
+
+  notificationsEnabled: defaultNotificationSettings.notificationsEnabled,
+  reminderMinutesBefore: defaultNotificationSettings.reminderMinutesBefore,
+  checkIntervalMs: defaultNotificationSettings.checkIntervalMs,
 });
 
 export function appHasPeriodicNotesPluginLoaded(): boolean {
@@ -112,6 +122,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
     });
     this.addSyncToVaultSetting();
     this.addSyncAdvice();
+
+    this.containerEl.createEl("h3", {
+      text: "Уведомления",
+    });
+    this.addNotificationSettings();
   }
 
   addWeekStartSetting(): void {
@@ -246,5 +261,33 @@ export class CalendarSettingsTab extends PluginSettingTab {
       </p>
     `;
     this.containerEl.appendChild(desc);
+  }
+
+  addNotificationSettings(): void {
+    new Setting(this.containerEl)
+      .setName("Включить уведомления")
+      .setDesc("Показывать уведомления о запланированных задачах")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.notificationsEnabled);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ notificationsEnabled: value });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Напоминание за (минут)")
+      .setDesc("За сколько минут до запланированного времени показывать напоминание")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("1", "1 минута");
+        dropdown.addOption("5", "5 минут");
+        dropdown.addOption("10", "10 минут");
+        dropdown.addOption("15", "15 минут");
+        dropdown.addOption("30", "30 минут");
+        dropdown.addOption("60", "1 час");
+        dropdown.setValue(String(this.plugin.options.reminderMinutesBefore));
+        dropdown.onChange(async (value) => {
+          this.plugin.writeOptions({ reminderMinutesBefore: parseInt(value) });
+        });
+      });
   }
 }

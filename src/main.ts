@@ -18,6 +18,7 @@ import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
+import { NotificationService } from "./services/NotificationService";
 
 declare global {
   interface Window {
@@ -31,9 +32,11 @@ export default class CalendarPlugin extends Plugin {
   public options: ISettings;
   private view: CalendarView;
   private syncReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private notificationService: NotificationService;
 
   onunload(): void {
     if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
+    this.notificationService?.stop();
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_CALENDAR)
       .forEach((leaf) => leaf.detach());
@@ -51,6 +54,7 @@ export default class CalendarPlugin extends Plugin {
         this.options = value;
         setTaskSync(!!value.syncToVault);
         setHabitSync(!!value.syncToVault);
+        this.notificationService?.restart();
       })
     );
 
@@ -112,6 +116,12 @@ export default class CalendarPlugin extends Plugin {
 
     // Initialize habit tracker
     initHabitStores(this);
+
+    // Initialize notification service
+    this.notificationService = new NotificationService(this);
+    if (this.options.notificationsEnabled) {
+      this.notificationService.start();
+    }
 
     // Watch for vault sync file changes (modify + create)
     const debouncedSyncReload = () => {
