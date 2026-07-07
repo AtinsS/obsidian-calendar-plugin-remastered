@@ -4,7 +4,7 @@ import moment from "moment";
 import type CalendarPlugin from "src/main";
 
 import type { IHabit, IHabitLog, IHabitTrackerData } from "./types";
-import { HABIT_TRACKER_DATA_VERSION } from "./types";
+import { HABIT_TRACKER_DATA_VERSION, MAX_HABIT_LOG_ENTRIES } from "./types";
 import { loadHabitData, saveHabitData, generateId } from "./storage";
 
 let pluginInstance: CalendarPlugin = null;
@@ -29,6 +29,16 @@ export function rebuildLogsCache(): void {
   }
 }
 
+function cleanupOldHabitLogs(): void {
+  habitLogs.update((current) => {
+    if (current.length <= MAX_HABIT_LOG_ENTRIES) return current;
+    const sorted = [...current].sort(
+      (a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0)
+    );
+    return sorted.slice(0, MAX_HABIT_LOG_ENTRIES);
+  });
+}
+
 function debouncedSave(): void {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
@@ -51,6 +61,7 @@ export function initHabitStores(plugin: CalendarPlugin): void {
     habits.set(data.habits);
     habitLogs.set(data.habitLogs);
     rebuildLogsCache();
+    cleanupOldHabitLogs();
   });
 }
 
@@ -59,6 +70,7 @@ export function reloadHabitStores(plugin: CalendarPlugin): void {
     habits.set(data.habits);
     habitLogs.set(data.habitLogs);
     rebuildLogsCache();
+    cleanupOldHabitLogs();
   });
 }
 
@@ -113,6 +125,7 @@ export function toggleHabitCompletion(
       completedAt: Date.now(),
     };
     habitLogs.update((current) => [...current, log]);
+    cleanupOldHabitLogs();
   }
   rebuildLogsCache();
   debouncedSave();
