@@ -15,10 +15,10 @@ export function clamp(
   return Math.min(Math.max(lowerBound, num), upperBound);
 }
 
-export function partition(
-  arr: string[],
-  predicate: (elem: string) => boolean
-): [string[], string[]] {
+export function partition<T>(
+  arr: T[],
+  predicate: (elem: T) => boolean
+): [T[], T[]] {
   const pass = [];
   const fail = [];
 

@@ -2,6 +2,9 @@ import type CalendarPlugin from "src/main";
 
 import { ITaskTrackerData, TASK_TRACKER_DATA_VERSION } from "./types";
 import { loadVaultData, saveVaultData } from "../io/vaultStorage";
+import { generateId } from "../utils/id";
+
+export { generateId };
 
 const TASK_TRACKER_KEY = "taskTracker";
 
@@ -11,14 +14,6 @@ let syncEnabled = false;
 
 export function setSyncEnabled(enabled: boolean): void {
   syncEnabled = enabled;
-}
-
-export function generateId(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
 }
 
 export async function loadTaskData(

@@ -191,10 +191,8 @@ export default class CalendarPlugin extends Plugin {
     }
   }
 
-  async writeOptions(
-    changeOpts: (settings: ISettings) => Partial<ISettings>
-  ): Promise<void> {
-    settings.update((old) => ({ ...old, ...changeOpts(old) }));
+  async writeOptions(changes: Partial<ISettings>): Promise<void> {
+    settings.update((old) => ({ ...old, ...changes }));
     await this.saveData(this.options);
   }
 }

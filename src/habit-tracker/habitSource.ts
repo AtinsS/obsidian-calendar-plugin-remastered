@@ -46,9 +46,40 @@ function getMetadataForDate(dateStr: string): IDayMetadata {
   };
 }
 
+function getWeeklyMetadataForDate(weekStart: Moment): IDayMetadata {
+  const map = getLogsMap();
+  let totalCount = 0;
+
+  for (let i = 0; i < 7; i++) {
+    const dateStr = weekStart.clone().add(i, "days").format("YYYY-MM-DD");
+    totalCount += map.get(dateStr) || 0;
+  }
+
+  if (totalCount === 0) {
+    return {};
+  }
+
+  const allHabits = get(habits);
+  const activeCount = allHabits.filter((h) => !h.archived).length;
+  const maxPossible = activeCount * 7;
+  const allCompleted = activeCount > 0 && totalCount >= maxPossible;
+  const badge = allCompleted ? "\uD83C\uDFC6" : "\uD83D\uDD25" + " " + String(totalCount);
+
+  return {
+    dataAttributes: {
+      "data-habit-count": badge,
+    },
+    classes: ["has-habit-logs"],
+  };
+}
+
 export const habitSource: ICalendarSource = {
   getDailyMetadata: async (date: Moment): Promise<IDayMetadata> => {
     const dateStr = date.format("YYYY-MM-DD");
     return getMetadataForDate(dateStr);
+  },
+  getWeeklyMetadata: async (date: Moment): Promise<IDayMetadata> => {
+    const weekStart = date.clone().startOf("isoWeek");
+    return getWeeklyMetadataForDate(weekStart);
   },
 };

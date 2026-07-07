@@ -132,9 +132,9 @@ export class CalendarSettingsTab extends PluginSettingTab {
         });
         dropdown.setValue(this.plugin.options.weekStart);
         dropdown.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({
+          this.plugin.writeOptions({
             weekStart: value as IWeekStartOption,
-          }));
+          });
         });
       });
   }
@@ -146,7 +146,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.showTaskTracker);
         toggle.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ showTaskTracker: value }));
+          this.plugin.writeOptions({ showTaskTracker: value });
         });
       });
 
@@ -156,7 +156,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.archiveCompletedNotes);
         toggle.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ archiveCompletedNotes: value }));
+          this.plugin.writeOptions({ archiveCompletedNotes: value });
         });
       });
 
@@ -178,11 +178,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
           if (value === "__custom") {
             const custom = prompt("Введите путь к папке:");
             if (custom) {
-              this.plugin.writeOptions(() => ({ archiveFolderPath: custom }));
+              this.plugin.writeOptions({ archiveFolderPath: custom });
               this.display();
             }
           } else {
-            this.plugin.writeOptions(() => ({ archiveFolderPath: value }));
+            this.plugin.writeOptions({ archiveFolderPath: value });
           }
         });
       });
@@ -210,7 +210,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.showHabitTracker);
         toggle.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ showHabitTracker: value }));
+          this.plugin.writeOptions({ showHabitTracker: value });
         });
       });
   }
@@ -224,7 +224,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.syncToVault);
         toggle.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ syncToVault: value }));
+          this.plugin.writeOptions({ syncToVault: value });
         });
       });
   }

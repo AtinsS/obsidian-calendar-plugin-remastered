@@ -73,6 +73,7 @@ export function reloadTaskStores(plugin: CalendarPlugin): void {
     tasks.set(data.tasks);
     projects.set(data.projects);
     timeLogs.set(data.timeLogs || []);
+    autoCleanupCompleted();
   });
 }
 
