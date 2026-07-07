@@ -3,6 +3,7 @@ import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
 import { DEFAULT_WORDS_PER_DOT } from "src/constants";
+import { FolderSuggestModal } from "./modals/FolderSuggestModal";
 
 import type CalendarPlugin from "./main";
 
@@ -176,11 +177,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
         dropdown.setValue(current);
         dropdown.onChange(async (value) => {
           if (value === "__custom") {
-            const custom = prompt("Введите путь к папке:");
-            if (custom) {
-              this.plugin.writeOptions({ archiveFolderPath: custom });
+            const modal = new FolderSuggestModal(this.app, async (folder) => {
+              this.plugin.writeOptions({ archiveFolderPath: folder });
               this.display();
-            }
+            });
+            modal.open();
           } else {
             this.plugin.writeOptions({ archiveFolderPath: value });
           }
