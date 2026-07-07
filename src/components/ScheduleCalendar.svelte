@@ -963,6 +963,96 @@
     :global(.fc .fc-list-day-cushion) {
       padding: 4px 8px;
     }
+
+    /* Горизонтальный скролл timegrid — если колонки не помещаются */
+    :global(.fc .fc-timegrid-scroll) {
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+
+    /* Месяц на маленьком экране — ещё компактнее */
+    :global(.fc .fc-daygrid-day) {
+      min-height: 40px;
+    }
+
+    :global(.fc .fc-daygrid-event) {
+      font-size: 9px;
+      margin: 1px 1px;
+      padding: 1px 3px;
+    }
+
+    :global(.fc .fc-daygrid-event .sch-event-title) {
+      font-size: 9px;
+    }
+
+    :global(.fc .fc-daygrid-more-link) {
+      font-size: 8px;
+    }
+  }
+
+  /* ===== Мобильная сетка месяца (dayGridMonth) ===== */
+  @media (max-width: 768px) {
+    /* Сетка месяца — полная 7x5/7x6 сетка */
+    :global(.fc .fc-daygrid) {
+      min-height: 280px;
+    }
+
+    :global(.fc .fc-daygrid-day) {
+      min-height: 42px;
+      padding: 2px;
+    }
+
+    :global(.fc .fc-daygrid-day-number) {
+      font-size: 12px;
+      padding: 3px 6px;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    /* События в ячейках месяца — компактные полоски */
+    :global(.fc .fc-daygrid-event) {
+      margin: 1px 2px;
+      padding: 1px 4px;
+      font-size: 10px;
+      border-radius: 3px;
+      border-left-width: 2px !important;
+      line-height: 1.3;
+    }
+
+    :global(.fc .fc-daygrid-event .sch-event) {
+      padding: 1px 3px;
+      line-height: 1.25;
+    }
+
+    :global(.fc .fc-daygrid-event .sch-event-title) {
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    :global(.fc .fc-daygrid-event .sch-priority) {
+      width: 10px;
+      height: 10px;
+      font-size: 7px;
+    }
+
+    :global(.fc .fc-daygrid-more-link) {
+      font-size: 9px;
+      padding: 1px 4px;
+      color: var(--mcp-accent, rgba(95, 153, 225, 0.7));
+    }
+
+    /* Заголовки дней месяца */
+    :global(.fc .fc-col-header-cell-cushion) {
+      font-size: 10px;
+      padding: 5px 0;
+    }
+
+    /* Скрываем "весь день" слот в timegrid на мобилке */
+    :global(.fc .fc-timegrid .fc-day-today) {
+      background: rgba(95, 153, 225, 0.04) !important;
+    }
   }
 
   /* ===== Маленький телефон (≤360px) ===== */
@@ -1000,6 +1090,56 @@
     :global(.fc .fc-daygrid-day-number) {
       font-size: 10px;
       padding: 2px 4px;
+    }
+
+    /* Месяц — минимальные ячейки */
+    :global(.fc .fc-daygrid-day) {
+      min-height: 36px;
+    }
+
+    :global(.fc .fc-daygrid-event) {
+      font-size: 8px;
+      padding: 1px 2px;
+      margin: 0 1px;
+    }
+
+    :global(.fc .fc-daygrid-event .sch-event-title) {
+      font-size: 8px;
+    }
+
+    :global(.fc .fc-daygrid-event .sch-priority) {
+      display: none;
+    }
+
+    :global(.fc .fc-daygrid-more-link) {
+      font-size: 7px;
+      padding: 0 2px;
+    }
+
+    /* TimeGrid — ещё компактнее */
+    :global(.fc .fc-timegrid-slot) {
+      height: 34px;
+    }
+
+    :global(.fc .fc-timegrid-axis) {
+      width: 24px;
+    }
+
+    :global(.fc .fc-timegrid-axis-cushion),
+    :global(.fc .fc-timegrid-slot-label-cushion) {
+      font-size: 8px;
+    }
+
+    :global(.fc .fc-timegrid-event) {
+      min-height: 26px;
+    }
+
+    :global(.sch-event) {
+      padding: 1px 4px;
+    }
+
+    :global(.sch-event-title) {
+      font-size: 9.5px;
     }
   }
 
@@ -1060,6 +1200,29 @@
 
     :global(.fc .fc-col-header-cell-cushion) {
       padding: 6px 0;
+    }
+
+    /* Увеличиваем тап-таргеты для месячного вида */
+    :global(.fc .fc-daygrid-day) {
+      min-height: 48px;
+    }
+
+    :global(.fc .fc-daygrid-event) {
+      min-height: 20px;
+      padding: 2px 4px;
+    }
+
+    /* Увеличиваем слоты времени для удобного тапа */
+    :global(.fc .fc-timegrid-slot) {
+      min-height: 44px;
+    }
+
+    /* Увеличиваем кнопки навигации */
+    :global(.fc .fc-prev-button),
+    :global(.fc .fc-next-button),
+    :global(.fc .fc-today-button) {
+      min-height: 44px;
+      min-width: 44px;
     }
   }
 
