@@ -257,7 +257,6 @@ export function createNextRecurringInstance(taskId: string): void {
     priority: task.priority,
     tags: [...task.tags],
     sortOrder: 0,
-    description: task.description,
     recurrence: task.recurrence,
     scheduledTime: task.scheduledTime,
     estimatedTime: task.estimatedTime,
