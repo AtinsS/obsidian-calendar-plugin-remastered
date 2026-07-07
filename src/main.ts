@@ -127,6 +127,10 @@ export default class CalendarPlugin extends Plugin {
       this.activateScheduleView();
     });
 
+    this.addRibbonIcon("bar-chart", "Habit Analytics", () => {
+      this.activateHabitAnalyticsView();
+    });
+
     await this.loadOptions();
 
     // Initialize task tracker
