@@ -3,7 +3,6 @@
 > Календарь, трекер задач и трекер привычек для [Obsidian](https://obsidian.md)  
 > Модифицированная версия оригинального плагина [Calendar](https://github.com/liamcain/obsidian-calendar-plugin) от Liam Cain
 
-[![GitHub release](https://img.shields.io/github/v/release/AtinsS/obsidian-calendar-plugin-remastered?style=flat-square)](https://github.com/AtinsS/obsidian-calendar-plugin-remastered/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Obsidian](https://img.shields.io/badge/Obsidian-0.9.11+-7C3AED?style=flat-square&logo=obsidian)](https://obsidian.md)
 [![Svelte](https://img.shields.io/badge/Svelte-3.x-FF3E00?style=flat-square&logo=svelte)](https://svelte.dev/)
