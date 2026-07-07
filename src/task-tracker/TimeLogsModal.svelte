@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import { timeLogs } from "./stores";
   import { formatDuration, groupLogsByDate } from "./TimerManager";
+  import BarChart from "../components/BarChart.svelte";
 
   export let onClose: () => void;
 
@@ -52,6 +53,9 @@
       {#if dates.length === 0}
         <div class="time-logs-empty">Нет логов времени</div>
       {:else}
+        <div class="time-logs-chart">
+          <BarChart logs={$timeLogs} />
+        </div>
         {#each dates as date (date)}
           <div class="time-logs-date-group">
             <div class="time-logs-date-label">{formatDate(date)}</div>
@@ -81,6 +85,12 @@
 
   .time-logs-modal {
     touch-action: manipulation;
+  }
+
+  .time-logs-chart {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--mcp-glass-border);
   }
 
   .time-logs-entry {
