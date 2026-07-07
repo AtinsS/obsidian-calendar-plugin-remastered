@@ -1,4 +1,4 @@
-
+OO
 
 # 📅 Calendar Plugin Remastered
 
@@ -82,7 +82,7 @@
 ---
 
 <div align="center">
-Сделано с 💜 для сообщества [Obsidian](https://obsidian.md)
+Сделано с 💜 для сообщества Obsidian
 </div>
 
 ---
