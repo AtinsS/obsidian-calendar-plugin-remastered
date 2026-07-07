@@ -19,7 +19,6 @@ export interface ITask {
   sortOrder: number;
   createdAt: number;
   updatedAt: number;
-  description?: string;
   recurrence?: RecurrenceConfig;
   timerStartedAt?: number;
   totalWorkTime?: number;
@@ -59,7 +58,7 @@ export interface ITaskTrackerData {
 
 export type DateUID = string;
 
-export const TASK_TRACKER_DATA_VERSION = 4;
+export const TASK_TRACKER_DATA_VERSION = 5;
 export const MAX_TIME_LOGS = 30;
 
 export const DEFAULT_PROJECT_COLORS = [

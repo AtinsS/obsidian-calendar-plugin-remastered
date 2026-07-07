@@ -13,9 +13,6 @@
 
   $: project = $projects.find((p) => p.id === task.projectId);
   $: projectColor = project?.color || "var(--text-muted)";
-  $: descriptionPreview = task.description
-    ? task.description.substring(0, 60) + (task.description.length > 60 ? "..." : "")
-    : "";
 
   // Timer display
   $: elapsed = $timerTick && task.status === "progress" && task.timerStartedAt
@@ -101,7 +98,6 @@
   }
 
   let showActionsMenu = false;
-  let showDescription = false;
 
   function toggleActionsMenu() {
     showActionsMenu = !showActionsMenu;
@@ -109,10 +105,6 @@
 
   function closeActionsMenu() {
     showActionsMenu = false;
-  }
-
-  function toggleDescription() {
-    showDescription = !showDescription;
   }
 </script>
 
@@ -200,15 +192,6 @@
     </span>
   {/if}
 
-  <button
-    class="task-info-btn"
-    on:click|stopPropagation={toggleDescription}
-    title="Подробнее"
-    aria-label="Подробнее о задаче"
-  >
-    &#8505;
-  </button>
-
   {#if task.priority === "high"}
     <span class="task-priority high" aria-label="Высокий приоритет">!</span>
   {:else if task.priority === "medium"}
@@ -257,31 +240,4 @@
     {/if}
   </div>
 
-  {#if showDescription}
-    <div class="task-description-popup" on:click|stopPropagation role="dialog">
-      <div class="task-description-header">
-        <span>{task.title}</span>
-        <button class="task-description-close" on:click={toggleDescription}>&#10005;</button>
-      </div>
-      <div class="task-description-badges">
-        {#if task.recurrence}
-          <span class="badge-item">&#8635; Повторяется</span>
-        {/if}
-        {#if task.scheduledTime}
-          <span class="badge-item {scheduledTimePassed ? 'passed' : ''}">
-            {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
-          </span>
-        {/if}
-        {#if hasEstimate}
-          <span class="badge-item">&#9201; План: {formatEstimate(task.estimatedTime)}</span>
-        {/if}
-        {#if hasActual}
-          <span class="badge-item">&#9201; Факт: {formatDuration(task.totalWorkTime)}</span>
-        {/if}
-      </div>
-      {#if task.description}
-        <div class="task-description-body">{task.description}</div>
-      {/if}
-    </div>
-  {/if}
 </div>

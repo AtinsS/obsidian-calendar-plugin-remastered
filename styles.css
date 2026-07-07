@@ -896,16 +896,6 @@ content: attr(data-task-count);
   background: var(--mcp-danger-dim);
 }
 
-.task-description-preview {
-  font-size: 11px;
-  color: var(--mcp-text-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100px;
-  flex-shrink: 0;
-}
-
 .task-priority {
   font-size: 10px;
   font-weight: 700;
@@ -1052,107 +1042,7 @@ content: attr(data-task-count);
   cursor: not-allowed;
 }
 
-/* Task info button */
-.task-info-btn {
-  background: none;
-  border: none;
-  color: var(--mcp-text-muted);
-  cursor: pointer;
-  font-size: 13px;
-  padding: 2px 4px;
-  min-width: 22px;
-  min-height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.task-info-btn:hover {
-  color: var(--mcp-accent);
-  background: var(--mcp-accent-dim);
-}
-
-/* Task description popup */
-.task-description-popup {
-  position: fixed;
-  bottom: 16px;
-  left: 16px;
-  right: 16px;
-  max-height: 40vh;
-  background: var(--background-primary);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 10px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
-  z-index: 1100;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.task-description-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  font-size: 13px;
-  font-weight: 600;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.task-description-close {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 14px;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.task-description-close:hover {
-  color: var(--text-normal);
-  background: var(--background-modifier-hover);
-}
-
-.task-description-body {
-  padding: 12px 14px;
-  font-size: 13px;
-  color: var(--text-normal);
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.task-description-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
-.badge-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
-  color: var(--mcp-text-muted);
-  background: var(--mcp-surface);
-  border: 1px solid var(--mcp-glass-border);
-  border-radius: 12px;
-}
-
-.badge-item.passed {
-  color: var(--text-error);
-  border-color: var(--text-error);
-}
-
-/* ============================================
-   MODALS
-   ============================================ */
+/* Task actions dropdown */
 .task-tracker-modal .modal-content,
 .task-tracker-project-modal .modal-content {
   padding: 28px;
@@ -1840,10 +1730,6 @@ content: attr(data-task-count);
     font-size: 13px;
     min-width: 0;
     flex: 1 1 auto;
-  }
-
-  .task-description-preview {
-    display: none;
   }
 
   .task-recurring-icon,

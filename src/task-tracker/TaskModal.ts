@@ -16,7 +16,6 @@ export class TaskModal extends Modal {
   private priority: "low" | "medium" | "high" = "medium";
   private isNoteTask = false;
   private notePathInput = "";
-  private descriptionInput = "";
   private recurrenceType: "none" | "daily" | "weekly" | "monthly" = "none";
   private recurrenceInterval = 1;
   private recurrenceDaysOfWeek: number[] = [];
@@ -41,7 +40,6 @@ export class TaskModal extends Modal {
       this.priority = this.task.priority;
       this.isNoteTask = !!this.task.notePath;
       this.notePathInput = this.task.notePath || "";
-      this.descriptionInput = this.task.description || "";
       if (this.task.recurrence) {
         this.recurrenceType = this.task.recurrence.type;
         this.recurrenceInterval = this.task.recurrence.interval || 1;
@@ -80,18 +78,6 @@ export class TaskModal extends Modal {
             if (this.isNoteTask && !this.task) {
               this.updateNotePathPreview();
             }
-          })
-      );
-
-    new Setting(contentEl)
-      .setName("Описание")
-      .setDesc("Необязательное описание задачи")
-      .addTextArea((text) =>
-        text
-          .setPlaceholder("Описание...")
-          .setValue(this.descriptionInput)
-          .onChange((value) => {
-            this.descriptionInput = value;
           })
       );
 
@@ -358,7 +344,6 @@ export class TaskModal extends Modal {
       priority: this.priority,
       isNoteTask: this.isNoteTask,
       notePath: this.isNoteTask ? this.notePathInput || null : null,
-      description: this.descriptionInput || undefined,
       recurrence,
       estimatedTime: (parseInt(this.estimatedTimeHours) || 0) * 60 + (parseInt(this.estimatedTimeMinutes) || 0) || undefined,
       scheduledTime: this.scheduledTime || undefined,
