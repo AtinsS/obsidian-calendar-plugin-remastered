@@ -13,31 +13,16 @@ function sanitizeFilename(name: string): string {
     .substring(0, 200);
 }
 
-export async function createNoteTask(
-  task: ITask,
-  project: IProject | null,
-  app: App,
-  customPath?: string
-): Promise<TFile> {
-  let path: string;
+function buildNotePath(task: ITask, project: IProject | null, customPath?: string): string {
   if (customPath) {
-    path = customPath.endsWith(".md") ? customPath : customPath + ".md";
-  } else {
-    const folder = project?.folder || "";
-    const filename = sanitizeFilename(task.title) + ".md";
-    path = folder ? `${folder}/${filename}` : filename;
+    return customPath.endsWith(".md") ? customPath : customPath + ".md";
   }
+  const folder = project?.folder || "";
+  const filename = sanitizeFilename(task.title) + ".md";
+  return folder ? `${folder}/${filename}` : filename;
+}
 
-  // Ensure folder exists
-  const parts = path.split("/");
-  if (parts.length > 1) {
-    const folderPath = parts.slice(0, -1).join("/");
-    const folderObj = app.vault.getAbstractFileByPath(folderPath);
-    if (!folderObj) {
-      await app.vault.createFolder(folderPath);
-    }
-  }
-
+function buildNoteContent(task: ITask, project: IProject | null): string {
   const frontmatter = [
     "---",
     `task_id: ${task.id}`,
@@ -52,8 +37,27 @@ export async function createNoteTask(
 
   const inProgressLine = task.status === "progress" ? "- [x] В работу" : "- [ ] В работу";
   const doneLine = task.completed ? "- [x] Готово" : "- [ ] Готово";
-  const content = [frontmatter, "", `# ${task.title}`, "", inProgressLine, doneLine, ""].join("\n");
+  return [frontmatter, "", `# ${task.title}`, "", inProgressLine, doneLine, ""].join("\n");
+}
 
+export async function createNoteTask(
+  task: ITask,
+  project: IProject | null,
+  app: App,
+  customPath?: string
+): Promise<TFile> {
+  const path = buildNotePath(task, project, customPath);
+
+  const parts = path.split("/");
+  if (parts.length > 1) {
+    const folderPath = parts.slice(0, -1).join("/");
+    const folderObj = app.vault.getAbstractFileByPath(folderPath);
+    if (!folderObj) {
+      await app.vault.createFolder(folderPath);
+    }
+  }
+
+  const content = buildNoteContent(task, project);
   const file = await app.vault.create(path, content);
   return file;
 }

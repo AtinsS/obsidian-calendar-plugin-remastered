@@ -127,25 +127,36 @@
     removeTask(task.id);
   }
 
-  async function handleTaskComplete(task: ITask) {
+  function toggleTaskStatus(task: ITask): "done" | "todo" {
     const newStatus = task.status === "done" ? "todo" : "done";
     updateTaskStatus(task.id, newStatus);
+    return newStatus;
+  }
 
-    if (newStatus === "done" && task.recurrence) {
+  function handleRecurringNext(task: ITask): void {
+    if (task.recurrence) {
       createNextRecurringInstance(task.id);
     }
+  }
 
-    // Always archive note tasks when completing
-    if (newStatus === "done" && task.notePath) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const app = (window as any).app;
-      if (app) {
-        const archivePath = $settings.archiveFolderPath || "Archive";
-        const newPath = await archiveNoteTask(task.notePath, archivePath, app);
-        if (newPath) {
-          updateTask(task.id, { notePath: newPath });
-        }
-      }
+  async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
+    if (newStatus !== "done" || !task.notePath) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const app = (window as any).app;
+    if (!app) return;
+    const archivePath = $settings.archiveFolderPath || "Archive";
+    const newPath = await archiveNoteTask(task.notePath, archivePath, app);
+    if (newPath) {
+      updateTask(task.id, { notePath: newPath });
+    }
+  }
+
+  async function handleTaskComplete(task: ITask) {
+    const newStatus = toggleTaskStatus(task);
+
+    if (newStatus === "done") {
+      handleRecurringNext(task);
+      await archiveNoteIfCompleted(task, newStatus);
     }
   }
 

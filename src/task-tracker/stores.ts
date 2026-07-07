@@ -102,62 +102,71 @@ export function updateTask(id: string, changes: Partial<ITask>): void {
   }
 }
 
+function startTaskTimer(id: string): void {
+  startTimer(id);
+  tasks.update((current) =>
+    current.map((t) =>
+      t.id === id
+        ? { ...t, status: "progress" as TaskStatus, completed: false, timerStartedAt: Date.now(), updatedAt: Date.now() }
+        : t
+    )
+  );
+}
+
+function stopTaskTimerAndLog(id: string, status: TaskStatus): void {
+  const allTasks = get(tasks);
+  const task = allTasks.find((t) => t.id === id);
+  const log = stopTimer(id);
+  if (log && task) {
+    log.taskTitle = task.title;
+    const updatedLogs = addTimeLog(log, get(timeLogs));
+    timeLogs.set(updatedLogs);
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status,
+              completed: status === "done",
+              totalWorkTime: (t.totalWorkTime || 0) + log.duration,
+              timerStartedAt: undefined,
+              updatedAt: Date.now(),
+            }
+          : t
+      )
+    );
+  } else {
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? { ...t, status, completed: status === "done", timerStartedAt: undefined, updatedAt: Date.now() }
+          : t
+      )
+    );
+  }
+}
+
+function setTaskStatus(id: string, status: TaskStatus): void {
+  tasks.update((current) =>
+    current.map((t) =>
+      t.id === id
+        ? { ...t, status, completed: status === "done", updatedAt: Date.now() }
+        : t
+    )
+  );
+}
+
 export function updateTaskStatus(id: string, status: TaskStatus): void {
   const allTasks = get(tasks);
   const task = allTasks.find((t) => t.id === id);
   const oldStatus = task?.status;
 
-  // Start timer when entering progress
   if (oldStatus !== "progress" && status === "progress") {
-    startTimer(id);
-    tasks.update((current) =>
-      current.map((t) =>
-        t.id === id
-          ? { ...t, status, completed: false, timerStartedAt: Date.now(), updatedAt: Date.now() }
-          : t
-      )
-    );
-  }
-  // Stop timer when leaving progress
-  else if (oldStatus === "progress" && status !== "progress") {
-    const log = stopTimer(id);
-    if (log && task) {
-      log.taskTitle = task.title;
-      const updatedLogs = addTimeLog(log, get(timeLogs));
-      timeLogs.set(updatedLogs);
-      tasks.update((current) =>
-        current.map((t) =>
-          t.id === id
-            ? {
-                ...t,
-                status,
-                completed: status === "done",
-                totalWorkTime: (t.totalWorkTime || 0) + log.duration,
-                timerStartedAt: undefined,
-                updatedAt: Date.now(),
-              }
-            : t
-        )
-      );
-    } else {
-      tasks.update((current) =>
-        current.map((t) =>
-          t.id === id
-            ? { ...t, status, completed: status === "done", timerStartedAt: undefined, updatedAt: Date.now() }
-            : t
-        )
-      );
-    }
-  }
-  // Simple status change (not involving progress)
-  else {
-    tasks.update((current) =>
-      current.map((t) =>
-        t.id === id
-          ? { ...t, status, completed: status === "done", updatedAt: Date.now() }
-          : t
-      )
-    );
+    startTaskTimer(id);
+  } else if (oldStatus === "progress" && status !== "progress") {
+    stopTaskTimerAndLog(id, status);
+  } else {
+    setTaskStatus(id, status);
   }
 
   debouncedSave();
