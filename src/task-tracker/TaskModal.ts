@@ -286,7 +286,7 @@ export class TaskModal extends Modal {
   private recurrenceDaysSetting: Setting;
 
   private updateRecurrenceSettings(): void {
-    const showInterval = this.recurrenceType !== "none" && this.recurrenceType !== "daily";
+    const showInterval = this.recurrenceType === "monthly";
     const showDays = this.recurrenceType === "weekly";
 
     this.recurrenceIntervalSetting.settingEl.style.display = showInterval ? "" : "none";

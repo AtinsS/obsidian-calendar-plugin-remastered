@@ -228,7 +228,8 @@ export function createNextRecurringInstance(taskId: string): void {
           }
         }
         if (!foundNext) {
-          nextDate.add(task.recurrence.interval || 1, "weeks");
+          const daysUntilNextWeek = 7 - currentDow + sortedDays[0];
+          nextDate.add(daysUntilNextWeek, "days");
         }
       } else {
         nextDate.add(task.recurrence.interval || 1, "weeks");
@@ -240,6 +241,11 @@ export function createNextRecurringInstance(taskId: string): void {
   }
 
   const newDateUID = getDateUID(nextDate, "day");
+
+  const existingTask = allTasks.find(
+    (t) => t.title === task.title && t.dateUID === newDateUID && t.parentTaskId === task.id
+  );
+  if (existingTask) return;
 
   addTask({
     title: task.title,
