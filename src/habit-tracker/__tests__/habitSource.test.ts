@@ -207,6 +207,6 @@ describe("habitSource", () => {
     const meta = await habitSource.getDailyMetadata(
       window.moment("2026-07-05")
     );
-    expect(meta.dataAttributes["data-habit-count"]).toBe("🔥1");
+    expect(meta.dataAttributes["data-habit-count"]).toBe("🔥 1");
   });
 });

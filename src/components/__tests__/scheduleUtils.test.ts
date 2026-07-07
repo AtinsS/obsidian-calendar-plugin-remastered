@@ -77,7 +77,7 @@ describe("calculateEndTime", () => {
 
   it("should wrap past midnight", () => {
     expect(calculateEndTime("2026-07-05", "23:00", 120)).toBe(
-      "2026-07-05T01:00:00"
+      "2026-07-06T01:00:00"
     );
   });
 
