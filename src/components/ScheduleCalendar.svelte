@@ -169,7 +169,7 @@
         day: "День",
       },
       slotMinTime: "06:00:00",
-      slotMaxTime: "23:00:00",
+      slotMaxTime: "24:00:00",
       allDaySlot: false,
       // На телефоне слот 15 минут — удобнее для выбора времени тапом
       slotDuration: isSmallPhone ? "00:15:00" : "00:30:00",
