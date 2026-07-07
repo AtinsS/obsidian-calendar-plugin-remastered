@@ -25,15 +25,15 @@ export function calculateEndTime(
   return `${endDate}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
 }
 
-/** Десaturация цвета проекта для glassmorphism-стиля */
+/** Десaturация цвета проекта для glassmorphism-стиля — сохраняем тёмные тона */
 function tintWithAlpha(hex: string, alpha = 0.85): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  // Приглушаем насыщенность, осветляем для читаемости на тёмном фоне
-  const mr = Math.round(r * 0.6 + 255 * 0.4);
-  const mg = Math.round(g * 0.6 + 255 * 0.4);
-  const mb = Math.round(b * 0.6 + 255 * 0.4);
+  // Минимальное осветление — 85% оригинала + 15% белого (сохраняем тёмный цвет)
+  const mr = Math.round(r * 0.85 + 255 * 0.15);
+  const mg = Math.round(g * 0.85 + 255 * 0.15);
+  const mb = Math.round(b * 0.85 + 255 * 0.15);
   return `rgba(${mr}, ${mg}, ${mb}, ${alpha})`;
 }
 

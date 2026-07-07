@@ -56,6 +56,10 @@
   margin-left: 0;
 }
 
+table {
+  margin-left: 0;
+}
+
 /* Schedule view open button */
 .schedule-open-btn {
   width: 100%;

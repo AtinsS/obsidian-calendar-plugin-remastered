@@ -62,16 +62,16 @@ export const TASK_TRACKER_DATA_VERSION = 5;
 export const MAX_TIME_LOGS = 30;
 
 export const DEFAULT_PROJECT_COLORS = [
-  "#c0392b",
-  "#d35400",
-  "#f39c12",
-  "#27ae60",
-  "#2980b9",
-  "#8e44ad",
-  "#c2185b",
-  "#00897b",
-  "#e91e63",
-  "#546e7a",
+  "#882e25",
+  "#a84402",
+  "#ac6a01",
+  "#1b7942",
+  "#1f618d",
+  "#65337a",
+  "#86103f",
+  "#017065",
+  "#851339",
+  "#4c6570",
   "#37474f",
-  "#90a4ae",
+  "#647177",
 ];
