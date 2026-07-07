@@ -39,12 +39,6 @@
 ### Вручную
 Скачайте `main.js`, `manifest.json`, `styles.css` из [релизов](https://github.com/AtinsS/obsidian-calendar-plugin-remastered/releases) и скопируйте в `.obsidian/plugins/calendar/`.
 
-### Из исходников
-```bash
-git clone https://github.com/AtinsS/obsidian-calendar-plugin-remastered.git
-cd obsidian-calendar-plugin-remastered
-npm install && npm run build
-```
 
 ---
 
