@@ -54,6 +54,9 @@ export default class CalendarPlugin extends Plugin {
   }
 
   async onload(): Promise<void> {
+    // Set Russian locale for month names
+    moment.locale("ru");
+
     // Set the app store so components can access the Obsidian App instance
     appStore.set(this.app);
 
