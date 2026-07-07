@@ -17,7 +17,6 @@
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
   import { settings } from "../ui/stores";
-  import { app } from "../stores/appStore";
   import TaskItem from "./TaskItem.svelte";
   import KanbanTabs from "./KanbanTabs.svelte";
   import TimeLogsModal from "./TimeLogsModal.svelte";
