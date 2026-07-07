@@ -2182,6 +2182,23 @@ content: attr(data-task-count);
   .task-tracker-panel {
     max-height: 35vh;
   }
+
+  /* Modals — full width on smallest screens */
+  .task-tracker-modal .modal-content,
+  .task-tracker-project-modal .modal-content {
+    padding: 12px;
+  }
+
+  .task-tracker-modal .modal-content h2,
+  .task-tracker-project-modal .modal-content h2 {
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+
+  .time-logs-modal {
+    width: 95%;
+    max-height: 60vh;
+  }
 }
 
 /* ============================================
@@ -2268,6 +2285,26 @@ content: attr(data-task-count);
     width: 10px;
     height: 10px;
   }
+
+  /* Task item swipe hint on touch */
+  .task-item {
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .task-item:active {
+    transform: scale(0.98);
+  }
+
+  /* Kanban tabs — scrollable with snap */
+  .kanban-tabs {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+  }
+
+  .kanban-tab {
+    scroll-snap-align: start;
+  }
 }
 
 /* ============================
@@ -2284,6 +2321,16 @@ content: attr(data-task-count);
   border-radius: var(--mcp-radius, 14px);
   box-shadow: var(--mcp-shadow, 0 8px 32px rgba(0, 0, 0, 0.15)),
               var(--mcp-shadow-glow, 0 0 40px rgba(80, 170, 210, 0.06));
+}
+
+/* Safe area for devices with notches */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .schedule-view-container {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
 }
 
 .schedule-view-container .fc {
@@ -2474,28 +2521,31 @@ content: attr(data-task-count);
   border-bottom-color: rgba(255, 255, 255, 0.04);
 }
 
-/* Schedule view — mobile */
-@media (max-width: 768px) {
+/* Schedule view — tablet */
+@media (min-width: 481px) and (max-width: 768px) {
   .schedule-view-container .fc .fc-toolbar {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
   }
 
   .schedule-view-container .fc .fc-toolbar-title {
     font-size: 14px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .schedule-view-container .fc .fc-button-group {
+    display: flex;
+    gap: 4px;
   }
 
   .schedule-view-container .fc .fc-button {
     font-size: 11px;
-    padding: 4px 8px;
-  }
-
-  .schedule-view-container .fc .fc-timegrid-slot-label-cushion {
-    font-size: 9px;
-  }
-
-  .schedule-view-container .fc .fc-col-header-cell-cushion {
-    font-size: 10px;
+    padding: 6px 10px;
+    min-height: 36px;
   }
 
   .schedule-view-container .fc .fc-daygrid-day-number {
@@ -2510,14 +2560,115 @@ content: attr(data-task-count);
   .schedule-view-container .schedule-event-time {
     font-size: 9px;
   }
+
+  .schedule-view-container .sch-event-meta {
+    gap: 4px;
+  }
 }
 
+/* Schedule view — phone */
 @media (max-width: 480px) {
-  .schedule-view-container .fc .fc-timegrid-axis-cushion {
+  .schedule-view-container {
+    border-radius: 8px;
+    margin: 2px;
+  }
+
+  .schedule-view-container .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 4px;
+    padding: 4px 6px;
+    margin: 2px;
+  }
+
+  .schedule-view-container .fc .fc-toolbar-title {
+    font-size: 13px;
+    order: -1;
+  }
+
+  .schedule-view-container .fc .fc-button-group {
+    display: flex;
+    gap: 3px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .schedule-view-container .fc .fc-button {
+    font-size: 10px;
+    padding: 8px 8px;
+    min-height: 36px;
+    min-width: 40px;
+    flex: 1;
+    max-width: 80px;
+  }
+
+  .schedule-view-container .fc .fc-today-button {
+    min-width: 60px;
+    max-width: none;
+  }
+
+  .schedule-view-container .fc .fc-timegrid-axis-cushion,
+  .schedule-view-container .fc .fc-timegrid-slot-label-cushion {
+    font-size: 8px;
+    padding-right: 2px;
+  }
+
+  .schedule-view-container .fc .fc-col-header-cell-cushion {
+    font-size: 9px;
+    letter-spacing: 0;
+    padding: 4px 0;
+  }
+
+  .schedule-view-container .fc .fc-daygrid-day-number {
+    font-size: 11px;
+    padding: 2px 3px;
+  }
+
+  .schedule-view-container .schedule-event-title {
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .schedule-view-container .schedule-event-time {
     font-size: 8px;
   }
 
-  .schedule-view-container .fc .fc-timegrid-slot-label-cushion {
-    font-size: 8px;
+  .schedule-view-container .sch-event {
+    padding: 2px 4px;
+  }
+
+  .schedule-view-container .sch-priority {
+    width: 10px;
+    height: 10px;
+    font-size: 7px;
+  }
+
+  .schedule-view-container .fc .fc-timegrid-now-indicator-now {
+    display: none;
+  }
+
+  .schedule-view-container .fc .fc-daygrid-more-link {
+    font-size: 9px;
+    padding: 2px 4px;
+  }
+}
+
+/* Schedule view — touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .schedule-view-container .fc .fc-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .schedule-view-container .fc .fc-event {
+    min-height: 28px;
+  }
+
+  .schedule-view-container .sch-event {
+    padding: 4px 6px;
+  }
+
+  .schedule-view-container .sch-event-title {
+    font-size: 11px;
   }
 }

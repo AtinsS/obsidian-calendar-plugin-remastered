@@ -28,6 +28,19 @@
   let refetchTimer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
 
+  // Мобильное определение — начальный вид зависит от ширины экрана
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+  const isSmallPhone = typeof window !== "undefined" && window.innerWidth <= 480;
+
+  // Touch/swipe state
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchEndX = 0;
+  let touchEndY = 0;
+  let isSwiping = false;
+  const SWIPE_THRESHOLD = 50;
+  const SWIPE_MAX_Y_DEVIATION = 100;
+
   /** Debounced refetch — предотвращает каскадное обновление */
   function scheduleRefetch(): void {
     if (destroyed) return;
@@ -44,8 +57,29 @@
   const unsubTasks = tasks.subscribe(() => scheduleRefetch());
   const unsubProjects = projects.subscribe(() => scheduleRefetch());
 
+  // Обработчик ресайза — переключаем вид при переходе через брейкпоинт
+  let lastWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
+  function handleResize(): void {
+    if (destroyed || !calendar) return;
+    const w = window.innerWidth;
+    const crossed =
+      (lastWidth > 480 && w <= 480) ||
+      (lastWidth <= 480 && w > 480) ||
+      (lastWidth > 768 && w <= 768) ||
+      (lastWidth <= 768 && w > 768);
+    lastWidth = w;
+    if (crossed) {
+      const newView = w <= 480 ? "timeGridDay" : w <= 768 ? "timeGridWeek" : "timeGridWeek";
+      if (calendar.view.type !== newView) {
+        calendar.changeView(newView);
+      }
+    }
+  }
+
   onMount(() => {
     initCalendar();
+    setupTouchNavigation();
+    window.addEventListener("resize", handleResize);
   });
 
   onDestroy(() => {
@@ -53,13 +87,71 @@
     if (refetchTimer) clearTimeout(refetchTimer);
     unsubTasks();
     unsubProjects();
+    window.removeEventListener("resize", handleResize);
+    if (calendarEl) {
+      calendarEl.removeEventListener("touchstart", handleTouchStart);
+      calendarEl.removeEventListener("touchmove", handleTouchMove);
+      calendarEl.removeEventListener("touchend", handleTouchEnd);
+    }
     if (calendar) {
       calendar.destroy();
       calendar = null;
     }
   });
 
+  function setupTouchNavigation(): void {
+    if (!calendarEl) return;
+
+    calendarEl.addEventListener("touchstart", handleTouchStart, { passive: true });
+    calendarEl.addEventListener("touchmove", handleTouchMove, { passive: true });
+    calendarEl.addEventListener("touchend", handleTouchEnd, { passive: true });
+  }
+
+  function handleTouchStart(e: TouchEvent): void {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    isSwiping = false;
+  }
+
+  function handleTouchMove(e: TouchEvent): void {
+    touchEndX = e.touches[0].clientX;
+    touchEndY = e.touches[0].clientY;
+
+    const dx = Math.abs(touchEndX - touchStartX);
+    const dy = Math.abs(touchEndY - touchStartY);
+
+    if (dx > 20 && dx > dy && dy < SWIPE_MAX_Y_DEVIATION) {
+      isSwiping = true;
+    }
+  }
+
+  function handleTouchEnd(): void {
+    if (!isSwiping || !calendar) return;
+
+    const dx = touchEndX - touchStartX;
+
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+      if (dx > 0) {
+        calendar.prev();
+      } else {
+        calendar.next();
+      }
+    }
+
+    isSwiping = false;
+  }
+
   function initCalendar(): void {
+    // На мобилке начальный вид — день, на десктопе — неделя
+    const initialView = isSmallPhone ? "timeGridDay" : isMobile ? "timeGridWeek" : "timeGridWeek";
+
+    // На телефоне упрощаем тулбар: стрелки + сегодня слева, переключение вида справа
+    const headerToolbar = isSmallPhone
+      ? { left: "prev,next", center: "title", right: "today" }
+      : isMobile
+        ? { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
+        : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
+
     calendar = new Calendar(calendarEl, {
       plugins: [
         dayGridPlugin,
@@ -67,13 +159,9 @@
         interactionPlugin,
         luxonPlugin,
       ],
-      initialView: "timeGridWeek",
+      initialView,
       locale: "ru",
-      headerToolbar: {
-        left: "prev,next today",
-        center: "title",
-        right: "dayGridMonth,timeGridWeek,timeGridDay",
-      },
+      headerToolbar,
       buttonText: {
         today: "Сегодня",
         month: "Месяц",
@@ -83,9 +171,11 @@
       slotMinTime: "06:00:00",
       slotMaxTime: "23:00:00",
       allDaySlot: false,
-      slotDuration: "00:30:00",
+      // На телефоне слот 15 минут — удобнее для выбора времени тапом
+      slotDuration: isSmallPhone ? "00:15:00" : "00:30:00",
       slotLabelInterval: "01:00",
-      editable: true,
+      // На мобилке отключаем drag-and-drop — свайп используется для навигации
+      editable: !isMobile,
       selectable: true,
       selectMirror: true,
       dayMaxEvents: true,
@@ -93,6 +183,11 @@
       firstDay: 1,
       height: "100%",
       nowIndicator: true,
+      // На телефоне — list view по умолчанию не используем
+      views: isSmallPhone ? {
+        timeGridDay: { titleFormat: { day: "numeric", month: "short" } },
+        timeGridWeek: { titleFormat: { day: "numeric", month: "short" } },
+      } : {},
       eventSources: [
         {
           events: fetchEvents,
@@ -127,6 +222,7 @@
   function renderEventContent(eventInfo: any) {
     const { time, event } = eventInfo;
     const task = event.extendedProps.task as ITask;
+    const mobile = isMobile;
 
     const statusLabel =
       task.status === "progress" ? "В работе" :
@@ -134,9 +230,9 @@
     const priorityBadge =
       task.priority === "high" ? '<span class="sch-priority sch-priority-high">!</span>' :
       task.priority === "medium" ? '<span class="sch-priority sch-priority-mid">~</span>' : "";
-    const noteIcon = task.notePath
+    const noteIcon = task.notePath && !mobile
       ? '<span class="sch-note-icon" title="Заметка-задача">&#128221;</span>' : "";
-    const durationLabel = task.estimatedTime
+    const durationLabel = task.estimatedTime && !mobile
       ? `<span class="sch-duration">${task.estimatedTime}м</span>` : "";
 
     return {
@@ -147,11 +243,13 @@
             <span class="sch-event-title">${event.title}</span>
             ${noteIcon}
           </div>
+          ${!mobile ? `
           <div class="sch-event-meta">
             ${time ? `<span class="sch-event-time">${time}</span>` : ""}
             ${statusLabel ? `<span class="sch-event-status sch-status-${task.status}">${statusLabel}</span>` : ""}
             ${durationLabel}
           </div>
+          ` : ''}
         </div>
       `,
     };
@@ -255,9 +353,59 @@
   }
 </script>
 
-<div bind:this={calendarEl} class="schedule-calendar"></div>
+<div class="schedule-calendar-wrapper">
+  {#if isSwiping}
+    <div class="swipe-indicator" class:swipe-left={touchEndX < touchStartX} class:swipe-right={touchEndX > touchStartX}>
+      <span class="swipe-arrow">{touchEndX < touchStartX ? '&#8250;' : '&#8249;'}</span>
+    </div>
+  {/if}
+  <div bind:this={calendarEl} class="schedule-calendar"></div>
+</div>
 
 <style>
+  .schedule-calendar-wrapper {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .schedule-calendar {
+    height: 100%;
+    width: 100%;
+    touch-action: pan-y pinch-zoom;
+  }
+
+  .swipe-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    animation: swipeHint 0.3s ease;
+  }
+
+  .swipe-indicator.swipe-left {
+    right: 8px;
+  }
+
+  .swipe-indicator.swipe-right {
+    left: 8px;
+  }
+
+  .swipe-arrow {
+    font-size: 24px;
+    color: var(--mcp-accent, rgba(95, 153, 225, 0.8));
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  @keyframes swipeHint {
+    0% { opacity: 0; transform: translateY(-50%) scale(0.8); }
+    50% { opacity: 0.8; }
+    100% { opacity: 0; transform: translateY(-50%) scale(1); }
+  }
   .schedule-calendar {
     height: 100%;
     width: 100%;
@@ -564,32 +712,75 @@
     border-bottom-color: rgba(255, 255, 255, 0.04);
   }
 
-  /* ===== Мобильная адаптация ===== */
+  /* ===== Мобильная адаптация — планшет (≤768px) ===== */
   @media (max-width: 768px) {
+    /* Контейнер — убираем скругления и тени на мобилке */
+    :global(.schedule-view-container) {
+      border-radius: 0;
+      border: none;
+      box-shadow: none;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background: transparent;
+    }
+
+    /* Тулбар — двухстрочный, компактный */
     :global(.fc .fc-toolbar) {
-      flex-direction: column;
-      gap: 6px;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 6px 8px;
+      margin: 4px 4px 0;
     }
 
     :global(.fc .fc-toolbar-title) {
-      font-size: 14px;
+      font-size: 13px;
+      order: -1;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 2px;
+      font-weight: 700;
+    }
+
+    :global(.fc .fc-toolbar-chunk) {
+      display: flex;
+      gap: 4px;
+      min-height: 36px;
+    }
+
+    :global(.fc .fc-toolbar-chunk:last-child) {
+      margin-left: auto;
     }
 
     :global(.fc .fc-button) {
       font-size: 11px;
-      padding: 4px 8px;
+      padding: 6px 10px;
+      min-height: 36px;
+      min-width: 40px;
+      border-radius: 8px;
     }
 
-    :global(.fc .fc-timegrid-slot-label-cushion) {
-      font-size: 9px;
+    :global(.fc .fc-today-button) {
+      min-width: 56px;
     }
 
     :global(.fc .fc-col-header-cell-cushion) {
-      font-size: 10px;
+      font-size: 10.5px;
+      padding: 6px 0;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    :global(.fc .fc-timegrid-slot-label-cushion) {
+      font-size: 9.5px;
+    }
+
+    /* События — компактнее */
+    :global(.sch-event) {
+      padding: 3px 6px;
     }
 
     :global(.sch-event-title) {
-      font-size: 10.5px;
+      font-size: 11px;
     }
 
     :global(.sch-event-meta) {
@@ -597,17 +788,289 @@
     }
 
     :global(.sch-event-status) {
-      font-size: 8px;
+      font-size: 8.5px;
+      padding: 1px 4px;
+    }
+
+    :global(.sch-priority) {
+      width: 13px;
+      height: 13px;
+      font-size: 8.5px;
+    }
+
+    /* Touch scroll */
+    :global(.fc .fc-scrollgrid) {
+      -webkit-overflow-scrolling: touch;
+    }
+
+    :global(.fc .fc-timegrid-body) {
+      min-height: 400px;
     }
   }
 
+  /* ===== Телефон (≤480px) ===== */
   @media (max-width: 480px) {
+    :global(.fc .fc-toolbar) {
+      padding: 4px 6px;
+      margin: 2px 2px 0;
+      gap: 3px;
+    }
+
+    :global(.fc .fc-toolbar-title) {
+      font-size: 12px;
+    }
+
+    :global(.fc .fc-button) {
+      font-size: 10px;
+      padding: 6px 8px;
+      min-height: 36px;
+      min-width: 36px;
+      border-radius: 7px;
+    }
+
+    :global(.fc .fc-button-active) {
+      box-shadow: 0 0 8px rgba(95, 153, 225, 0.2);
+    }
+
+    /* Заголовки дней — компактные */
+    :global(.fc .fc-col-header-cell-cushion) {
+      font-size: 9.5px;
+      padding: 5px 0;
+    }
+
+    :global(.fc .fc-daygrid-day-number) {
+      font-size: 11px;
+      padding: 3px 5px;
+    }
+
+    /* Сетка времени — увеличенные слоты для тапа */
+    :global(.fc .fc-timegrid-slot) {
+      height: 40px;
+    }
+
+    :global(.fc .fc-timegrid-axis-cushion),
+    :global(.fc .fc-timegrid-slot-label-cushion) {
+      font-size: 9px;
+      padding-right: 2px;
+    }
+
+    /* Боковая ось — уже */
+    :global(.fc .fc-timegrid-axis) {
+      width: 30px;
+    }
+
+    /* События — крупные тап-таргеты */
+    :global(.fc .fc-event) {
+      border-radius: 6px !important;
+      min-height: 28px;
+    }
+
+    :global(.fc .fc-timegrid-event) {
+      border-left-width: 2.5px !important;
+    }
+
+    :global(.sch-event) {
+      padding: 2px 5px;
+      line-height: 1.3;
+    }
+
+    :global(.sch-event-header) {
+      gap: 3px;
+    }
+
+    :global(.sch-event-title) {
+      font-size: 10.5px;
+      font-weight: 600;
+    }
+
+    :global(.sch-event-meta) {
+      gap: 3px;
+      margin-top: 0;
+    }
+
+    :global(.sch-event-time) {
+      font-size: 9px;
+    }
+
+    :global(.sch-event-status) {
+      font-size: 8px;
+      padding: 0.5px 3px;
+      border-radius: 3px;
+    }
+
+    :global(.sch-priority) {
+      width: 12px;
+      height: 12px;
+      font-size: 8px;
+      border-radius: 3px;
+    }
+
+    :global(.sch-note-icon) {
+      font-size: 9px;
+    }
+
+    :global(.sch-duration) {
+      font-size: 8px;
+    }
+
+    /* Скрываем мету в timegrid — экономим место */
+    :global(.fc .fc-timegrid-event .sch-event-meta) {
+      display: none;
+    }
+
+    :global(.fc .fc-timegrid-event .sch-event) {
+      padding: 2px 5px;
+    }
+
+    /* Now indicator — заметнее */
+    :global(.fc .fc-timegrid-now-indicator-line) {
+      border-width: 2px;
+    }
+
+    :global(.fc .fc-timegrid-now-indicator-arrow) {
+      border-width: 2px;
+    }
+
+    :global(.fc .fc-timegrid-now-indicator-now) {
+      display: none;
+    }
+
+    /* Выделение при тапе */
+    :global(.fc .fc-highlight) {
+      background: rgba(95, 153, 225, 0.12);
+      border-radius: 4px;
+    }
+
+    /* Day grid — крупные ячейки */
+    :global(.fc .fc-daygrid-day) {
+      min-height: 44px;
+    }
+
+    :global(.fc .fc-daygrid-more-link) {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+
+    /* List view */
+    :global(.fc .fc-list-event-title a) {
+      font-size: 12px;
+    }
+
+    :global(.fc .fc-list-event-time a) {
+      font-size: 10.5px;
+    }
+
+    :global(.fc .fc-list-day-cushion) {
+      padding: 4px 8px;
+    }
+  }
+
+  /* ===== Маленький телефон (≤360px) ===== */
+  @media (max-width: 360px) {
+    :global(.fc .fc-toolbar-title) {
+      font-size: 11px;
+    }
+
+    :global(.fc .fc-button) {
+      font-size: 9.5px;
+      padding: 5px 6px;
+      min-height: 34px;
+    }
+
+    :global(.fc .fc-col-header-cell-cushion) {
+      font-size: 9px;
+    }
+
+    :global(.fc .fc-timegrid-slot) {
+      height: 36px;
+    }
+
+    :global(.fc .fc-timegrid-axis) {
+      width: 26px;
+    }
+
     :global(.fc .fc-timegrid-axis-cushion) {
       font-size: 8px;
     }
 
-    :global(.fc .fc-timegrid-slot-label-cushion) {
-      font-size: 8px;
+    :global(.sch-event-title) {
+      font-size: 10px;
+    }
+
+    :global(.fc .fc-daygrid-day-number) {
+      font-size: 10px;
+      padding: 2px 4px;
+    }
+  }
+
+  /* ===== Альбомная ориентация ===== */
+  @media (max-width: 768px) and (orientation: landscape) {
+    :global(.fc .fc-toolbar) {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    :global(.fc .fc-toolbar-title) {
+      width: auto;
+      order: 0;
+      font-size: 12px;
+    }
+
+    :global(.fc .fc-timegrid-slot) {
+      height: 32px;
+    }
+
+    :global(.sch-event) {
+      padding: 2px 5px;
+    }
+  }
+
+  /* ===== Touch-устройства — улучшенные тап-таргеты ===== */
+  @media (hover: none) and (pointer: coarse) {
+    :global(.fc .fc-button) {
+      min-height: 40px;
+      min-width: 40px;
+    }
+
+    :global(.fc .fc-event) {
+      min-height: 32px;
+    }
+
+    :global(.fc .fc-daygrid-day) {
+      min-height: 44px;
+    }
+
+    :global(.fc .fc-daygrid-more-link) {
+      padding: 4px 8px;
+    }
+
+    /* Убираем hover-эффекты на тач */
+    :global(.fc .fc-event:hover) {
+      transform: none;
+      filter: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Увеличиваем область тапа на заголовки дней */
+    :global(.fc .fc-col-header-cell) {
+      padding: 4px 0;
+    }
+
+    :global(.fc .fc-col-header-cell-cushion) {
+      padding: 6px 0;
+    }
+  }
+
+  /* ===== Safe area (iOS notch / home indicator) ===== */
+  @supports (padding: env(safe-area-inset-bottom)) {
+    :global(.schedule-view-container) {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    :global(.fc .fc-toolbar) {
+      padding-top: calc(6px + env(safe-area-inset-top));
     }
   }
 </style>

@@ -116,3 +116,14 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .habit-tracker-header {
+    min-height: 44px;
+  }
+
+  .habit-tracker-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+</style>

@@ -73,3 +73,31 @@
     {/if}
   </div>
 </div>
+
+<style>
+  .time-logs-overlay {
+    touch-action: none;
+  }
+
+  .time-logs-modal {
+    touch-action: manipulation;
+  }
+
+  .time-logs-entry {
+    min-height: 36px;
+    touch-action: manipulation;
+  }
+
+  .time-logs-close {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .time-logs-clear {
+    min-height: 44px;
+    width: 100%;
+  }
+</style>
