@@ -233,7 +233,7 @@
     const noteIcon = task.notePath && !mobile
       ? '<span class="sch-note-icon" title="Заметка-задача">&#128221;</span>' : "";
     const durationLabel = task.estimatedTime && !mobile
-      ? `<span class="sch-duration">${task.estimatedTime}м</span>` : "";
+      ? `<span class="sch-duration">${task.estimatedTime >= 60 ? Math.floor(task.estimatedTime / 60) + 'ч ' + (task.estimatedTime % 60 > 0 ? (task.estimatedTime % 60) + 'м' : '') : task.estimatedTime + 'м'}</span>` : "";
 
     return {
       html: `
