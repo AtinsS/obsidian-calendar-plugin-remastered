@@ -26,7 +26,7 @@ export function calculateEndTime(
 }
 
 /** Десaturация цвета проекта для glassmorphism-стиля */
-function muteColor(hex: string, alpha = 0.85): string {
+function tintWithAlpha(hex: string, alpha = 0.85): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
@@ -103,10 +103,10 @@ export function taskToEvent(
     start,
     end,
     backgroundColor: hasProject
-      ? muteColor(project.color, 0.85)
+      ? tintWithAlpha(project.color, 0.85)
       : getStatusColor(task.status),
     borderColor: hasProject
-      ? muteColor(project.color, 1)
+      ? tintWithAlpha(project.color, 1)
       : getStatusBorder(task.status),
     textColor: "#e8ecf0",
     extendedProps: {

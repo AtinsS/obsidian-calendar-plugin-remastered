@@ -79,7 +79,7 @@ export default class CalendarPlugin extends Plugin {
         if (checking) {
           return !appHasPeriodicNotesPluginLoaded();
         }
-        this.view.openOrCreateWeeklyNote(window.moment(), false);
+        this.view.selectDateForWeek(window.moment(), false);
       },
     });
 

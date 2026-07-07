@@ -15,7 +15,7 @@ import type { ISettings } from "src/settings";
 import type CalendarPlugin from "src/main";
 
 import Calendar from "./ui/Calendar.svelte";
-import { showFileMenu } from "./ui/fileMenu";
+import { showNoteContextMenu } from "./ui/fileMenu";
 import { activeFile, dailyNotes, weeklyNotes, settings } from "./ui/stores";
 import {
   customTagsSource,
@@ -41,8 +41,8 @@ export default class CalendarView extends ItemView {
     super(leaf);
     this.plugin = plugin;
 
-    this.openOrCreateDailyNote = this.openOrCreateDailyNote.bind(this);
-    this.openOrCreateWeeklyNote = this.openOrCreateWeeklyNote.bind(this);
+    this.selectDateForDay = this.selectDateForDay.bind(this);
+    this.selectDateForWeek = this.selectDateForWeek.bind(this);
 
     this.onNoteSettingsUpdate = this.onNoteSettingsUpdate.bind(this);
     this.onFileCreated = this.onFileCreated.bind(this);
@@ -144,8 +144,8 @@ export default class CalendarView extends ItemView {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       target: (this as any).contentEl,
       props: {
-        onClickDay: this.openOrCreateDailyNote,
-        onClickWeek: this.openOrCreateWeeklyNote,
+        onClickDay: this.selectDateForDay,
+        onClickWeek: this.selectDateForWeek,
         onHoverDay: this.onHoverDay,
         onHoverWeek: this.onHoverWeek,
         onContextMenuDay: this.onContextMenuDay,
@@ -294,7 +294,7 @@ export default class CalendarView extends ItemView {
       // If no file exists for a given day, show nothing.
       return;
     }
-    showFileMenu(this.app, note, {
+    showNoteContextMenu(this.app, note, {
       x: event.pageX,
       y: event.pageY,
     });
@@ -306,7 +306,7 @@ export default class CalendarView extends ItemView {
       // If no file exists for a given day, show nothing.
       return;
     }
-    showFileMenu(this.app, note, {
+    showNoteContextMenu(this.app, note, {
       x: event.pageX,
       y: event.pageY,
     });
@@ -385,7 +385,7 @@ export default class CalendarView extends ItemView {
     }
   }
 
-  async openOrCreateWeeklyNote(
+  async selectDateForWeek(
     date: Moment,
     _inNewSplit: boolean
   ): Promise<void> {
@@ -394,7 +394,7 @@ export default class CalendarView extends ItemView {
     activeFile.setUID(dateUID);
   }
 
-  async openOrCreateDailyNote(
+  async selectDateForDay(
     date: Moment,
     _inNewSplit: boolean
   ): Promise<void> {

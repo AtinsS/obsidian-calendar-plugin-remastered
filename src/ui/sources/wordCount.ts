@@ -28,7 +28,7 @@ async function getCachedWordCount(note: TFile): Promise<number> {
   return count;
 }
 
-export async function getWordLengthAsDots(note: TFile): Promise<number> {
+export async function getWordCountAsDots(note: TFile): Promise<number> {
   const { wordsPerDot = DEFAULT_WORDS_PER_DOT } = get(settings);
   if (!note || wordsPerDot <= 0) {
     return 0;
@@ -38,13 +38,13 @@ export async function getWordLengthAsDots(note: TFile): Promise<number> {
   return clamp(Math.floor(numDots), 1, NUM_MAX_DOTS);
 }
 
-export async function getDotsForDailyNote(
+export async function getDotsForNote(
   dailyNote: TFile | null
 ): Promise<IDot[]> {
   if (!dailyNote) {
     return [];
   }
-  const numSolidDots = await getWordLengthAsDots(dailyNote);
+  const numSolidDots = await getWordCountAsDots(dailyNote);
 
   const dots = [];
   for (let i = 0; i < numSolidDots; i++) {
@@ -59,7 +59,7 @@ export async function getDotsForDailyNote(
 export const wordCountSource: ICalendarSource = {
   getDailyMetadata: async (date: Moment): Promise<IDayMetadata> => {
     const file = getDailyNote(date, get(dailyNotes));
-    const dots = await getDotsForDailyNote(file);
+    const dots = await getDotsForNote(file);
     return {
       dots,
     };
@@ -67,7 +67,7 @@ export const wordCountSource: ICalendarSource = {
 
   getWeeklyMetadata: async (date: Moment): Promise<IDayMetadata> => {
     const file = getWeeklyNote(date, get(weeklyNotes));
-    const dots = await getDotsForDailyNote(file);
+    const dots = await getDotsForNote(file);
 
     return {
       dots,
