@@ -191,14 +191,6 @@
     modal.open();
   }
 
-  function handleDrop(event: DragEvent) {
-    event.preventDefault();
-  }
-
-  function handleDragOver(event: DragEvent) {
-    event.preventDefault();
-  }
-
   function toggleMenu() {
     showMenu = !showMenu;
   }
@@ -211,8 +203,6 @@
 <div
   class="task-tracker-panel"
   class:collapsed
-  on:drop={handleDrop}
-  on:dragover={handleDragOver}
   role="region"
   aria-label="Панель задач"
 >

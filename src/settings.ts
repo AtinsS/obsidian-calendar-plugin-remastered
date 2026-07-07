@@ -2,7 +2,7 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
-import { DEFAULT_WEEK_FORMAT, DEFAULT_WORDS_PER_DOT } from "src/constants";
+import { DEFAULT_WORDS_PER_DOT } from "src/constants";
 
 import type CalendarPlugin from "./main";
 
@@ -113,22 +113,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addSyncAdvice();
   }
 
-  addDotThresholdSetting(): void {
-    new Setting(this.containerEl)
-      .setName("Слов на точку")
-      .setDesc("Сколько слов должно соответствовать одной точке?")
-      .addText((textfield) => {
-        textfield.setPlaceholder(String(DEFAULT_WORDS_PER_DOT));
-        textfield.inputEl.type = "number";
-        textfield.setValue(String(this.plugin.options.wordsPerDot));
-        textfield.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({
-            wordsPerDot: value !== "" ? Number(value) : undefined,
-          }));
-        });
-      });
-  }
-
   addWeekStartSetting(): void {
     const { moment } = window;
 
@@ -151,72 +135,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
           this.plugin.writeOptions(() => ({
             weekStart: value as IWeekStartOption,
           }));
-        });
-      });
-  }
-
-  addConfirmCreateSetting(): void {
-    new Setting(this.containerEl)
-      .setName("Подтверждение перед созданием заметки")
-      .setDesc("Показывать модальное окно подтверждения перед созданием заметки")
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.options.shouldConfirmBeforeCreate);
-        toggle.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({
-            shouldConfirmBeforeCreate: value,
-          }));
-        });
-      });
-  }
-
-  addShowWeeklyNoteSetting(): void {
-    new Setting(this.containerEl)
-      .setName("Показывать номер недели")
-      .setDesc("Добавить столбец с номером недели")
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.options.showWeeklyNote);
-        toggle.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ showWeeklyNote: value }));
-          this.display();
-        });
-      });
-  }
-
-  addWeeklyNoteFormatSetting(): void {
-    new Setting(this.containerEl)
-      .setName("Формат недельной заметки")
-      .setDesc("Для справки по синтаксису см. документацию по форматам")
-      .addText((textfield) => {
-        textfield.setValue(this.plugin.options.weeklyNoteFormat);
-        textfield.setPlaceholder(DEFAULT_WEEK_FORMAT);
-        textfield.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ weeklyNoteFormat: value }));
-        });
-      });
-  }
-
-  addWeeklyNoteTemplateSetting(): void {
-    new Setting(this.containerEl)
-      .setName("Шаблон недельной заметки")
-      .setDesc(
-        "Выберите файл для использования в качестве шаблона недельных заметок"
-      )
-      .addText((textfield) => {
-        textfield.setValue(this.plugin.options.weeklyNoteTemplate);
-        textfield.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ weeklyNoteTemplate: value }));
-        });
-      });
-  }
-
-  addWeeklyNoteFolderSetting(): void {
-    new Setting(this.containerEl)
-      .setName("Папка недельных заметок")
-      .setDesc("Новые недельные заметки будут сохраняться сюда")
-      .addText((textfield) => {
-        textfield.setValue(this.plugin.options.weeklyNoteFolder);
-        textfield.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({ weeklyNoteFolder: value }));
         });
       });
   }
@@ -307,30 +225,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.options.syncToVault);
         toggle.onChange(async (value) => {
           this.plugin.writeOptions(() => ({ syncToVault: value }));
-        });
-      });
-  }
-
-  addLocaleOverrideSetting(): void {
-    const { moment } = window;
-
-    const sysLocale = navigator.language?.toLowerCase();
-
-    new Setting(this.containerEl)
-      .setName("Переопределение языка:")
-      .setDesc(
-        "Установите, если хотите использовать язык отличный от системного"
-      )
-      .addDropdown((dropdown) => {
-        dropdown.addOption("system-default", `Системный (${sysLocale})`);
-        moment.locales().forEach((locale) => {
-          dropdown.addOption(locale, locale);
-        });
-        dropdown.setValue(this.plugin.options.localeOverride);
-        dropdown.onChange(async (value) => {
-          this.plugin.writeOptions(() => ({
-            localeOverride: value as ILocaleOverride,
-          }));
         });
       });
   }

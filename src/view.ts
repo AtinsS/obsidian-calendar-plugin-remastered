@@ -318,7 +318,7 @@ export default class CalendarView extends ItemView {
     // Calendar reactivity handles display update — no tick needed
   }
 
-  private async onFileDeleted(file: TFile): Promise<void> {
+  private onFileDeleted(file: TFile): void {
     if (getDateFromFile(file, "day")) {
       dailyNotes.reindex();
     }
@@ -328,11 +328,8 @@ export default class CalendarView extends ItemView {
     this.updateActiveFile();
   }
 
-  private async onFileModified(file: TFile): Promise<void> {
-    // Re-render calendar for daily/weekly note changes (word count, tags, streak)
-    if (getDateFromFile(file, "day") || getDateFromFile(file, "week")) {
-      this.calendar?.tick();
-    }
+  private onFileModified(_file: TFile): void {
+    // Calendar reactivity handles display update via store subscriptions
   }
 
   private onFileCreated(file: TFile): void {
@@ -385,19 +382,13 @@ export default class CalendarView extends ItemView {
     }
   }
 
-  async selectDateForWeek(
-    date: Moment,
-    _inNewSplit: boolean
-  ): Promise<void> {
+  selectDateForWeek(date: Moment): void {
     const dateUID = getDateUID(date, "week");
     selectedDate.set(dateUID);
     activeFile.setUID(dateUID);
   }
 
-  async selectDateForDay(
-    date: Moment,
-    _inNewSplit: boolean
-  ): Promise<void> {
+  selectDateForDay(date: Moment): void {
     const dateUID = getDateUID(date, "day");
     selectedDate.set(dateUID);
     activeFile.setUID(dateUID);

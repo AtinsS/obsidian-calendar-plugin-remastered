@@ -41,10 +41,6 @@
   export let onContextMenuDay: (date: Moment, event: MouseEvent) => boolean;
   export let onContextMenuWeek: (date: Moment, event: MouseEvent) => boolean;
 
-  export function tick() {
-    today = window.moment();
-  }
-
   let lastHeartbeatDay: string = today.format("YYYY-MM-DD");
 
   const heartbeat = setInterval(() => {
