@@ -3,7 +3,6 @@ import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import typescript from "@rollup/plugin-typescript";
 import autoPreprocess from "svelte-preprocess";
-import { env } from "process";
 
 export default {
   input: "src/main.ts",
@@ -18,7 +17,7 @@ export default {
       emitCss: false,
       preprocess: autoPreprocess(),
     }),
-    typescript({ sourceMap: env.env === "DEV" }),
+    typescript({ sourceMap: false }),
     resolve({
       browser: true,
       dedupe: ["svelte"],

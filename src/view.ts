@@ -12,6 +12,7 @@ import { get } from "svelte/store";
 
 import { TRIGGER_ON_OPEN, VIEW_TYPE_CALENDAR } from "src/constants";
 import type { ISettings } from "src/settings";
+import type CalendarPlugin from "src/main";
 
 import Calendar from "./ui/Calendar.svelte";
 import { showFileMenu } from "./ui/fileMenu";
@@ -34,9 +35,11 @@ export default class CalendarView extends ItemView {
   private taskPanel: TaskPanel;
   private habitPanel: HabitPanel;
   private settings: ISettings;
+  private plugin: CalendarPlugin;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, plugin?: CalendarPlugin) {
     super(leaf);
+    this.plugin = plugin;
 
     this.openOrCreateDailyNote = this.openOrCreateDailyNote.bind(this);
     this.openOrCreateWeeklyNote = this.openOrCreateWeeklyNote.bind(this);
@@ -114,6 +117,17 @@ export default class CalendarView extends ItemView {
   async onOpen(): Promise<void> {
     // Initialize selected date with today
     selectedDate.set(getDateUID(window.moment(), "day"));
+
+    // Schedule view button
+    const scheduleBtn = (this as any).contentEl.createEl("button", {
+      text: "📅 Открыть расписание",
+      cls: "schedule-open-btn",
+    });
+    scheduleBtn.addEventListener("click", () => {
+      if (this.plugin) {
+        this.plugin.activateScheduleView();
+      }
+    });
 
     // Integration point: external plugins can listen for `calendar:open`
     // to feed in additional sources.

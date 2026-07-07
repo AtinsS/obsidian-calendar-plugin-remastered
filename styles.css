@@ -56,6 +56,30 @@
   margin-left: 0;
 }
 
+/* Schedule view open button */
+.schedule-open-btn {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  background: var(--mcp-glass-bg);
+  backdrop-filter: var(--mcp-blur);
+  -webkit-backdrop-filter: var(--mcp-blur);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius);
+  color: var(--mcp-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--mcp-transition);
+}
+
+.schedule-open-btn:hover {
+  background: var(--mcp-surface-hover);
+  border-color: var(--mcp-accent);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(95, 153, 225, 0.15);
+}
+
 .settings-banner {
   background: var(--mcp-glass-bg);
   backdrop-filter: var(--mcp-blur);
@@ -2243,5 +2267,257 @@ content: attr(data-task-count);
   .filter-dot {
     width: 10px;
     height: 10px;
+  }
+}
+
+/* ============================
+   Schedule View (FullCalendar)
+   ============================ */
+
+.schedule-view-container {
+  height: 100%;
+  overflow: hidden;
+  background: var(--mcp-glass-bg, rgba(35, 40, 55, 0.4));
+  backdrop-filter: var(--mcp-blur, blur(20px));
+  -webkit-backdrop-filter: var(--mcp-blur, blur(20px));
+  border: 1px solid var(--mcp-glass-border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--mcp-radius, 14px);
+  box-shadow: var(--mcp-shadow, 0 8px 32px rgba(0, 0, 0, 0.15)),
+              var(--mcp-shadow-glow, 0 0 40px rgba(80, 170, 210, 0.06));
+}
+
+.schedule-view-container .fc {
+  height: 100%;
+  --fc-border-color: rgba(255, 255, 255, 0.06);
+  --fc-today-bg-color: transparent;
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgba(255, 255, 255, 0.03);
+  --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.04);
+}
+
+.schedule-view-container .fc .fc-toolbar {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: var(--mcp-radius-sm, 10px);
+  margin: 8px 8px 0;
+}
+
+.schedule-view-container .fc .fc-toolbar-title {
+  color: var(--mcp-text, var(--text-normal));
+  font-size: 1.15em;
+  font-weight: 600;
+}
+
+.schedule-view-container .fc .fc-button {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--mcp-text, var(--text-normal));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--mcp-radius-sm, 10px);
+  font-size: 0.82em;
+  padding: 5px 14px;
+  transition: all var(--mcp-transition, 0.3s cubic-bezier(0.4, 0, 0.2, 1));
+  font-weight: 500;
+}
+
+.schedule-view-container .fc .fc-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.schedule-view-container .fc .fc-button-active {
+  background: var(--mcp-accent, rgba(95, 153, 225, 0.48)) !important;
+  color: var(--mcp-text, var(--text-normal)) !important;
+  border-color: rgba(95, 153, 225, 0.3) !important;
+  box-shadow: 0 0 12px rgba(95, 153, 225, 0.15);
+}
+
+.schedule-view-container .fc .fc-button:disabled {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--mcp-text-faint, rgba(200, 210, 220, 0.25));
+  border-color: transparent;
+}
+
+.schedule-view-container .fc .fc-timegrid-axis-cushion,
+.schedule-view-container .fc .fc-timegrid-slot-label-cushion {
+  color: var(--mcp-text-faint, rgba(200, 210, 220, 0.25));
+  font-size: 10px;
+}
+
+.schedule-view-container .fc .fc-col-header-cell-cushion {
+  color: var(--mcp-text-muted, var(--text-muted));
+  padding: 8px 0;
+  font-weight: 500;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.schedule-view-container .fc .fc-daygrid-day-number {
+  color: var(--mcp-text, var(--text-normal));
+  padding: 4px 8px;
+  font-size: 0.85em;
+}
+
+.schedule-view-container .fc .fc-event {
+  cursor: pointer;
+  border: none !important;
+  border-radius: 8px !important;
+  border-left: 3px solid !important;
+  border-left-style: solid !important;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.schedule-view-container .fc .fc-timegrid-event {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.schedule-view-container .fc .fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  filter: brightness(1.15);
+}
+
+.schedule-view-container .fc-event-main-inner {
+  padding: 2px 6px;
+  line-height: 1.3;
+}
+
+.schedule-view-container .schedule-event-title {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.schedule-view-container .schedule-event-time {
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+/* Сегодня — без заливки, только бордер */
+.schedule-view-container .fc .fc-day-today {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1.5px var(--mcp-accent, rgba(95, 153, 225, 0.48));
+  border-radius: 6px;
+}
+
+.schedule-view-container .fc .fc-scrollgrid {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.schedule-view-container .fc td,
+.schedule-view-container .fc th {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+.schedule-view-container .fc .fc-timegrid-now-indicator-line {
+  border-color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+}
+
+.schedule-view-container .fc .fc-timegrid-now-indicator-arrow {
+  border-color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+}
+
+.schedule-view-container .fc .fc-timegrid-now-indicator-container {
+  overflow: visible;
+}
+
+.schedule-view-container .fc .fc-timegrid-now-indicator-now {
+  color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.schedule-view-container .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+  font-weight: 700;
+}
+
+.schedule-view-container .fc .fc-select {
+  background: rgba(95, 153, 225, 0.08);
+  border-radius: 4px;
+}
+
+.schedule-view-container .fc .fc-highlight {
+  background: rgba(95, 153, 225, 0.08);
+  border-radius: 4px;
+}
+
+.schedule-view-container .fc .fc-daygrid-more-link {
+  color: var(--mcp-text-muted, var(--text-muted));
+  font-size: 11px;
+}
+
+.schedule-view-container .fc .fc-list-event:hover td {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.schedule-view-container .fc .fc-list-event-title a {
+  color: var(--mcp-text, var(--text-normal));
+}
+
+.schedule-view-container .fc .fc-list-event-time a {
+  color: var(--mcp-text-muted, var(--text-muted));
+}
+
+.schedule-view-container .fc .fc-day-header {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.schedule-view-container .fc .fc-timegrid-header {
+  border-bottom-color: rgba(255, 255, 255, 0.04);
+}
+
+/* Schedule view — mobile */
+@media (max-width: 768px) {
+  .schedule-view-container .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .schedule-view-container .fc .fc-toolbar-title {
+    font-size: 14px;
+  }
+
+  .schedule-view-container .fc .fc-button {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+
+  .schedule-view-container .fc .fc-timegrid-slot-label-cushion {
+    font-size: 9px;
+  }
+
+  .schedule-view-container .fc .fc-col-header-cell-cushion {
+    font-size: 10px;
+  }
+
+  .schedule-view-container .fc .fc-daygrid-day-number {
+    font-size: 12px;
+    padding: 2px 4px;
+  }
+
+  .schedule-view-container .schedule-event-title {
+    font-size: 11px;
+  }
+
+  .schedule-view-container .schedule-event-time {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .schedule-view-container .fc .fc-timegrid-axis-cushion {
+    font-size: 8px;
+  }
+
+  .schedule-view-container .fc .fc-timegrid-slot-label-cushion {
+    font-size: 8px;
   }
 }

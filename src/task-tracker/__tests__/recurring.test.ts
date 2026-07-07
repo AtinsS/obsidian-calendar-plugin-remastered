@@ -18,6 +18,7 @@ describe("completeRecurringTask", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     completeRecurringTask(task.id);
@@ -40,6 +41,7 @@ describe("completeRecurringTask", () => {
       priority: "medium",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       recurrence: { type: "daily" },
     });
 
@@ -65,6 +67,7 @@ describe("completeRecurringTask", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       recurrence: { type: "daily", interval: 3 },
     });
 
@@ -87,6 +90,7 @@ describe("completeRecurringTask", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       recurrence: { type: "weekly" },
     });
 
@@ -109,6 +113,7 @@ describe("completeRecurringTask", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       recurrence: { type: "monthly" },
     });
 
@@ -131,6 +136,7 @@ describe("completeRecurringTask", () => {
       priority: "high",
       tags: ["urgent"],
       sortOrder: 0,
+      status: "todo",
       recurrence: { type: "daily" },
     });
 
@@ -153,6 +159,7 @@ describe("completeRecurringTask", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       recurrence: { type: "daily" },
     });
 
@@ -175,6 +182,7 @@ describe("task with description", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       description: "This is a description",
     });
 
@@ -191,6 +199,7 @@ describe("task with description", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
       description: "Old desc",
     });
 

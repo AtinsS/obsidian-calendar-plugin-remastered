@@ -98,36 +98,12 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.containerEl.createEl("h3", {
       text: "Основные настройки",
     });
-    this.addDotThresholdSetting();
     this.addWeekStartSetting();
-    this.addConfirmCreateSetting();
-    this.addShowWeeklyNoteSetting();
-
-    if (
-      this.plugin.options.showWeeklyNote &&
-      !appHasPeriodicNotesPluginLoaded()
-    ) {
-      this.containerEl.createEl("h3", {
-        text: "Настройки недельных заметок",
-      });
-      this.containerEl.createEl("p", {
-        cls: "setting-item-description",
-        text:
-          "Примечание: Настройки недельных заметок будут перенесены. Рекомендуется установить плагин «Periodic Notes» для сохранения функциональности.",
-      });
-      this.addWeeklyNoteFormatSetting();
-      this.addWeeklyNoteTemplateSetting();
-      this.addWeeklyNoteFolderSetting();
-    }
 
     this.containerEl.createEl("h3", {
-      text: "Трекер задач",
+      text: "Панели",
     });
     this.addShowTaskTrackerSetting();
-
-    this.containerEl.createEl("h3", {
-      text: "Трекер привычек",
-    });
     this.addShowHabitTrackerSetting();
 
     this.containerEl.createEl("h3", {
@@ -135,7 +111,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
     });
     this.addSyncToVaultSetting();
     this.addSyncAdvice();
-    // Locale is forced to Russian
   }
 
   addDotThresholdSetting(): void {

@@ -26,6 +26,7 @@ describe("full task creation flow", () => {
       priority: "medium",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     // 3. Task should be in the store
@@ -58,6 +59,7 @@ describe("full task creation flow", () => {
       priority: "high",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     // 3. Verify
@@ -69,9 +71,9 @@ describe("full task creation flow", () => {
     const p1 = addProject({ name: "P1", color: "#ff0000", icon: "📁", folder: null, archived: false, sortOrder: 0 });
     const p2 = addProject({ name: "P2", color: "#00ff00", icon: "📁", folder: null, archived: false, sortOrder: 1 });
 
-    addTask({ title: "T1", completed: false, dateUID: TEST_DATE, projectId: p1.id, notePath: null, priority: "low", tags: [], sortOrder: 0 });
-    addTask({ title: "T2", completed: false, dateUID: TEST_DATE, projectId: p2.id, notePath: null, priority: "low", tags: [], sortOrder: 1 });
-    addTask({ title: "T3", completed: false, dateUID: TEST_DATE, projectId: p1.id, notePath: null, priority: "low", tags: [], sortOrder: 2 });
+    addTask({ title: "T1", completed: false, dateUID: TEST_DATE, projectId: p1.id, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
+    addTask({ title: "T2", completed: false, dateUID: TEST_DATE, projectId: p2.id, notePath: null, priority: "low", tags: [], sortOrder: 1, status: "todo" });
+    addTask({ title: "T3", completed: false, dateUID: TEST_DATE, projectId: p1.id, notePath: null, priority: "low", tags: [], sortOrder: 2, status: "todo" });
 
     // Filter by project
     const p1Tasks = get(tasks).filter((t) => t.projectId === p1.id);
@@ -91,6 +93,7 @@ describe("full task creation flow", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     // Initially not completed
@@ -114,6 +117,7 @@ describe("edge cases", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     expect(task.title).toBe("");
@@ -130,6 +134,7 @@ describe("edge cases", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     expect(task.title).toBe("Task with <html> & \"quotes\" 'apostrophes'");
@@ -146,6 +151,7 @@ describe("edge cases", () => {
         priority: "low",
         tags: [],
         sortOrder: i,
+        status: "todo",
       });
     }
 

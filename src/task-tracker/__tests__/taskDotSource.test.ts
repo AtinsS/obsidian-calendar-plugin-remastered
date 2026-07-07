@@ -29,6 +29,7 @@ describe("taskDotSource", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     const metadata = await taskDotSource.getDailyMetadata(
@@ -49,6 +50,7 @@ describe("taskDotSource", () => {
         priority: "low",
         tags: [],
         sortOrder: i,
+        status: "todo",
       });
     }
 
@@ -69,6 +71,7 @@ describe("taskDotSource", () => {
         priority: "low",
         tags: [],
         sortOrder: i,
+        status: "todo",
       });
     }
 
@@ -88,6 +91,7 @@ describe("taskDotSource", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
     addTask({
       title: "Done 2",
@@ -98,6 +102,7 @@ describe("taskDotSource", () => {
       priority: "low",
       tags: [],
       sortOrder: 1,
+      status: "todo",
     });
 
     const metadata = await taskDotSource.getDailyMetadata(
@@ -118,6 +123,7 @@ describe("taskDotSource", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
     addTask({
       title: "Active",
@@ -128,6 +134,7 @@ describe("taskDotSource", () => {
       priority: "low",
       tags: [],
       sortOrder: 1,
+      status: "todo",
     });
     addTask({
       title: "Active 2",
@@ -138,6 +145,7 @@ describe("taskDotSource", () => {
       priority: "low",
       tags: [],
       sortOrder: 2,
+      status: "todo",
     });
 
     const metadata = await taskDotSource.getDailyMetadata(

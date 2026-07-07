@@ -22,6 +22,7 @@ describe("addTask", () => {
       priority: "medium",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     expect(task.id).toBeDefined();
@@ -43,6 +44,7 @@ describe("addTask", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     const allTasks = get(tasks);
@@ -51,8 +53,8 @@ describe("addTask", () => {
   });
 
   it("should add multiple tasks", () => {
-    addTask({ title: "Task 1", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
-    addTask({ title: "Task 2", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "high", tags: [], sortOrder: 1 });
+    addTask({ title: "Task 1", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
+    addTask({ title: "Task 2", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "high", tags: [], sortOrder: 1, status: "todo" });
 
     const allTasks = get(tasks);
     expect(allTasks.length).toBe(2);
@@ -61,8 +63,8 @@ describe("addTask", () => {
 
 describe("getTasksForDate", () => {
   it("should return tasks for matching dateUID", () => {
-    addTask({ title: "Task A", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
-    addTask({ title: "Task B", completed: false, dateUID: TEST_DATE_2, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
+    addTask({ title: "Task A", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
+    addTask({ title: "Task B", completed: false, dateUID: TEST_DATE_2, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
 
     const result = getTasksForDate(TEST_DATE);
     expect(result.length).toBe(1);
@@ -70,7 +72,7 @@ describe("getTasksForDate", () => {
   });
 
   it("should return empty array for no matching date", () => {
-    addTask({ title: "Task A", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
+    addTask({ title: "Task A", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
 
     const result = getTasksForDate("day-2026-07-10T00:00:00");
     expect(result.length).toBe(0);
@@ -84,7 +86,7 @@ describe("getTasksForDate", () => {
 
 describe("updateTask", () => {
   it("should update task fields", () => {
-    const task = addTask({ title: "Original", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
+    const task = addTask({ title: "Original", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
 
     updateTask(task.id, { title: "Updated", completed: true });
 
@@ -97,7 +99,7 @@ describe("updateTask", () => {
 
 describe("removeTask", () => {
   it("should remove task by id", () => {
-    const task = addTask({ title: "To Delete", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
+    const task = addTask({ title: "To Delete", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
 
     removeTask(task.id);
 
@@ -108,7 +110,7 @@ describe("removeTask", () => {
 
 describe("moveTask", () => {
   it("should change task dateUID", () => {
-    const task = addTask({ title: "Movable", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0 });
+    const task = addTask({ title: "Movable", completed: false, dateUID: TEST_DATE, projectId: null, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
 
     moveTask(task.id, "day-2026-07-10T00:00:00");
 
@@ -138,7 +140,7 @@ describe("addProject", () => {
 describe("removeProject", () => {
   it("should remove project and unassign tasks", () => {
     const project = addProject({ name: "P1", color: "#ff0000", icon: "📁", folder: null, archived: false, sortOrder: 0 });
-    addTask({ title: "Task", completed: false, dateUID: TEST_DATE, projectId: project.id, notePath: null, priority: "low", tags: [], sortOrder: 0 });
+    addTask({ title: "Task", completed: false, dateUID: TEST_DATE, projectId: project.id, notePath: null, priority: "low", tags: [], sortOrder: 0, status: "todo" });
 
     removeProject(project.id);
 

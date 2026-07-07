@@ -21,6 +21,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     const meta1 = await taskDotSource.getDailyMetadata(TEST_MOMENT());
@@ -40,6 +41,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     const meta1 = await taskDotSource.getDailyMetadata(TEST_MOMENT());
@@ -54,6 +56,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 1,
+      status: "todo",
     });
 
     const meta2 = await taskDotSource.getDailyMetadata(TEST_MOMENT());
@@ -70,6 +73,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     addTask({
@@ -81,6 +85,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 1,
+      status: "todo",
     });
 
     const meta1 = await taskDotSource.getDailyMetadata(TEST_MOMENT());
@@ -102,6 +107,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
     const t2 = addTask({
       title: "B",
@@ -112,6 +118,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 1,
+      status: "todo",
     });
 
     updateTask(t1.id, { completed: true });
@@ -132,6 +139,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     let meta = await taskDotSource.getDailyMetadata(TEST_MOMENT());
@@ -156,6 +164,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
     addTask({
       title: "July 6",
@@ -166,6 +175,7 @@ describe("taskDotSource cache", () => {
       priority: "low",
       tags: [],
       sortOrder: 0,
+      status: "todo",
     });
 
     const meta5 = await taskDotSource.getDailyMetadata(

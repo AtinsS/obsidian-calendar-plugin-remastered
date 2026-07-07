@@ -1,7 +1,7 @@
 import type { Moment, WeekSpec } from "moment";
 import { App, Plugin, WorkspaceLeaf } from "obsidian";
 
-import { VIEW_TYPE_CALENDAR } from "./constants";
+import { VIEW_TYPE_CALENDAR, VIEW_TYPE_SCHEDULE } from "./constants";
 import { settings } from "./ui/stores";
 import {
   appHasPeriodicNotesPluginLoaded,
@@ -10,6 +10,7 @@ import {
 } from "./settings";
 import { TFile } from "obsidian";
 import CalendarView from "./view";
+import ScheduleView from "./views/ScheduleView";
 import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
@@ -34,6 +35,9 @@ export default class CalendarPlugin extends Plugin {
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_CALENDAR)
       .forEach((leaf) => leaf.detach());
+    this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_SCHEDULE)
+      .forEach((leaf) => leaf.detach());
   }
 
   async onload(): Promise<void> {
@@ -47,7 +51,12 @@ export default class CalendarPlugin extends Plugin {
 
     this.registerView(
       VIEW_TYPE_CALENDAR,
-      (leaf: WorkspaceLeaf) => (this.view = new CalendarView(leaf))
+      (leaf: WorkspaceLeaf) => (this.view = new CalendarView(leaf, this))
+    );
+
+    this.registerView(
+      VIEW_TYPE_SCHEDULE,
+      (leaf: WorkspaceLeaf) => new ScheduleView(leaf, this)
     );
 
     this.addCommand({
@@ -78,6 +87,16 @@ export default class CalendarPlugin extends Plugin {
       id: "reveal-active-note",
       name: "Reveal active note",
       callback: () => this.view.revealActiveNote(),
+    });
+
+    this.addCommand({
+      id: "open-schedule-view",
+      name: "Открыть расписание",
+      callback: () => this.activateScheduleView(),
+    });
+
+    this.addRibbonIcon("calendar-range", "Расписание", () => {
+      this.activateScheduleView();
     });
 
     await this.loadOptions();
@@ -131,6 +150,25 @@ export default class CalendarPlugin extends Plugin {
     this.app.workspace.getRightLeaf(false).setViewState({
       type: VIEW_TYPE_CALENDAR,
     });
+  }
+
+  async activateScheduleView(): Promise<void> {
+    const { workspace } = this.app;
+
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_SCHEDULE);
+    if (existing.length) {
+      workspace.revealLeaf(existing[0]);
+      return;
+    }
+
+    const leaf = workspace.getLeaf("tab");
+    if (leaf) {
+      await leaf.setViewState({
+        type: VIEW_TYPE_SCHEDULE,
+        active: true,
+      });
+      workspace.revealLeaf(leaf);
+    }
   }
 
   async loadOptions(): Promise<void> {
