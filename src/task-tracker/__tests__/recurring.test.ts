@@ -149,7 +149,7 @@ describe("createNextRecurringInstance", () => {
     expect(newTask.tags).toEqual(["urgent"]);
   });
 
-  it("should set notePath to null on new occurrence", () => {
+  it("should copy notePath on new occurrence", () => {
     const task = addTask({
       title: "Note task",
       completed: false,
@@ -167,7 +167,54 @@ describe("createNextRecurringInstance", () => {
 
     const allTasks = get(tasks);
     const newTask = allTasks.find((t) => t.id !== task.id);
-    expect(newTask.notePath).toBeNull();
+    expect(newTask.notePath).toBe("folder/note.md");
+  });
+
+  it("should set isRecurringInstance and parentTaskId on new occurrence", () => {
+    const task = addTask({
+      title: "Parent task",
+      completed: false,
+      dateUID: TEST_DATE,
+      projectId: null,
+      notePath: null,
+      priority: "low",
+      tags: [],
+      sortOrder: 0,
+      status: "todo",
+      recurrence: { type: "daily" },
+    });
+
+    createNextRecurringInstance(task.id);
+
+    const allTasks = get(tasks);
+    const newTask = allTasks.find((t) => t.id !== task.id);
+    expect(newTask.isRecurringInstance).toBe(true);
+    expect(newTask.parentTaskId).toBe(task.id);
+  });
+
+  it("should copy scheduledTime and estimatedTime on recurrence", () => {
+    const task = addTask({
+      title: "Timed task",
+      completed: false,
+      dateUID: TEST_DATE,
+      projectId: null,
+      notePath: null,
+      priority: "low",
+      tags: [],
+      sortOrder: 0,
+      status: "todo",
+      scheduledTime: "09:00",
+      estimatedTime: 60,
+      recurrence: { type: "daily" },
+    });
+
+    createNextRecurringInstance(task.id);
+
+    const allTasks = get(tasks);
+    const newTask = allTasks.find((t) => t.id !== task.id);
+    expect(newTask.scheduledTime).toBe("09:00");
+    expect(newTask.estimatedTime).toBe(60);
+    expect(newTask.totalWorkTime).toBe(0);
   });
 });
 

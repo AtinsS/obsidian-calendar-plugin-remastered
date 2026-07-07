@@ -25,6 +25,8 @@ export interface ITask {
   totalWorkTime?: number;
   estimatedTime?: number;
   scheduledTime?: string;
+  isRecurringInstance?: boolean;
+  parentTaskId?: string;
 }
 
 export interface IProject {

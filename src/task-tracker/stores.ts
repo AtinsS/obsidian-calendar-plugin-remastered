@@ -247,12 +247,17 @@ export function createNextRecurringInstance(taskId: string): void {
     status: "todo",
     dateUID: newDateUID,
     projectId: task.projectId,
-    notePath: null,
+    notePath: task.notePath,
     priority: task.priority,
     tags: [...task.tags],
     sortOrder: 0,
     description: task.description,
     recurrence: task.recurrence,
+    scheduledTime: task.scheduledTime,
+    estimatedTime: task.estimatedTime,
+    totalWorkTime: 0,
+    isRecurringInstance: true,
+    parentTaskId: task.id,
   });
 }
 
