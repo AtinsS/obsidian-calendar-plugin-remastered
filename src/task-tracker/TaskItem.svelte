@@ -1,11 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
+  import type { App } from "obsidian";
   import type { ITask, TaskStatus } from "./types";
   import { updateTask, updateTaskStatus, removeTask, projects } from "./stores";
   import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
 
   export let task: ITask;
+  export let appInstance: App;
 
   const dispatch = createEventDispatcher();
 
@@ -56,8 +58,7 @@
 
   function handleEdit() {
     const modal = new TaskModal(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).app,
+      appInstance,
       (changes) => {
         updateTask(task.id, changes);
       },
@@ -72,12 +73,10 @@
 
   function openNote() {
     if (!task.notePath) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const app = (window as any).app;
-    if (!app) return;
-    const file = app.vault.getAbstractFileByPath(task.notePath);
+    if (!appInstance) return;
+    const file = appInstance.vault.getAbstractFileByPath(task.notePath);
     if (file) {
-      app.workspace.openLinkText(task.notePath, "", false);
+      appInstance.workspace.openLinkText(task.notePath, "", false);
     }
   }
 

@@ -1,5 +1,7 @@
 <script lang="ts">
   import { get } from "svelte/store";
+  import moment from "moment";
+  import type { App } from "obsidian";
   import type { ITask, IProject } from "./types";
   import {
     tasks,
@@ -15,11 +17,14 @@
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
   import { settings } from "../ui/stores";
+  import { app } from "../stores/appStore";
   import TaskItem from "./TaskItem.svelte";
   import KanbanTabs from "./KanbanTabs.svelte";
   import TimeLogsModal from "./TimeLogsModal.svelte";
   import { TaskModal } from "./TaskModal";
   import { ProjectModal } from "./ProjectModal";
+
+  export let appInstance: App;
 
   let collapsed = false;
   let showTimeLogs = false;
@@ -80,7 +85,7 @@
     const match = dateUID.match(/^(?:day|week|month)-(\d{4}-\d{2}-\d{2})/);
     if (match) {
       try {
-        return window.moment(match[1], "YYYY-MM-DD").format("D MMMM YYYY");
+        return moment(match[1], "YYYY-MM-DD").format("D MMMM YYYY");
       } catch {
         return match[1];
       }
@@ -90,8 +95,7 @@
 
   function openCreateTask() {
     const modal = new TaskModal(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).app,
+      appInstance,
       async (taskData) => {
         const shouldCreateNote = taskData.isNoteTask;
         const customNotePath = taskData.notePath;
@@ -106,9 +110,7 @@
 
         if (shouldCreateNote) {
           const project = $projects.find((p) => p.id === task.projectId);
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const app = (window as any).app;
-          const file = await createNoteTask(task, project, app, customNotePath);
+          const file = await createNoteTask(task, project, appInstance, customNotePath);
           if (file) {
             updateTask(task.id, { notePath: file.path });
           }
@@ -119,10 +121,8 @@
   }
 
   async function handleTaskDelete(task: ITask) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const app = (window as any).app;
-    if (task.notePath && app) {
-      await deleteNoteTask(task.notePath, app);
+    if (task.notePath && appInstance) {
+      await deleteNoteTask(task.notePath, appInstance);
     }
     removeTask(task.id);
   }
@@ -141,11 +141,9 @@
 
   async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
     if (newStatus !== "done" || !task.notePath) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const app = (window as any).app;
-    if (!app) return;
+    if (!appInstance) return;
     const archivePath = $settings.archiveFolderPath || "Archive";
-    const newPath = await archiveNoteTask(task.notePath, archivePath, app);
+    const newPath = await archiveNoteTask(task.notePath, archivePath, appInstance);
     if (newPath) {
       updateTask(task.id, { notePath: newPath });
     }
@@ -161,18 +159,16 @@
   }
 
   async function clearArchive() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const app = (window as any).app;
-    if (!app) return;
+    if (!appInstance) return;
 
     const archivePath = $settings.archiveFolderPath || "Archive";
-    const folder = app.vault.getAbstractFileByPath(archivePath);
+    const folder = appInstance.vault.getAbstractFileByPath(archivePath);
     if (!folder) {
       alert("Архив пуст");
       return;
     }
 
-    const files = app.vault.getFiles().filter((f: any) => f.path.startsWith(archivePath + "/"));
+    const files = appInstance.vault.getFiles().filter((f: any) => f.path.startsWith(archivePath + "/"));
     if (files.length === 0) {
       alert("Архив пуст");
       return;
@@ -181,7 +177,7 @@
     if (!confirm(`Удалить ${files.length} файлов из архива?`)) return;
 
     for (const file of files) {
-      await app.vault.delete(file);
+      await appInstance.vault.delete(file);
     }
 
     // Remove tasks that pointed to archived files
@@ -195,10 +191,7 @@
   }
 
   function openProjectSettings() {
-    const modal = new ProjectModal(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).app
-    );
+    const modal = new ProjectModal(appInstance);
     modal.open();
   }
 
@@ -377,6 +370,7 @@
           {#each group.tasks as task (task.id)}
             <TaskItem
               {task}
+              {appInstance}
               on:complete={(e) => handleTaskComplete(e.detail.task)}
               on:delete={(e) => handleTaskDelete(e.detail.task)}
             />

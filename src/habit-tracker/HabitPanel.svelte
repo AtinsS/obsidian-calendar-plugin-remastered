@@ -1,4 +1,6 @@
 <script lang="ts">
+  import moment from "moment";
+  import type { App } from "obsidian";
   import type { IHabit } from "./types";
   import {
     habits,
@@ -12,6 +14,8 @@
   import HabitItem from "./HabitItem.svelte";
   import { HabitModal } from "./HabitModal";
 
+  export let appInstance: App;
+
   let collapsed = false;
 
   $: currentDate = $selectedDate;
@@ -24,16 +28,15 @@
 
   function extractDateStr(dateUID: string): string {
     if (!dateUID) {
-      return window.moment().format("YYYY-MM-DD");
+      return moment().format("YYYY-MM-DD");
     }
     const match = dateUID.match(/^(?:day|week)-(\d{4}-\d{2}-\d{2})/);
-    return match ? match[1] : window.moment().format("YYYY-MM-DD");
+    return match ? match[1] : moment().format("YYYY-MM-DD");
   }
 
   function openCreateHabit() {
     const modal = new HabitModal(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).app,
+      appInstance,
       (habitData) => {
         addHabit({
           ...habitData,
@@ -50,8 +53,7 @@
 
   function handleEdit(event: CustomEvent<{ habit: IHabit }>) {
     const modal = new HabitModal(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (window as any).app,
+      appInstance,
       (changes) => {
         updateHabit(event.detail.habit.id, changes);
       },

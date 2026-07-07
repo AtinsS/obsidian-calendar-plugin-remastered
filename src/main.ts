@@ -1,8 +1,10 @@
+import moment from "moment";
 import type { Moment, WeekSpec } from "moment";
 import { App, Plugin, WorkspaceLeaf } from "obsidian";
 
 import { VIEW_TYPE_CALENDAR, VIEW_TYPE_SCHEDULE } from "./constants";
 import { settings } from "./ui/stores";
+import { app as appStore } from "./stores/appStore";
 import {
   appHasPeriodicNotesPluginLoaded,
   CalendarSettingsTab,
@@ -41,6 +43,9 @@ export default class CalendarPlugin extends Plugin {
   }
 
   async onload(): Promise<void> {
+    // Set the app store so components can access the Obsidian App instance
+    appStore.set(this.app);
+
     this.register(
       settings.subscribe((value) => {
         this.options = value;
@@ -79,7 +84,7 @@ export default class CalendarPlugin extends Plugin {
         if (checking) {
           return !appHasPeriodicNotesPluginLoaded();
         }
-        this.view.selectDateForWeek(window.moment());
+        this.view.selectDateForWeek(moment());
       },
     });
 

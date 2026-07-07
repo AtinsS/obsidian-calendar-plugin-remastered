@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import moment from "moment";
 
 import type CalendarPlugin from "src/main";
 
@@ -126,7 +127,6 @@ export function calculateStreak(habitId: string): number {
   if (logs.length === 0) return 0;
 
   let streak = 0;
-  const moment = window.moment;
   let currentDate = moment().startOf("day");
 
   for (const log of logs) {

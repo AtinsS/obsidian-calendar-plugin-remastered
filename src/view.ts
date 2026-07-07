@@ -1,3 +1,4 @@
+import moment from "moment";
 import type { Moment } from "moment";
 import {
   getDailyNote,
@@ -116,7 +117,7 @@ export default class CalendarView extends ItemView {
 
   async onOpen(): Promise<void> {
     // Initialize selected date with today
-    selectedDate.set(getDateUID(window.moment(), "day"));
+    selectedDate.set(getDateUID(moment(), "day"));
 
     // Schedule view button
     const scheduleBtn = (this as any).contentEl.createEl("button", {
@@ -159,6 +160,9 @@ export default class CalendarView extends ItemView {
       this.taskPanel = new TaskPanel({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         target: (this as any).contentEl,
+        props: {
+          appInstance: this.app,
+        },
       });
     }
 
@@ -167,6 +171,9 @@ export default class CalendarView extends ItemView {
       this.habitPanel = new HabitPanel({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         target: (this as any).contentEl,
+        props: {
+          appInstance: this.app,
+        },
       });
     }
   }
@@ -361,7 +368,6 @@ export default class CalendarView extends ItemView {
   }
 
   public revealActiveNote(): void {
-    const { moment } = window;
     const { activeLeaf } = this.app.workspace;
 
     if (activeLeaf.view instanceof FileView) {

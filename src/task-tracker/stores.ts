@@ -1,4 +1,5 @@
 import { writable, get } from "svelte/store";
+import moment from "moment";
 
 import type CalendarPlugin from "src/main";
 import { getDateUID } from "obsidian-daily-notes-interface";
@@ -193,7 +194,6 @@ export function createNextRecurringInstance(taskId: string): void {
   const task = allTasks.find((t) => t.id === taskId);
   if (!task || !task.recurrence) return;
 
-  const moment = window.moment;
   const dateMatch = task.dateUID.match(
     /^day-(\d{4}-\d{2}-\d{2})/
   );

@@ -1,3 +1,4 @@
+import moment from "moment";
 import type { Moment } from "moment";
 import type {
   ICalendarSource,
@@ -19,7 +20,7 @@ function getTodayUID(): string {
   const now = Date.now();
   // Re-compute only once per second (enough for calendar render)
   if (!cachedTodayUID || now - lastTodayCheck > 1000) {
-    cachedTodayUID = getDateUID(window.moment(), "day");
+    cachedTodayUID = getDateUID(moment(), "day");
     lastTodayCheck = now;
   }
   return cachedTodayUID;
