@@ -133,11 +133,7 @@ npm run build
 - [ ] 📊 Еженедельный отчёт с аналитикой
 
 
----
 
-## 🐛 Баги и предложения
-
-Нашли баг или есть идея? [Создайте issue](https://github.com/AtinsS/obsidian-calendar-plugin-remastered/issues) — я обязательно рассмотрю!
 
 ---
 
@@ -165,7 +161,7 @@ npm run build
 [⬆ Вернуться наверх](#-calendar-plugin-remastered)
 
 </div>
-```
+
 
 ---
 
