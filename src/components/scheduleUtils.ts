@@ -19,7 +19,7 @@ export function calculateEndTime(
   if (totalMinutes >= 1440) {
     const d = new Date(date + "T00:00:00");
     d.setDate(d.getDate() + 1);
-    endDate = d.toISOString().split("T")[0];
+    endDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   }
 
   return `${endDate}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
