@@ -64,15 +64,6 @@ npm install && npm run build
 
 ---
 
-## Команды (`Ctrl/Cmd + P`)
-
-- `Открыть расписание` — вкладка FullCalendar
-- `Открыть аналитику привычек` — панель статистики
-- `Reveal active note` — текущая заметка в календаре
-- `Open Weekly Note` — еженедельная заметка
-
----
-
 ## Стек
 
 [Svelte 3.x](https://svelte.dev/) · [FullCalendar 6.x](https://fullcalendar.io/) · [Luxon 3.x](https://moment.github.io/luxon/) · [TypeScript 4.x](https://www.typescriptlang.org/) · Canvas API
@@ -86,20 +77,20 @@ npm install && npm run build
 - [x] Уведомления
 - [x] Повторяющиеся задачи
 - [x] Поиск папок в настройках
-- [ ] Telegram-бот
-- [ ] 
+- [ ] Telegram-бот с напоминаниями❓
+- [ ] Аналитика финансов 
 
 
 ---
 
 ## Поддержать проект
 
-⭐ Звезда репозиторию · ☕ [Купить кофе](https://pay.cloudtips.ru/p/cbaa3c81)
+⭐ Звезда репозиторию · ☕ [Купить мне кофе с булочкой](https://pay.cloudtips.ru/p/cbaa3c81)
 
 ---
 
 <div align="center">
-Сделано с 💜 для сообщества **Obsidian**
+Сделано с 💜 для сообщества [Obsidian](https://obsidian.md)
 </div>
 
 ---
