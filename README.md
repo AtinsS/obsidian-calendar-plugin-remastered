@@ -1,4 +1,4 @@
-OO
+шшшшшOO
 
 # 📅 Calendar Plugin Remastered
 
@@ -77,8 +77,8 @@ OO
 
 ## Поддержи проект
 
-⭐ Звезда репозиторию
-☕ [Купить мне кофе с булочкой](https://pay.cloudtips.ru/p/cbaa3c81)
+- ⭐ Звезда репозиторию
+- ☕ [Купить мне кофе с булочкой](https://pay.cloudtips.ru/p/cbaa3c81)
 
 ---
 
