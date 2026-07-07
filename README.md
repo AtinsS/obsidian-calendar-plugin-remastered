@@ -1,4 +1,4 @@
-В# 📅 Calendar Plugin Remastered
+# 📅 Calendar Plugin Remastered
 
 > Календарь, трекер задач и трекер привычек для [Obsidian](https://obsidian.md)  
 > Модифицированная версия оригинального плагина [Calendar](https://github.com/liamcain/obsidian-calendar-plugin) от Liam Cain
