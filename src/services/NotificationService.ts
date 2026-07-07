@@ -91,8 +91,8 @@ export class NotificationService {
       if (now >= fireAt - reminderMs && now < fireAt && !this.firedReminders.has(reminderKey)) {
         this.firedReminders.add(reminderKey);
         this.notify(
-          `Напоминание: ${task.title}`,
-          `Задача запланирована на ${task.scheduledTime}`
+          `📅 Calendar Remastered`,
+          `⏱️ Напоминание: ${task.title}\nЗадача через ${this.getSettings().reminderMinutesBefore} мин (${task.scheduledTime})`
         );
       }
 
@@ -100,8 +100,8 @@ export class NotificationService {
       if (now >= fireAt + 30 * 60_000 && !this.firedOverdue.has(overdueKey)) {
         this.firedOverdue.add(overdueKey);
         this.notify(
-          `Просрочено: ${task.title}`,
-          `Задача была запланирована на ${task.scheduledTime} и не завершена`
+          `📅 Calendar Remastered`,
+          `‼️ Просрочено: ${task.title}\nЗапланировано на ${task.scheduledTime}`
         );
       }
     }
@@ -123,7 +123,6 @@ export class NotificationService {
 
     const notification = new Notification(title, {
       body,
-      icon: "calendar-range",
     });
 
     notification.onclick = () => {
