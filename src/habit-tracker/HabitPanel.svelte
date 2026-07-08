@@ -20,7 +20,14 @@
 
   $: currentDate = $selectedDate;
   $: dateStr = extractDateStr(currentDate);
-  $: activeHabits = $habits.filter((h) => !h.archived);
+  $: activeHabits = $habits.filter((h) => {
+    if (h.archived) return false;
+    if (h.frequency === "custom" && h.customDays && h.customDays.length > 0) {
+      const dayOfWeek = moment(dateStr, "YYYY-MM-DD").day(); // 0=Sun
+      return h.customDays.includes(dayOfWeek);
+    }
+    return true;
+  });
   $: totalStreak = activeHabits.reduce(
     (sum, h) => sum + calculateStreak(h.id),
     0

@@ -1736,12 +1736,16 @@ content: attr(data-task-count);
     flex: 1 1 auto;
   }
 
-  .task-recurring-icon,
+  .task-recurring-icon {
+    font-size: 12px;
+  }
+
   .task-scheduled,
   .task-timer,
   .task-estimate,
   .task-estimate-compare {
-    display: none;
+    font-size: 11px;
+    padding: 1px 4px;
   }
 
   .task-edit-btn,

@@ -396,7 +396,13 @@ export default class CalendarView extends ItemView {
 
   selectDateForDay(date: Moment): void {
     const dateUID = getDateUID(date, "day");
-    selectedDate.set(dateUID);
-    activeFile.setUID(dateUID);
+    const current = get(selectedDate);
+    if (current === dateUID) {
+      selectedDate.set(null);
+      activeFile.setUID(null);
+    } else {
+      selectedDate.set(dateUID);
+      activeFile.setUID(dateUID);
+    }
   }
 }

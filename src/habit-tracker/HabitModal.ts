@@ -101,27 +101,29 @@ export class HabitModal extends Modal {
         });
       });
 
-    // Custom days
+    // Custom days — visual order: Mon-Sun, moment convention: 0=Sun,1=Mon,...,6=Sat
     this.customDaysSetting = new Setting(contentEl).setName("Дни недели");
-    const dayNames = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+    const dayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    const dayIndices = [1, 2, 3, 4, 5, 6, 0];
     const daysContainer = this.customDaysSetting.settingEl.createDiv({
       cls: "task-tracker-recurrence-days",
     });
     for (let i = 0; i < 7; i++) {
+      const momentIdx = dayIndices[i];
       const dayBtn = daysContainer.createEl("button", {
-        text: dayNames[i],
+        text: dayLabels[i],
         cls: "task-tracker-recurrence-day-btn",
       });
-      if (this.customDaysInput.includes(i)) {
+      if (this.customDaysInput.includes(momentIdx)) {
         dayBtn.addClass("active");
       }
       dayBtn.addEventListener("click", () => {
-        const idx = this.customDaysInput.indexOf(i);
+        const idx = this.customDaysInput.indexOf(momentIdx);
         if (idx >= 0) {
           this.customDaysInput.splice(idx, 1);
           dayBtn.removeClass("active");
         } else {
-          this.customDaysInput.push(i);
+          this.customDaysInput.push(momentIdx);
           this.customDaysInput.sort();
           dayBtn.addClass("active");
         }

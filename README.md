@@ -12,6 +12,7 @@
 [![Svelte](https://img.shields.io/badge/Svelte-3.x-FF3E00?logo=svelte)](https://svelte.dev/)
 
 ---
+![alt text](image.png)
 
 ## Возможности
 

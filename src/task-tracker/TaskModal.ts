@@ -211,25 +211,28 @@ export class TaskModal extends Modal {
     this.recurrenceDaysSetting = new Setting(contentEl)
       .setName("Дни недели");
 
-    const dayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    // Visual order: Mon-Sun, but moment convention: 0=Sun,1=Mon,...,6=Sat
+    const dayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    const dayIndices = [1, 2, 3, 4, 5, 6, 0]; // moment day-of-week indices
     const daysContainer = this.recurrenceDaysSetting.settingEl.createDiv({
       cls: "task-tracker-recurrence-days",
     });
     for (let i = 0; i < 7; i++) {
+      const momentIdx = dayIndices[i];
       const dayBtn = daysContainer.createEl("button", {
-        text: dayNames[i],
+        text: dayLabels[i],
         cls: "task-tracker-recurrence-day-btn",
       });
-      if (this.recurrenceDaysOfWeek.includes(i)) {
+      if (this.recurrenceDaysOfWeek.includes(momentIdx)) {
         dayBtn.addClass("active");
       }
       dayBtn.addEventListener("click", () => {
-        const idx = this.recurrenceDaysOfWeek.indexOf(i);
+        const idx = this.recurrenceDaysOfWeek.indexOf(momentIdx);
         if (idx >= 0) {
           this.recurrenceDaysOfWeek.splice(idx, 1);
           dayBtn.removeClass("active");
         } else {
-          this.recurrenceDaysOfWeek.push(i);
+          this.recurrenceDaysOfWeek.push(momentIdx);
           this.recurrenceDaysOfWeek.sort();
           dayBtn.addClass("active");
         }

@@ -84,7 +84,11 @@
     const match = dateUID.match(/^(?:day|week|month)-(\d{4}-\d{2}-\d{2})/);
     if (match) {
       try {
-        return moment(match[1], "YYYY-MM-DD").format("D MMMM YYYY");
+        const m = window.moment(match[1], "YYYY-MM-DD", true);
+        if (m.isValid()) {
+          return m.format("D MMMM YYYY");
+        }
+        return match[1];
       } catch {
         return match[1];
       }

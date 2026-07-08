@@ -243,13 +243,11 @@
             <span class="sch-event-title">${event.title}</span>
             ${noteIcon}
           </div>
-          ${!mobile ? `
           <div class="sch-event-meta">
             ${time ? `<span class="sch-event-time">${time}</span>` : ""}
             ${statusLabel ? `<span class="sch-event-status sch-status-${task.status}">${statusLabel}</span>` : ""}
             ${durationLabel}
           </div>
-          ` : ''}
         </div>
       `,
     };
@@ -911,11 +909,6 @@
 
     :global(.sch-duration) {
       font-size: 8px;
-    }
-
-    /* Скрываем мету в timegrid — экономим место */
-    :global(.fc .fc-timegrid-event .sch-event-meta) {
-      display: none;
     }
 
     :global(.fc .fc-timegrid-event .sch-event) {
