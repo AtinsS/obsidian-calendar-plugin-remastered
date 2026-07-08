@@ -1,6 +1,3 @@
-Вот более краткая и структурированная версия README:
-
----
 
 # 📅 Calendar Plugin Remastered
 
@@ -42,12 +39,6 @@
 ### Вручную
 Скачайте `main.js`, `manifest.json`, `styles.css` из [релизов](https://github.com/AtinsS/obsidian-calendar-plugin-remastered/releases) и скопируйте в `.obsidian/plugins/calendar/`.
 
-### Из исходников
-```bash
-git clone https://github.com/AtinsS/obsidian-calendar-plugin-remastered.git
-cd obsidian-calendar-plugin-remastered
-npm install && npm run build
-```
 
 ---
 
@@ -84,14 +75,15 @@ npm install && npm run build
 
 ---
 
-## Поддержать проект
+## Поддержи проект
 
-⭐ Звезда репозиторию · ☕ [Купить мне кофе с булочкой](https://pay.cloudtips.ru/p/cbaa3c81)
+- ⭐ Звезда репозиторию
+- ☕ [Купить мне кофе с булочкой](https://pay.cloudtips.ru/p/cbaa3c81)
 
 ---
 
 <div align="center">
-Сделано с 💜 для сообщества [Obsidian](https://obsidian.md)
+Сделано с 💜 для сообщества Obsidian
 </div>
 
 ---
