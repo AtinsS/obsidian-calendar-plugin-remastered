@@ -9,7 +9,7 @@
 [![Svelte](https://img.shields.io/badge/Svelte-3.x-FF3E00?logo=svelte)](https://svelte.dev/)
 
 ---
-![alt text](image.png)
+![alt text](image-1.png)
 
 ## Возможности
 
@@ -84,6 +84,6 @@
 
 <div align="center">
 Сделано с 💜 для сообщества Obsidian
-</div>
+q</div>
 
 ---
