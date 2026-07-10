@@ -77,7 +77,7 @@ export class NotificationService {
     const now = Date.now();
 
     for (const task of allTasks) {
-      if (task.completed || !task.scheduledTime || !task.dateUID) continue;
+      if (task.completed || task.status === "progress" || task.status === "paused" || !task.scheduledTime || !task.dateUID) continue;
 
       const scheduledMoment = this.getScheduledMoment(task);
       if (!scheduledMoment || !scheduledMoment.isValid()) continue;

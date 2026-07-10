@@ -25,15 +25,15 @@ export function calculateEndTime(
   return `${endDate}T${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}:00`;
 }
 
-/** Десaturация цвета проекта для glassmorphism-стиля — сохраняем тёмные тона */
-function tintWithAlpha(hex: string, alpha = 0.85): string {
+/** Цвет проекта для glassmorphism-стиля — сохраняем насыщенность и непрозрачность */
+function tintWithAlpha(hex: string, alpha = 0.92): string {
   const r = parseInt(hex.slice(1, 3), 16);
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
-  // Минимальное осветление — 85% оригинала + 15% белого (сохраняем тёмный цвет)
-  const mr = Math.round(r * 0.85 + 255 * 0.15);
-  const mg = Math.round(g * 0.85 + 255 * 0.15);
-  const mb = Math.round(b * 0.85 + 255 * 0.15);
+  // Лёгкое осветление — 92% оригинала + 8% белого (сохраняем насыщенность)
+  const mr = Math.round(r * 0.92 + 255 * 0.08);
+  const mg = Math.round(g * 0.92 + 255 * 0.08);
+  const mb = Math.round(b * 0.92 + 255 * 0.08);
   return `rgba(${mr}, ${mg}, ${mb}, ${alpha})`;
 }
 
@@ -42,6 +42,8 @@ export function getStatusColor(status: string): string {
   switch (status) {
     case "progress":
       return "rgba(180, 145, 85, 0.85)";
+    case "paused":
+      return "rgba(180, 150, 100, 0.7)";
     case "done":
       return "rgba(85, 160, 130, 0.8)";
     case "todo":
@@ -55,6 +57,8 @@ export function getStatusBorder(status: string): string {
   switch (status) {
     case "progress":
       return "rgba(200, 165, 100, 1)";
+    case "paused":
+      return "rgba(180, 150, 100, 0.8)";
     case "done":
       return "rgba(95, 175, 145, 1)";
     case "todo":

@@ -161,35 +161,28 @@
     }
   }
 
-  async function clearArchive() {
+  async function clearCompletedTasks() {
     if (!appInstance) return;
 
-    const archivePath = $settings.archiveFolderPath || "Archive";
-    const folder = appInstance.vault.getAbstractFileByPath(archivePath);
-    if (!folder) {
-      alert("Архив пуст");
+    const allTasksList = get(tasks);
+    const completedTasks = allTasksList.filter((t) => t.completed);
+
+    if (completedTasks.length === 0) {
+      alert("Нет выполненных задач");
       return;
     }
 
-    const files = appInstance.vault.getFiles().filter((f: any) => f.path.startsWith(archivePath + "/"));
-    if (files.length === 0) {
-      alert("Архив пуст");
-      return;
-    }
+    if (!confirm(`Удалить ${completedTasks.length} выполненных задач?`)) return;
 
-    if (!confirm(`Удалить ${files.length} файлов из архива?`)) return;
-
-    for (const file of files) {
-      await appInstance.vault.delete(file);
-    }
-
-    // Remove tasks that pointed to archived files
-    const archivedPaths = new Set(files.map((f: any) => f.path));
-    const allTasks = get(tasks);
-    for (const t of allTasks) {
-      if (t.notePath && archivedPaths.has(t.notePath)) {
-        removeTask(t.id);
+    // Delete associated note files if they exist
+    for (const task of completedTasks) {
+      if (task.notePath) {
+        const file = appInstance.vault.getAbstractFileByPath(task.notePath);
+        if (file) {
+          await appInstance.vault.delete(file);
+        }
       }
+      removeTask(task.id);
     }
   }
 
@@ -250,9 +243,9 @@
       </button>
       <button
         class="task-tracker-btn desktop-only"
-        on:click|stopPropagation={clearArchive}
-        aria-label="Очистить архив"
-        title="Очистить архив"
+        on:click|stopPropagation={clearCompletedTasks}
+        aria-label="Очистить выполненные"
+        title="Очистить выполненные"
       >
         &#128465;
       </button>
@@ -283,9 +276,9 @@
             </button>
             <button
               class="task-tracker-dropdown-item"
-              on:click|stopPropagation={() => { clearArchive(); closeMenu(); }}
+              on:click|stopPropagation={() => { clearCompletedTasks(); closeMenu(); }}
             >
-              &#128465; <span class="dropdown-label-full">Очистить архив</span><span class="dropdown-label-short">Очистить</span>
+              &#128465; <span class="dropdown-label-full">Очистить выполненные</span><span class="dropdown-label-short">Очистить</span>
             </button>
             <button
               class="task-tracker-dropdown-item"

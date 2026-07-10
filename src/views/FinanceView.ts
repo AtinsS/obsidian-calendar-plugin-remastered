@@ -1,12 +1,12 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 
-import { VIEW_TYPE_HABIT_ANALYTICS } from "../constants";
+import { VIEW_TYPE_FINANCE } from "../constants";
 import type CalendarPlugin from "../main";
-import HabitAnalytics from "../components/HabitAnalytics.svelte";
+import FinanceTracker from "../finance/FinanceTracker.svelte";
 
-export default class HabitAnalyticsView extends ItemView {
+export default class FinanceView extends ItemView {
   private plugin: CalendarPlugin;
-  private svelteComponent: HabitAnalytics;
+  private svelteComponent: FinanceTracker;
 
   constructor(leaf: WorkspaceLeaf, plugin: CalendarPlugin) {
     super(leaf);
@@ -14,23 +14,23 @@ export default class HabitAnalyticsView extends ItemView {
   }
 
   getViewType(): string {
-    return VIEW_TYPE_HABIT_ANALYTICS;
+    return VIEW_TYPE_FINANCE;
   }
 
   getDisplayText(): string {
-    return "Аналитика";
+    return "💰 Распределение финансовых средств";
   }
 
   getIcon(): string {
-    return "bar-chart";
+    return "coins";
   }
 
   async onOpen(): Promise<void> {
     const container = this.containerEl.children[1];
     container.empty();
-    container.addClass("habit-analytics-view-container");
+    container.addClass("finance-view-container");
 
-    this.svelteComponent = new HabitAnalytics({
+    this.svelteComponent = new FinanceTracker({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       target: container as any,
     });

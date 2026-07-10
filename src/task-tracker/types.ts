@@ -4,7 +4,7 @@ export interface RecurrenceConfig {
   daysOfWeek?: number[];
 }
 
-export type TaskStatus = "todo" | "progress" | "done";
+export type TaskStatus = "todo" | "progress" | "done" | "paused";
 
 export interface ITask {
   id: string;
@@ -21,11 +21,16 @@ export interface ITask {
   updatedAt: number;
   recurrence?: RecurrenceConfig;
   timerStartedAt?: number;
+  pausedAt?: number;
+  pausedWorkTime?: number;
   totalWorkTime?: number;
   estimatedTime?: number;
   scheduledTime?: string;
   isRecurringInstance?: boolean;
   parentTaskId?: string;
+  isWorkTask?: boolean;
+  paymentType?: "hour" | "day";
+  rate?: number;
 }
 
 export interface IProject {

@@ -13,6 +13,10 @@
       (t) =>
         t.status === "progress" && t.dateUID === currentDate
     ).length,
+    paused: $tasks.filter(
+      (t) =>
+        t.status === "paused" && t.dateUID === currentDate
+    ).length,
     done: $tasks.filter(
       (t) =>
         t.status === "done" && t.dateUID === currentDate
@@ -22,6 +26,7 @@
   const tabs: { key: TaskStatus; label: string; icon: string }[] = [
     { key: "todo", label: "Сделать", icon: "\u25CB" },
     { key: "progress", label: "В работе", icon: "\u23F3" },
+    { key: "paused", label: "На паузе", icon: "\u23F8" },
     { key: "done", label: "Готово", icon: "\u2714" },
   ];
 

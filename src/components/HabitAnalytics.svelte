@@ -9,8 +9,9 @@
   import type { IHabit } from "../habit-tracker/types";
   import HabitCard from "./HabitCard.svelte";
   import BarChart from "./BarChart.svelte";
-  import { timeLogs } from "../task-tracker/stores";
+  import { timeLogs, tasks } from "../task-tracker/stores";
   import { formatDuration } from "../task-tracker/TimerManager";
+  import { getEarningsForMonth, getEarningsForYear, getMonthlyEarningsForYear } from "../task-tracker/stores";
 
   let selectedHabitId: string = "all";
   let weeklyStats = getWeeklyStats(12);
@@ -41,6 +42,24 @@
   $: totalTimeMs = $timeLogs.reduce((sum, log) => sum + log.duration, 0);
   $: uniqueDays = new Set($timeLogs.map(log => log.date)).size;
   $: avgPerDay = uniqueDays > 0 ? totalTimeMs / uniqueDays : 0;
+
+  // Earnings stats
+  $: {
+    $tasks; // re-compute when tasks change
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    monthlyEarnings = getEarningsForMonth(currentYear, currentMonth);
+    yearlyEarnings = getEarningsForYear(currentYear);
+    monthlyChart = getMonthlyEarningsForYear(currentYear);
+    maxMonthly = Math.max(...monthlyChart.map(m => m.amount), 1);
+  }
+  let monthlyEarnings = 0;
+  let yearlyEarnings = 0;
+  let monthlyChart: { month: number; amount: number }[] = [];
+  let maxMonthly = 1;
+
+  const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
 </script>
 
 <div class="habit-analytics">
@@ -142,6 +161,41 @@
         <div class="time-logs-chart">
           <BarChart logs={$timeLogs} />
         </div>
+      {/if}
+    </div>
+
+    <!-- Earnings Section -->
+    <div class="habit-analytics-section">
+      <h3>Заработок</h3>
+      <div class="earnings-summary">
+        <div class="earnings-card">
+          <span class="earnings-value">{monthlyEarnings.toLocaleString("ru-RU")} ₽</span>
+          <span class="earnings-label">За месяц</span>
+        </div>
+        <div class="earnings-card">
+          <span class="earnings-value">{yearlyEarnings.toLocaleString("ru-RU")} ₽</span>
+          <span class="earnings-label">За год</span>
+        </div>
+      </div>
+      {#if monthlyChart.some(m => m.amount > 0)}
+        <div class="earnings-chart">
+          {#each monthlyChart as monthData}
+            <div class="earnings-bar-wrapper">
+              <div
+                class="earnings-bar"
+                style="height: {monthData.amount > 0
+                  ? Math.max((monthData.amount / maxMonthly) * 100, 4)
+                  : 0}%;"
+                title="{monthNames[monthData.month - 1]}: {monthData.amount.toLocaleString('ru-RU')} ₽"
+              ></div>
+              <span class="earnings-bar-label">
+                {monthNames[monthData.month - 1]}
+              </span>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="earnings-empty">Нет данных о заработке</div>
       {/if}
     </div>
   {/if}
@@ -307,6 +361,77 @@
     margin-top: 12px;
   }
 
+  .earnings-summary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .earnings-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--background-modifier-border);
+    background: var(--background-secondary);
+  }
+
+  .earnings-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--mcp-success, rgba(34, 197, 94, 0.9));
+  }
+
+  .earnings-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  .earnings-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 100px;
+    padding-top: 8px;
+  }
+
+  .earnings-bar-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .earnings-bar {
+    width: 100%;
+    max-width: 40px;
+    background: var(--mcp-success, rgba(34, 197, 94, 0.7));
+    border-radius: 3px 3px 0 0;
+    min-height: 0;
+    transition: height 0.2s ease;
+  }
+
+  .earnings-bar-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    white-space: nowrap;
+  }
+
+  .earnings-empty {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
   @media (max-width: 768px) {
     .habit-analytics-summary {
       grid-template-columns: 1fr;
@@ -322,6 +447,14 @@
 
     .time-logs-stats {
       grid-template-columns: 1fr;
+    }
+
+    .earnings-summary {
+      grid-template-columns: 1fr;
+    }
+
+    .earnings-chart {
+      height: 80px;
     }
   }
 

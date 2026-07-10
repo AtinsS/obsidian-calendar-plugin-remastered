@@ -2304,10 +2304,10 @@ content: attr(data-task-count);
 
 .schedule-view-container .fc .fc-event {
   cursor: pointer;
-  border: none !important;
-  border-radius: 8px !important;
-  border-left: 3px solid !important;
+  border-width: 0 !important;
+  border-left-width: 3px !important;
   border-left-style: solid !important;
+  border-radius: 8px !important;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
@@ -2565,4 +2565,128 @@ content: attr(data-task-count);
   .schedule-view-container .sch-event-title {
     font-size: 11px;
   }
+}
+
+/* ============================================
+   PAUSED STATUS
+   ============================================ */
+.task-status-btn.status-paused {
+  color: var(--mcp-warning, rgba(234, 179, 8, 0.8));
+}
+
+.task-item[data-status="paused"] {
+  opacity: 0.85;
+}
+
+.task-item[data-status="paused"] .task-title {
+  color: var(--mcp-text-muted, var(--text-muted));
+}
+
+/* ============================================
+   SCHEDULED TIME — DONE BADGE
+   ============================================ */
+.task-scheduled.done {
+  background: var(--mcp-success, rgba(34, 197, 94, 0.15));
+  color: var(--mcp-success, rgba(34, 197, 94, 0.9));
+  border-color: var(--mcp-success, rgba(34, 197, 94, 0.3));
+  font-weight: 600;
+}
+
+/* ============================================
+   WORK STARTED DISPLAY
+   ============================================ */
+.task-work-started {
+  font-size: 10px;
+  color: var(--mcp-success, rgba(34, 197, 94, 0.8));
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ============================================
+   WORK TASK BADGE
+   ============================================ */
+.task-work-badge {
+  font-size: 10px;
+  color: var(--mcp-accent, rgba(95, 153, 225, 0.9));
+  background: var(--mcp-accent-dim, rgba(95, 153, 225, 0.1));
+  border: 1px solid var(--mcp-accent, rgba(95, 153, 225, 0.3));
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 500;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.task-work-earnings {
+  color: var(--mcp-success, rgba(34, 197, 94, 0.9));
+  font-weight: 600;
+}
+
+/* ============================================
+   KANBAN TABS — PAUSED
+   ============================================ */
+.kanban-tab[data-tab="paused"] .kanban-tab-icon {
+  color: var(--mcp-warning, rgba(234, 179, 8, 0.8));
+}
+
+/* ============================================
+   DISABLE HOVER EFFECTS ON MOBILE
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  #calendar-container .day:hover {
+    background: var(--mcp-glass-highlight);
+    border-color: transparent;
+    transform: none;
+    box-shadow: none;
+  }
+
+  #calendar-container .day.active:hover {
+    background: var(--mcp-accent);
+    border-color: var(--mcp-accent);
+    box-shadow: 0 0 16px var(--mcp-accent-glow);
+  }
+
+  #calendar-container .day.today:hover {
+    background: var(--mcp-accent);
+    border-color: var(--mcp-accent);
+    box-shadow:
+      0 0 0 3px rgba(45, 212, 191, 0.2),
+      0 0 20px var(--mcp-accent-glow);
+  }
+
+  .task-actions-toggle:hover {
+    color: var(--mcp-text-muted);
+    background: var(--mcp-surface);
+    border-color: var(--mcp-glass-border);
+  }
+
+  .task-move-btn:hover {
+    color: var(--mcp-text-muted);
+    background: transparent;
+    border-color: transparent;
+  }
+}
+
+/* ============================================
+   SCHEDULE VIEW — MONTH VIEW PROJECT COLORS
+   ============================================ */
+.schedule-view-container .fc .fc-daygrid-event {
+  border-left-width: 3px !important;
+  border-left-style: solid !important;
+}
+
+.schedule-view-container .fc .fc-daygrid-event .sch-event {
+  padding: 2px 4px;
+}
+
+.schedule-view-container .fc .fc-daygrid-event .sch-event-title {
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

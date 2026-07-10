@@ -12,7 +12,7 @@ import { startTimer, stopTimer, addTimeLog } from "./TimerManager";
 let pluginInstance: CalendarPlugin = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const AUTO_CLEANUP_THRESHOLD = 30;
+const AUTO_CLEANUP_THRESHOLD = 180;
 
 function autoCleanupCompleted(): void {
   const allTasks = get(tasks);
@@ -114,6 +114,30 @@ export function updateTask(id: string, changes: Partial<ITask>): void {
 }
 
 function startTaskTimer(id: string): void {
+  const allTasks = get(tasks);
+  const task = allTasks.find((t) => t.id === id);
+
+  // If task was paused, resume from where it left off
+  if (task?.status === "paused" && task.pausedAt && task.pausedWorkTime) {
+    startTimer(id);
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status: "progress" as TaskStatus,
+              completed: false,
+              timerStartedAt: Date.now(),
+              pausedAt: undefined,
+              pausedWorkTime: undefined,
+              updatedAt: Date.now(),
+            }
+          : t
+      )
+    );
+    return;
+  }
+
   startTimer(id);
   tasks.update((current) =>
     current.map((t) =>
@@ -157,6 +181,53 @@ function stopTaskTimerAndLog(id: string, status: TaskStatus): void {
   }
 }
 
+function pauseTaskTimer(id: string): void {
+  const allTasks = get(tasks);
+  const task = allTasks.find((t) => t.id === id);
+  if (!task || task.status !== "progress") return;
+
+  // Stop the timer and log the work time
+  const log = stopTimer(id);
+  if (log && task) {
+    log.taskTitle = task.title;
+    const updatedLogs = addTimeLog(log, get(timeLogs));
+    timeLogs.set(updatedLogs);
+
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status: "paused" as TaskStatus,
+              completed: false,
+              totalWorkTime: (t.totalWorkTime || 0) + log.duration,
+              pausedWorkTime: (t.totalWorkTime || 0) + log.duration,
+              pausedAt: Date.now(),
+              timerStartedAt: undefined,
+              updatedAt: Date.now(),
+            }
+          : t
+      )
+    );
+  } else {
+    tasks.update((current) =>
+      current.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              status: "paused" as TaskStatus,
+              completed: false,
+              pausedAt: Date.now(),
+              pausedWorkTime: t.totalWorkTime,
+              timerStartedAt: undefined,
+              updatedAt: Date.now(),
+            }
+          : t
+      )
+    );
+  }
+}
+
 function setTaskStatus(id: string, status: TaskStatus): void {
   tasks.update((current) =>
     current.map((t) =>
@@ -174,8 +245,12 @@ export function updateTaskStatus(id: string, status: TaskStatus): void {
 
   if (oldStatus !== "progress" && status === "progress") {
     startTaskTimer(id);
+  } else if (oldStatus === "progress" && status === "paused") {
+    pauseTaskTimer(id);
   } else if (oldStatus === "progress" && status !== "progress") {
     stopTaskTimerAndLog(id, status);
+  } else if (oldStatus === "paused" && status === "progress") {
+    startTaskTimer(id);
   } else {
     setTaskStatus(id, status);
   }
@@ -411,4 +486,47 @@ export function removeProject(id: string): void {
 
 export function getTasksForDate(dateUID: string): ITask[] {
   return get(tasks).filter((t) => t.dateUID === dateUID);
+}
+
+export function calculateTaskEarnings(task: ITask): number {
+  if (!task.isWorkTask || !task.rate || task.status !== "done") return 0;
+  if (task.paymentType === "hour" && task.totalWorkTime) {
+    return Math.round(task.rate * (task.totalWorkTime / 3600000));
+  }
+  if (task.paymentType === "day") {
+    return task.rate;
+  }
+  return 0;
+}
+
+export function getEarningsForMonth(year: number, month: number): number {
+  const allTasks = get(tasks);
+  return allTasks
+    .filter((t) => {
+      if (!t.isWorkTask || !t.rate || t.status !== "done") return false;
+      const match = t.dateUID.match(/^day-(\d{4})-(\d{2})/);
+      if (!match) return false;
+      return parseInt(match[1]) === year && parseInt(match[2]) === month;
+    })
+    .reduce((sum, t) => sum + calculateTaskEarnings(t), 0);
+}
+
+export function getEarningsForYear(year: number): number {
+  const allTasks = get(tasks);
+  return allTasks
+    .filter((t) => {
+      if (!t.isWorkTask || !t.rate || t.status !== "done") return false;
+      const match = t.dateUID.match(/^day-(\d{4})/);
+      if (!match) return false;
+      return parseInt(match[1]) === year;
+    })
+    .reduce((sum, t) => sum + calculateTaskEarnings(t), 0);
+}
+
+export function getMonthlyEarningsForYear(year: number): { month: number; amount: number }[] {
+  const result: { month: number; amount: number }[] = [];
+  for (let m = 1; m <= 12; m++) {
+    result.push({ month: m, amount: getEarningsForMonth(year, m) });
+  }
+  return result;
 }

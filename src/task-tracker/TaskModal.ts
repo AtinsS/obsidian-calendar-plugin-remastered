@@ -4,6 +4,7 @@ import { getDateUID } from "obsidian-daily-notes-interface";
 
 import type { ITask, RecurrenceConfig } from "./types";
 import { projects, selectedDate } from "./stores";
+import { settings } from "../ui/stores";
 import { FolderSuggestModal } from "../modals/FolderSuggestModal";
 
 export class TaskModal extends Modal {
@@ -23,6 +24,9 @@ export class TaskModal extends Modal {
   private estimatedTimeHours = "";
   private estimatedTimeMinutes = "";
   private scheduledTime = "";
+  private isWorkTask = false;
+  private paymentType: "hour" | "day" = "hour";
+  private rate = "";
 
   constructor(
     app: App,
@@ -54,9 +58,17 @@ export class TaskModal extends Modal {
       if (this.task.scheduledTime) {
         this.scheduledTime = this.task.scheduledTime;
       }
+      if (this.task.isWorkTask) {
+        this.isWorkTask = this.task.isWorkTask;
+        this.paymentType = this.task.paymentType || "hour";
+        this.rate = this.task.rate ? String(this.task.rate) : "";
+      }
     } else {
       this.dateUID = get(selectedDate) || "";
       this.dateValue = this.extractDateValue(this.dateUID);
+      const currentSettings = get(settings);
+      this.paymentType = currentSettings.defaultPaymentType || "hour";
+      this.rate = currentSettings.defaultRate ? String(currentSettings.defaultRate) : "";
     }
   }
 
@@ -177,6 +189,46 @@ export class TaskModal extends Modal {
         text.inputEl.type = "time";
         text.inputEl.style.maxWidth = "120px";
       });
+
+    // Work task section
+    new Setting(contentEl)
+      .setName("Рабочая")
+      .setDesc("Пометить задачу как рабочую для учёта заработка")
+      .addToggle((toggle) => {
+        toggle.setValue(this.isWorkTask);
+        toggle.onChange((value) => {
+          this.isWorkTask = value;
+          this.updateWorkTaskSettings();
+        });
+      });
+
+    this.workTaskTypeSetting = new Setting(contentEl)
+      .setName("Тип оплаты")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("hour", "Оплата в час");
+        dropdown.addOption("day", "Оплата в день");
+        dropdown.setValue(this.paymentType);
+        dropdown.onChange((value) => {
+          this.paymentType = value as "hour" | "day";
+        });
+      });
+
+    this.workTaskRateSetting = new Setting(contentEl)
+      .setName("Ставка")
+      .setDesc("Стоимость работы (час или день)")
+      .addText((text) => {
+        text
+          .setPlaceholder("0")
+          .setValue(this.rate)
+          .onChange((value) => {
+            this.rate = value.replace(/[^0-9.,]/g, "");
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.style.maxWidth = "120px";
+      });
+
+    this.updateWorkTaskSettings();
 
     // Recurrence section
     new Setting(contentEl)
@@ -302,6 +354,8 @@ export class TaskModal extends Modal {
   private notePathSetting: Setting;
   private recurrenceIntervalSetting: Setting;
   private recurrenceDaysSetting: Setting;
+  private workTaskTypeSetting: Setting;
+  private workTaskRateSetting: Setting;
 
   private updateRecurrenceSettings(): void {
     const showInterval = this.recurrenceType === "monthly";
@@ -309,6 +363,12 @@ export class TaskModal extends Modal {
 
     this.recurrenceIntervalSetting.settingEl.style.display = showInterval ? "" : "none";
     this.recurrenceDaysSetting.settingEl.style.display = showDays ? "" : "none";
+  }
+
+  private updateWorkTaskSettings(): void {
+    const show = this.isWorkTask;
+    this.workTaskTypeSetting.settingEl.style.display = show ? "" : "none";
+    this.workTaskRateSetting.settingEl.style.display = show ? "" : "none";
   }
 
   private updateNotePathPreview(): void {
@@ -365,6 +425,9 @@ export class TaskModal extends Modal {
       recurrence,
       estimatedTime: (parseInt(this.estimatedTimeHours) || 0) * 60 + (parseInt(this.estimatedTimeMinutes) || 0) || undefined,
       scheduledTime: this.scheduledTime || undefined,
+      isWorkTask: this.isWorkTask || undefined,
+      paymentType: this.isWorkTask ? this.paymentType : undefined,
+      rate: this.isWorkTask && this.rate ? parseFloat(this.rate.replace(",", ".")) : undefined,
     });
 
     this.close();

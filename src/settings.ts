@@ -37,6 +37,10 @@ export interface ISettings {
   notificationsEnabled: boolean;
   reminderMinutesBefore: number;
   checkIntervalMs: number;
+
+  // Work task settings
+  defaultPaymentType: "hour" | "day";
+  defaultRate: number;
 }
 
 const weekdays = [
@@ -74,6 +78,9 @@ export const defaultSettings = Object.freeze({
   notificationsEnabled: defaultNotificationSettings.notificationsEnabled,
   reminderMinutesBefore: defaultNotificationSettings.reminderMinutesBefore,
   checkIntervalMs: defaultNotificationSettings.checkIntervalMs,
+
+  defaultPaymentType: "hour" as "hour" | "day",
+  defaultRate: 0,
 });
 
 export function appHasPeriodicNotesPluginLoaded(): boolean {
@@ -127,6 +134,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
       text: "Уведомления",
     });
     this.addNotificationSettings();
+
+    this.containerEl.createEl("h3", {
+      text: "Рабочие задачи",
+    });
+    this.addWorkTaskSettings();
   }
 
   addWeekStartSetting(): void {
@@ -288,6 +300,35 @@ export class CalendarSettingsTab extends PluginSettingTab {
         dropdown.onChange(async (value) => {
           this.plugin.writeOptions({ reminderMinutesBefore: parseInt(value) });
         });
+      });
+  }
+
+  addWorkTaskSettings(): void {
+    new Setting(this.containerEl)
+      .setName("Тип оплаты по умолчанию")
+      .setDesc("Тип оплаты для новых рабочих задач")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("hour", "Оплата в час");
+        dropdown.addOption("day", "Оплата в день");
+        dropdown.setValue(this.plugin.options.defaultPaymentType);
+        dropdown.onChange(async (value) => {
+          this.plugin.writeOptions({ defaultPaymentType: value as "hour" | "day" });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Ставка по умолчанию")
+      .setDesc("Ставка для новых рабочих задач (в рублях)")
+      .addText((text) => {
+        text
+          .setPlaceholder("0")
+          .setValue(String(this.plugin.options.defaultRate || ""))
+          .onChange(async (value) => {
+            this.plugin.writeOptions({ defaultRate: parseFloat(value) || 0 });
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.style.maxWidth = "120px";
       });
   }
 }

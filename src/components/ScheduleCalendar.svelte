@@ -226,6 +226,7 @@
 
     const statusLabel =
       task.status === "progress" ? "В работе" :
+      task.status === "paused" ? "На паузе" :
       task.status === "done" ? "Готово" : "";
     const priorityBadge =
       task.priority === "high" ? '<span class="sch-priority sch-priority-high">!</span>' :
@@ -234,6 +235,8 @@
       ? '<span class="sch-note-icon" title="Заметка-задача">&#128221;</span>' : "";
     const durationLabel = task.estimatedTime && !mobile
       ? `<span class="sch-duration">${task.estimatedTime >= 60 ? Math.floor(task.estimatedTime / 60) + 'ч ' + (task.estimatedTime % 60 > 0 ? (task.estimatedTime % 60) + 'м' : '') : task.estimatedTime + 'м'}</span>` : "";
+    const workBadge = task.isWorkTask
+      ? '<span class="sch-work-badge" title="Рабочая задача">&#128188;</span>' : "";
 
     return {
       html: `
@@ -242,6 +245,7 @@
             ${priorityBadge}
             <span class="sch-event-title">${event.title}</span>
             ${noteIcon}
+            ${workBadge}
           </div>
           <div class="sch-event-meta">
             ${time ? `<span class="sch-event-time">${time}</span>` : ""}
@@ -419,7 +423,7 @@
     --fc-page-bg-color: transparent;
     --fc-neutral-bg-color: rgba(255, 255, 255, 0.03);
     --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.04);
-    --fc-event-border-color: transparent;
+    /* Не переопределяем --fc-event-border-color — цвет берётся изInlineData event data */
   }
 
   /* Контейнер расписания — стеклянная панель */
@@ -568,10 +572,10 @@
 
   :global(.fc .fc-event) {
     cursor: pointer;
-    border: none !important;
-    border-radius: 8px !important;
-    border-left: 3px solid !important;
+    border-width: 0 !important;
+    border-left-width: 3px !important;
     border-left-style: solid !important;
+    border-radius: 8px !important;
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   }
@@ -681,9 +685,20 @@
     color: rgba(140, 205, 175, 0.75);
   }
 
+  :global(.sch-status-paused) {
+    background: rgba(180, 150, 100, 0.15);
+    color: rgba(200, 170, 110, 0.85);
+  }
+
   :global(.sch-duration) {
     font-size: 9px;
     color: var(--mcp-text-faint, rgba(200, 210, 220, 0.25));
+  }
+
+  :global(.sch-work-badge) {
+    font-size: 10px;
+    opacity: 0.8;
+    flex-shrink: 0;
   }
 
   /* ===== List view ===== */

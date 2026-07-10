@@ -6,6 +6,7 @@ import {
   VIEW_TYPE_CALENDAR,
   VIEW_TYPE_SCHEDULE,
   VIEW_TYPE_HABIT_ANALYTICS,
+  VIEW_TYPE_FINANCE,
 } from "./constants";
 import { settings } from "./ui/stores";
 import { app as appStore } from "./stores/appStore";
@@ -18,11 +19,13 @@ import { TFile } from "obsidian";
 import CalendarView from "./view";
 import ScheduleView from "./views/ScheduleView";
 import HabitAnalyticsView from "./views/HabitAnalyticsView";
+import FinanceView from "./views/FinanceView";
 import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
+import { initFinanceStores } from "./finance/storage";
 import { NotificationService } from "./services/NotificationService";
 
 declare global {
@@ -50,6 +53,9 @@ export default class CalendarPlugin extends Plugin {
       .forEach((leaf) => leaf.detach());
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_HABIT_ANALYTICS)
+      .forEach((leaf) => leaf.detach());
+    this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_FINANCE)
       .forEach((leaf) => leaf.detach());
   }
 
@@ -82,6 +88,11 @@ export default class CalendarPlugin extends Plugin {
     this.registerView(
       VIEW_TYPE_HABIT_ANALYTICS,
       (leaf: WorkspaceLeaf) => new HabitAnalyticsView(leaf, this)
+    );
+
+    this.registerView(
+      VIEW_TYPE_FINANCE,
+      (leaf: WorkspaceLeaf) => new FinanceView(leaf, this)
     );
 
     this.addCommand({
@@ -122,16 +133,26 @@ export default class CalendarPlugin extends Plugin {
 
     this.addCommand({
       id: "open-habit-analytics",
-      name: "Open Habit Analytics",
+      name: "Открыть аналитику",
       callback: () => this.activateHabitAnalyticsView(),
+    });
+
+    this.addCommand({
+      id: "open-finance-view",
+      name: "Открыть распределение финансов",
+      callback: () => this.activateFinanceView(),
     });
 
     this.addRibbonIcon("calendar-range", "Расписание", () => {
       this.activateScheduleView();
     });
 
-    this.addRibbonIcon("bar-chart", "Habit Analytics", () => {
+    this.addRibbonIcon("bar-chart", "Аналитика", () => {
       this.activateHabitAnalyticsView();
+    });
+
+    this.addRibbonIcon("coins", "Финансы", () => {
+      this.activateFinanceView();
     });
 
     await this.loadOptions();
@@ -142,6 +163,9 @@ export default class CalendarPlugin extends Plugin {
 
     // Initialize habit tracker
     initHabitStores(this);
+
+    // Initialize finance tracker
+    initFinanceStores(this);
 
     // Initialize notification service
     this.notificationService = new NotificationService(this);
@@ -225,6 +249,25 @@ export default class CalendarPlugin extends Plugin {
     if (leaf) {
       await leaf.setViewState({
         type: VIEW_TYPE_HABIT_ANALYTICS,
+        active: true,
+      });
+      workspace.revealLeaf(leaf);
+    }
+  }
+
+  async activateFinanceView(): Promise<void> {
+    const { workspace } = this.app;
+
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_FINANCE);
+    if (existing.length) {
+      workspace.revealLeaf(existing[0]);
+      return;
+    }
+
+    const leaf = workspace.getLeaf("tab");
+    if (leaf) {
+      await leaf.setViewState({
+        type: VIEW_TYPE_FINANCE,
         active: true,
       });
       workspace.revealLeaf(leaf);

@@ -46,6 +46,7 @@
     todo: "\u25CB",
     progress: "\u23F3",
     done: "\u2714",
+    paused: "\u23F8",
   };
 
   function quickStatus(status: TaskStatus) {
@@ -137,8 +138,13 @@
   {:else}
     <button
       class="task-status-btn status-{task.status}"
-      on:click|stopPropagation={() => quickStatus(task.status === "done" ? "todo" : "done")}
-      title="Статус: {task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : 'Готово'}"
+      on:click|stopPropagation={() => {
+        if (task.status === "done") quickStatus("todo");
+        else if (task.status === "progress") quickStatus("done");
+        else if (task.status === "paused") quickStatus("done");
+        else quickStatus("done");
+      }}
+      title="Статус: {task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : task.status === 'paused' ? 'На паузе' : 'Готово'}"
       aria-label="Изменить статус"
     >
       {statusIcons[task.status]}
@@ -165,9 +171,21 @@
     <span class="task-recurring-icon" title="Повторяющаяся задача">&#8635;</span>
   {/if}
 
-  {#if task.scheduledTime}
-    <span class="task-scheduled {scheduledTimePassed ? 'passed' : ''}" title={scheduledTimePassed ? "Время прошло" : "Запланировано"}>
-      {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
+  {#if task.scheduledTime && task.status !== "progress"}
+    {#if task.status === "done"}
+      <span class="task-scheduled done" title="Готово">
+        &#10003; Готово
+      </span>
+    {:else}
+      <span class="task-scheduled {scheduledTimePassed ? 'passed' : ''}" title={scheduledTimePassed ? "Время прошло" : "Запланировано"}>
+        {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
+      </span>
+    {/if}
+  {/if}
+
+  {#if task.status === "progress" && task.timerStartedAt}
+    <span class="task-work-started" title="Работа начата">
+      &#9654; Работа начата
     </span>
   {/if}
 
@@ -198,6 +216,19 @@
     <span class="task-priority medium" aria-label="Средний приоритет">~</span>
   {/if}
 
+  {#if task.isWorkTask}
+    <span class="task-work-badge" title="Рабочая задача">
+      &#128188; Рабочая
+      {#if task.rate && task.status === "done"}
+        <span class="task-work-earnings">
+          {task.paymentType === "hour" && task.totalWorkTime
+            ? `${Math.round(task.rate * (task.totalWorkTime / 3600000))} ₽`
+            : `${task.rate} ₽`}
+        </span>
+      {/if}
+    </span>
+  {/if}
+
   <div class="task-actions-dropdown">
     <button
       class="task-actions-toggle"
@@ -210,11 +241,39 @@
       <div class="task-actions-menu" on:click|stopPropagation role="menu">
         <button
           class="task-actions-item"
-          disabled={task.status === "progress"}
+          disabled={task.status === "progress" || task.status === "paused"}
           on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
         >
           &#9203; В работу
         </button>
+        {#if task.status === "progress"}
+          <button
+            class="task-actions-item"
+            on:click|stopPropagation={() => { quickStatus("paused"); closeActionsMenu(); }}
+          >
+            &#9208; На паузу
+          </button>
+          <button
+            class="task-actions-item"
+            on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+          >
+            &#8634; Вернуть
+          </button>
+        {/if}
+        {#if task.status === "paused"}
+          <button
+            class="task-actions-item"
+            on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
+          >
+            &#9654; Продолжить
+          </button>
+          <button
+            class="task-actions-item"
+            on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+          >
+            &#8634; Вернуть
+          </button>
+        {/if}
         {#if task.notePath}
           <button
             class="task-actions-item"
