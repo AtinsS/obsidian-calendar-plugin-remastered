@@ -1,11 +1,11 @@
 {
   "id": "calendar-plugin-remastered",
   "name": "Calendar-remastered",
-  "description": "calendar + task tracker + habit tracker forked from liamcain's calendar plugin",
-  "version": "1",
-  "author": "Raven",
+  "description": "calendar + task tracker + habit tracker + financhial planner forked from Liamcain's calendar plugin",
+  "version": "1.4.0", 
+  "author": "RavenLive",
   "authorUrl": "https://github.com/AtinsS/obsidian-calendar-plugin-remastered",
   "fundingUrl": "https://pay.cloudtips.ru/p/cbaa3c81",
   "isDesktopOnly": false,
-  "minAppVersion": "0.9.11"
+  "minAppVersion": "1.12.7" 
 }

@@ -1,10 +1,10 @@
 # 📅 Calendar Plugin Remastered
 
-Календарь, трекер задач и привычек — всё в одном плагине для [Obsidian](https://obsidian.md).
+Календарь, трекер задач и привычек, финансовый планировщик — всё в одном плагине для [Obsidian](https://obsidian.md).
 Разработан на основе [Calendar](https://github.com/liamcain/obsidian-calendar-plugin) от Liam Cain.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Obsidian](https://img.shields.io/badge/Obsidian-0.9.11+-7C3AED?logo=obsidian)](https://obsidian.md)
+[![Obsidian](https://img.shields.io/badge/Obsidian-1.12.7-7C3AED?logo=obsidian)](https://obsidian.md)
 [![Svelte](https://img.shields.io/badge/Svelte-3.x-FF3E00?logo=svelte)](https://svelte.dev/)
 
 ---
