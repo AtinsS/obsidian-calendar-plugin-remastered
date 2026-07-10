@@ -65,40 +65,38 @@
 <div class="habit-analytics">
   <div class="habit-analytics-header">
     <h2>Аналитика</h2>
-    <select bind:value={selectedHabitId} class="habit-analytics-select">
-      <option value="all">Все привычки</option>
-      {#each activeHabits as habit}
-        <option value={habit.id}>
-          {habit.icon} {habit.title}
-        </option>
-      {/each}
-    </select>
+    {#if activeHabits.length > 0}
+      <select bind:value={selectedHabitId} class="habit-analytics-select">
+        <option value="all">Все привычки</option>
+        {#each activeHabits as habit}
+          <option value={habit.id}>
+            {habit.icon} {habit.title}
+          </option>
+        {/each}
+      </select>
+    {/if}
   </div>
 
-  {#if activeHabits.length === 0}
-    <div class="habit-analytics-empty">
-      Нет привычек для анализа. Сначала создайте привычки!
-    </div>
-  {:else}
-    <!-- Summary Cards -->
-    {#if selectedHabitId === "all"}
-      <div class="habit-analytics-summary">
-        <div class="summary-card">
-          <span class="summary-value">{aggregateStats.totalHabits}</span>
-          <span class="summary-label">Активных</span>
-        </div>
-        <div class="summary-card">
-          <span class="summary-value">{aggregateStats.totalCompletions}</span>
-          <span class="summary-label">Выполнено</span>
-        </div>
-        <div class="summary-card">
-          <span class="summary-value">{aggregateStats.bestStreak}</span>
-          <span class="summary-label">Лучшая серия</span>
-        </div>
+  <!-- Summary Cards -->
+  {#if activeHabits.length > 0 && selectedHabitId === "all"}
+    <div class="habit-analytics-summary">
+      <div class="summary-card">
+        <span class="summary-value">{aggregateStats.totalHabits}</span>
+        <span class="summary-label">Активных</span>
       </div>
-    {/if}
+      <div class="summary-card">
+        <span class="summary-value">{aggregateStats.totalCompletions}</span>
+        <span class="summary-label">Выполнено</span>
+      </div>
+      <div class="summary-card">
+        <span class="summary-value">{aggregateStats.bestStreak}</span>
+        <span class="summary-label">Лучшая серия</span>
+      </div>
+    </div>
+  {/if}
 
-    <!-- Weekly Bar Chart -->
+  <!-- Weekly Bar Chart -->
+  {#if activeHabits.length > 0}
     <div class="habit-analytics-section">
       <h3>Активность по неделям (12 нед.)</h3>
       <div class="weekly-chart">
@@ -137,68 +135,68 @@
         </div>
       {/each}
     {/if}
+  {/if}
 
-    <!-- Time Logs Section -->
-    <div class="habit-analytics-section">
-      <h3>Логи задач по времени</h3>
-      {#if $timeLogs.length === 0}
-        <div class="time-logs-empty">Нет логов времени</div>
-      {:else}
-        <div class="time-logs-stats">
-          <div class="time-stat">
-            <span class="time-stat-value">{formatDuration(totalTimeMs)}</span>
-            <span class="time-stat-label">Общее время</span>
-          </div>
-          <div class="time-stat">
-            <span class="time-stat-value">{uniqueDays}</span>
-            <span class="time-stat-label">Дней с работой</span>
-          </div>
-          <div class="time-stat">
-            <span class="time-stat-value">{formatDuration(avgPerDay)}</span>
-            <span class="time-stat-label">Среднее в день</span>
-          </div>
+  <!-- Time Logs Section -->
+  <div class="habit-analytics-section">
+    <h3>Логи задач по времени</h3>
+    {#if $timeLogs.length === 0}
+      <div class="time-logs-empty">Нет логов времени</div>
+    {:else}
+      <div class="time-logs-stats">
+        <div class="time-stat">
+          <span class="time-stat-value">{formatDuration(totalTimeMs)}</span>
+          <span class="time-stat-label">Общее время</span>
         </div>
-        <div class="time-logs-chart">
-          <BarChart logs={$timeLogs} />
+        <div class="time-stat">
+          <span class="time-stat-value">{uniqueDays}</span>
+          <span class="time-stat-label">Дней с работой</span>
         </div>
-      {/if}
-    </div>
-
-    <!-- Earnings Section -->
-    <div class="habit-analytics-section">
-      <h3>Заработок</h3>
-      <div class="earnings-summary">
-        <div class="earnings-card">
-          <span class="earnings-value">{monthlyEarnings.toLocaleString("ru-RU")} ₽</span>
-          <span class="earnings-label">За месяц</span>
-        </div>
-        <div class="earnings-card">
-          <span class="earnings-value">{yearlyEarnings.toLocaleString("ru-RU")} ₽</span>
-          <span class="earnings-label">За год</span>
+        <div class="time-stat">
+          <span class="time-stat-value">{formatDuration(avgPerDay)}</span>
+          <span class="time-stat-label">Среднее в день</span>
         </div>
       </div>
-      {#if monthlyChart.some(m => m.amount > 0)}
-        <div class="earnings-chart">
-          {#each monthlyChart as monthData}
-            <div class="earnings-bar-wrapper">
-              <div
-                class="earnings-bar"
-                style="height: {monthData.amount > 0
-                  ? Math.max((monthData.amount / maxMonthly) * 100, 4)
-                  : 0}%;"
-                title="{monthNames[monthData.month - 1]}: {monthData.amount.toLocaleString('ru-RU')} ₽"
-              ></div>
-              <span class="earnings-bar-label">
-                {monthNames[monthData.month - 1]}
-              </span>
-            </div>
-          {/each}
-        </div>
-      {:else}
-        <div class="earnings-empty">Нет данных о заработке</div>
-      {/if}
+      <div class="time-logs-chart">
+        <BarChart logs={$timeLogs} />
+      </div>
+    {/if}
+  </div>
+
+  <!-- Earnings Section -->
+  <div class="habit-analytics-section">
+    <h3>Заработок</h3>
+    <div class="earnings-summary">
+      <div class="earnings-card">
+        <span class="earnings-value">{monthlyEarnings.toLocaleString("ru-RU")} ₽</span>
+        <span class="earnings-label">За месяц</span>
+      </div>
+      <div class="earnings-card">
+        <span class="earnings-value">{yearlyEarnings.toLocaleString("ru-RU")} ₽</span>
+        <span class="earnings-label">За год</span>
+      </div>
     </div>
-  {/if}
+    {#if monthlyChart.some(m => m.amount > 0)}
+      <div class="earnings-chart">
+        {#each monthlyChart as monthData}
+          <div class="earnings-bar-wrapper">
+            <div
+              class="earnings-bar"
+              style="height: {monthData.amount > 0
+                ? Math.max((monthData.amount / maxMonthly) * 100, 4)
+                : 0}%;"
+              title="{monthNames[monthData.month - 1]}: {monthData.amount.toLocaleString('ru-RU')} ₽"
+            ></div>
+            <span class="earnings-bar-label">
+              {monthNames[monthData.month - 1]}
+            </span>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="earnings-empty">Нет данных о заработке</div>
+    {/if}
+  </div>
 </div>
 
 <style>

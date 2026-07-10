@@ -347,6 +347,11 @@ export function createNextRecurringInstance(taskId: string): void {
     totalWorkTime: 0,
     isRecurringInstance: true,
     parentTaskId: task.id,
+    isWorkTask: task.isWorkTask,
+    paymentType: task.paymentType,
+    rate: task.rate,
+    overtimeStart: task.overtimeStart,
+    overtimeMultiplier: task.overtimeMultiplier,
   });
 }
 
@@ -433,6 +438,11 @@ export function generateMonthlyRecurringTasks(taskId: string): void {
         totalWorkTime: 0,
         isRecurringInstance: true,
         parentTaskId: task.id,
+        isWorkTask: task.isWorkTask,
+        paymentType: task.paymentType,
+        rate: task.rate,
+        overtimeStart: task.overtimeStart,
+        overtimeMultiplier: task.overtimeMultiplier,
       });
       created++;
     }
@@ -491,7 +501,17 @@ export function getTasksForDate(dateUID: string): ITask[] {
 export function calculateTaskEarnings(task: ITask): number {
   if (!task.isWorkTask || !task.rate || task.status !== "done") return 0;
   if (task.paymentType === "hour" && task.totalWorkTime) {
-    return Math.round(task.rate * (task.totalWorkTime / 3600000));
+    const totalHours = task.totalWorkTime / 3600000;
+    const overtimeStart = task.overtimeStart || 0;
+    const overtimeMultiplier = task.overtimeMultiplier || 1;
+
+    if (overtimeStart > 0 && overtimeMultiplier > 1 && totalHours > overtimeStart) {
+      const regularHours = overtimeStart;
+      const overtimeHours = totalHours - overtimeStart;
+      return Math.round(task.rate * (regularHours + overtimeHours * overtimeMultiplier));
+    }
+
+    return Math.round(task.rate * totalHours);
   }
   if (task.paymentType === "day") {
     return task.rate;

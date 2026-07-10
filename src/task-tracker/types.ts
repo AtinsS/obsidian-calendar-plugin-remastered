@@ -31,6 +31,8 @@ export interface ITask {
   isWorkTask?: boolean;
   paymentType?: "hour" | "day";
   rate?: number;
+  overtimeStart?: number; // hour when overtime begins (e.g., 8 = after 8 hours)
+  overtimeMultiplier?: number; // rate multiplier during overtime (e.g., 1.5 = 1.5x)
 }
 
 export interface IProject {

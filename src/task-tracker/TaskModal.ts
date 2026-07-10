@@ -27,6 +27,8 @@ export class TaskModal extends Modal {
   private isWorkTask = false;
   private paymentType: "hour" | "day" = "hour";
   private rate = "";
+  private overtimeStart = "";
+  private overtimeMultiplier = "";
 
   constructor(
     app: App,
@@ -62,6 +64,12 @@ export class TaskModal extends Modal {
         this.isWorkTask = this.task.isWorkTask;
         this.paymentType = this.task.paymentType || "hour";
         this.rate = this.task.rate ? String(this.task.rate) : "";
+        if (this.task.overtimeStart) {
+          this.overtimeStart = String(this.task.overtimeStart);
+        }
+        if (this.task.overtimeMultiplier) {
+          this.overtimeMultiplier = String(this.task.overtimeMultiplier);
+        }
       }
     } else {
       this.dateUID = get(selectedDate) || "";
@@ -210,6 +218,7 @@ export class TaskModal extends Modal {
         dropdown.setValue(this.paymentType);
         dropdown.onChange((value) => {
           this.paymentType = value as "hour" | "day";
+          this.updateWorkTaskSettings();
         });
       });
 
@@ -226,6 +235,40 @@ export class TaskModal extends Modal {
         text.inputEl.type = "number";
         text.inputEl.min = "0";
         text.inputEl.style.maxWidth = "120px";
+      });
+
+    this.workTaskOvertimeStartSetting = new Setting(contentEl)
+      .setName("Переработки с")
+      .setDesc("С какого часа начислять переработки (например, 8)")
+      .addText((text) => {
+        text
+          .setPlaceholder("ч")
+          .setValue(this.overtimeStart)
+          .onChange((value) => {
+            this.overtimeStart = value.replace(/[^0-9]/g, "");
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.max = "24";
+        text.inputEl.style.maxWidth = "60px";
+        text.inputEl.placeholder = "ч";
+      });
+
+    this.workTaskOvertimeMultiplierSetting = new Setting(contentEl)
+      .setName("Множитель переработок")
+      .setDesc("Во сколько раз увеличивать ставку (например, 1.5)")
+      .addText((text) => {
+        text
+          .setPlaceholder("1.5")
+          .setValue(this.overtimeMultiplier)
+          .onChange((value) => {
+            this.overtimeMultiplier = value.replace(/[^0-9.,]/g, "");
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.max = "10";
+        text.inputEl.step = "0.1";
+        text.inputEl.style.maxWidth = "80px";
       });
 
     this.updateWorkTaskSettings();
@@ -356,6 +399,8 @@ export class TaskModal extends Modal {
   private recurrenceDaysSetting: Setting;
   private workTaskTypeSetting: Setting;
   private workTaskRateSetting: Setting;
+  private workTaskOvertimeStartSetting: Setting;
+  private workTaskOvertimeMultiplierSetting: Setting;
 
   private updateRecurrenceSettings(): void {
     const showInterval = this.recurrenceType === "monthly";
@@ -367,8 +412,11 @@ export class TaskModal extends Modal {
 
   private updateWorkTaskSettings(): void {
     const show = this.isWorkTask;
+    const showOvertime = show && this.paymentType === "hour";
     this.workTaskTypeSetting.settingEl.style.display = show ? "" : "none";
     this.workTaskRateSetting.settingEl.style.display = show ? "" : "none";
+    this.workTaskOvertimeStartSetting.settingEl.style.display = showOvertime ? "" : "none";
+    this.workTaskOvertimeMultiplierSetting.settingEl.style.display = showOvertime ? "" : "none";
   }
 
   private updateNotePathPreview(): void {
@@ -428,6 +476,8 @@ export class TaskModal extends Modal {
       isWorkTask: this.isWorkTask || undefined,
       paymentType: this.isWorkTask ? this.paymentType : undefined,
       rate: this.isWorkTask && this.rate ? parseFloat(this.rate.replace(",", ".")) : undefined,
+      overtimeStart: this.isWorkTask && this.paymentType === "hour" && this.overtimeStart ? parseInt(this.overtimeStart) : undefined,
+      overtimeMultiplier: this.isWorkTask && this.paymentType === "hour" && this.overtimeMultiplier ? parseFloat(this.overtimeMultiplier.replace(",", ".")) : undefined,
     });
 
     this.close();
