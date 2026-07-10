@@ -87,6 +87,8 @@
   export let onContextMenuDay: (date: Moment, event: MouseEvent) => boolean;
   export let onContextMenuWeek: (date: Moment, event: MouseEvent) => boolean;
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+
   let lastHeartbeatDay: string = today.format("YYYY-MM-DD");
 
   const heartbeat = setInterval(() => {
@@ -188,7 +190,7 @@
     {onClickWeek}
     bind:displayedMonth
     localeData={today.localeData()}
-    selectedId={$activeFile}
+    selectedId={isMobile ? null : $activeFile}
     showWeekNums={$settings.showWeeklyNote}
   />
 </div>

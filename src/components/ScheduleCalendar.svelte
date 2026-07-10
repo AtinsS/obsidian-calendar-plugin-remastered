@@ -69,8 +69,11 @@
       (lastWidth <= 768 && w > 768);
     lastWidth = w;
     if (crossed) {
-      const newView = w <= 480 ? "timeGridDay" : w <= 768 ? "timeGridWeek" : "timeGridWeek";
-      if (calendar.view.type !== newView) {
+      // Only auto-switch from time-based views; respect user's month view choice
+      const currentType = calendar.view.type;
+      if (currentType === "dayGridMonth") return;
+      const newView = w <= 480 ? "timeGridDay" : "timeGridWeek";
+      if (currentType !== newView) {
         calendar.changeView(newView);
       }
     }
@@ -145,9 +148,9 @@
     // На мобилке начальный вид — день, на десктопе — неделя
     const initialView = isSmallPhone ? "timeGridDay" : isMobile ? "timeGridWeek" : "timeGridWeek";
 
-    // На телефоне упрощаем тулбар: стрелки + сегодня слева, переключение вида справа
+    // На телефоне упрощаем тулбар: стрелки + сегодня + переключение вида
     const headerToolbar = isSmallPhone
-      ? { left: "prev,next", center: "title", right: "today" }
+      ? { left: "prev,next", center: "title", right: "today,dayGridMonth,timeGridWeek,timeGridDay" }
       : isMobile
         ? { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
         : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
@@ -185,8 +188,9 @@
       nowIndicator: true,
       // На телефоне — list view по умолчанию не используем
       views: isSmallPhone ? {
-        timeGridDay: { titleFormat: { day: "numeric", month: "short" } },
-        timeGridWeek: { titleFormat: { day: "numeric", month: "short" } },
+        timeGridDay: { titleFormat: { day: "numeric", month: "short" }, buttonText: "День" },
+        timeGridWeek: { titleFormat: { day: "numeric", month: "short" }, buttonText: "Неделя" },
+        dayGridMonth: { titleFormat: { month: "long", year: "numeric" }, buttonText: "Месяц" },
       } : {},
       eventSources: [
         {
@@ -827,6 +831,7 @@
       padding: 4px 6px;
       margin: 2px 2px 0;
       gap: 3px;
+      flex-wrap: wrap;
     }
 
     :global(.fc .fc-toolbar-title) {
@@ -839,6 +844,11 @@
       min-height: 36px;
       min-width: 36px;
       border-radius: 7px;
+    }
+
+    :global(.fc .fc-toolbar-chunk:last-child) {
+      flex-wrap: wrap;
+      gap: 2px;
     }
 
     :global(.fc .fc-button-active) {
@@ -1070,9 +1080,10 @@
     }
 
     :global(.fc .fc-button) {
-      font-size: 9.5px;
-      padding: 5px 6px;
-      min-height: 34px;
+      font-size: 9px;
+      padding: 4px 5px;
+      min-height: 32px;
+      min-width: 30px;
     }
 
     :global(.fc .fc-col-header-cell-cushion) {
