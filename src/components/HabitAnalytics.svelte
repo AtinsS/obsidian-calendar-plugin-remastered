@@ -122,6 +122,7 @@
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
+
     const taskMonthly = getEarningsForMonth(currentYear, currentMonth);
     const taskYearly = getEarningsForYear(currentYear);
     const manualIncome = getTotalManualIncome();
@@ -129,11 +130,23 @@
     yearlyEarnings = taskYearly + manualIncome;
     monthlyChart = getMonthlyEarningsForYear(currentYear);
     maxMonthly = Math.max(...monthlyChart.map((m) => m.amount), 1);
+
+    // Real deltas: previous month vs current
+    const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+    const prevMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+    const prevMonthEarnings = getEarningsForMonth(prevMonthYear, prevMonth) + manualIncome;
+    monthlyDelta = monthlyEarnings - prevMonthEarnings;
+
+    // Real deltas: previous year vs current
+    const prevYearEarnings = getEarningsForYear(currentYear - 1) + manualIncome;
+    yearlyDelta = yearlyEarnings - prevYearEarnings;
   }
   let monthlyEarnings = 0;
   let yearlyEarnings = 0;
   let monthlyChart: { month: number; amount: number }[] = [];
   let maxMonthly = 1;
+  let monthlyDelta = 0;
+  let yearlyDelta = 0;
 
   const monthNames = [
     "Янв",
@@ -334,9 +347,9 @@
           >{monthlyEarnings.toLocaleString("ru-RU")} ₽</span
         >
         <span class="earnings-label">За месяц</span>
-        {#if monthlyEarnings > 0}
-          <span class="earnings-delta"
-            >+{Math.round(monthlyEarnings * 0.2).toLocaleString("ru-RU")} ₽ к прошлому
+        {#if monthlyDelta !== 0}
+          <span class="earnings-delta {monthlyDelta > 0 ? 'delta-up' : 'delta-down'}"
+            >{monthlyDelta > 0 ? '+' : ''}{monthlyDelta.toLocaleString("ru-RU")} ₽ к прошлому
             месяцу</span
           >
         {/if}
@@ -346,9 +359,9 @@
           >{yearlyEarnings.toLocaleString("ru-RU")} ₽</span
         >
         <span class="earnings-label">За год</span>
-        {#if yearlyEarnings > 0}
-          <span class="earnings-delta"
-            >+{Math.round(yearlyEarnings * 0.4).toLocaleString("ru-RU")} ₽ к прошлому
+        {#if yearlyDelta !== 0}
+          <span class="earnings-delta {yearlyDelta > 0 ? 'delta-up' : 'delta-down'}"
+            >{yearlyDelta > 0 ? '+' : ''}{yearlyDelta.toLocaleString("ru-RU")} ₽ к прошлому
             году</span
           >
         {/if}
@@ -709,8 +722,15 @@
   .earnings-delta {
     font-size: 10px;
     font-weight: 600;
-    color: var(--mcp-success, rgba(34, 197, 94, 0.9));
     margin-top: 4px;
+  }
+
+  .earnings-delta.delta-up {
+    color: var(--mcp-success, rgba(34, 197, 94, 0.9));
+  }
+
+  .earnings-delta.delta-down {
+    color: var(--mcp-danger, rgba(220, 100, 100, 0.9));
   }
 
   .earnings-chart {

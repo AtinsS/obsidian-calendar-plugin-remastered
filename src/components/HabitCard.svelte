@@ -3,14 +3,46 @@
   import { getHabitStats } from "../habit-tracker/stores";
   import type { HabitStats } from "../habit-tracker/stores";
   import { habitLogs } from "../habit-tracker/stores";
+  import moment from "moment";
 
   export let habit: IHabit;
 
   let stats: HabitStats;
+  let trendDelta = 0;
+  let trendText = "";
 
   $: {
     $habitLogs;
     stats = getHabitStats(habit.id);
+
+    // Real trend: completions this week vs last week for this habit
+    const now = moment().startOf("day");
+    const thisWeekStart = now.clone().startOf("week");
+    const lastWeekStart = thisWeekStart.clone().subtract(1, "week");
+    const lastWeekEnd = thisWeekStart.clone().subtract(1, "day");
+
+    let thisWeekCount = 0;
+    let lastWeekCount = 0;
+    for (const log of $habitLogs) {
+      if (log.habitId !== habit.id || !log.completed) continue;
+      const logDate = moment(log.date, "YYYY-MM-DD");
+      if (logDate.isSameOrAfter(thisWeekStart) && logDate.isSameOrBefore(now)) {
+        thisWeekCount++;
+      } else if (logDate.isSameOrAfter(lastWeekStart) && logDate.isSameOrBefore(lastWeekEnd)) {
+        lastWeekCount++;
+      }
+    }
+
+    trendDelta = thisWeekCount - lastWeekCount;
+    if (trendDelta > 0) {
+      trendText = `↑ +${trendDelta}`;
+    } else if (trendDelta < 0) {
+      trendText = `↓ ${trendDelta}`;
+    } else if (thisWeekCount > 0) {
+      trendText = `→ ${thisWeekCount}`;
+    } else {
+      trendText = "—";
+    }
   }
 
   function translateFrequency(freq: string): string {
@@ -28,7 +60,7 @@
     <span class="habit-card-icon">{habit.icon}</span>
     <span class="habit-card-title">{habit.title}</span>
     <span class="habit-card-badge">
-      <span class="habit-card-trend">↑ прогресс</span>
+      <span class="habit-card-trend trend-{trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'neutral'}">{trendText}</span>
       <span class="habit-card-freq">{translateFrequency(habit.frequency)}</span>
     </span>
   </div>
@@ -108,10 +140,23 @@
   .habit-card-trend {
     font-size: 10px;
     font-weight: 600;
-    color: var(--mcp-success);
-    background: var(--mcp-success-dim);
     padding: 2px 8px;
     border-radius: 10px;
+  }
+
+  .habit-card-trend.trend-up {
+    color: var(--mcp-success);
+    background: var(--mcp-success-dim);
+  }
+
+  .habit-card-trend.trend-down {
+    color: var(--mcp-danger, rgba(220, 100, 100, 0.9));
+    background: var(--mcp-danger-dim, rgba(220, 100, 100, 0.1));
+  }
+
+  .habit-card-trend.trend-neutral {
+    color: var(--mcp-text-muted);
+    background: var(--mcp-glass-highlight);
   }
 
   .habit-card-freq {

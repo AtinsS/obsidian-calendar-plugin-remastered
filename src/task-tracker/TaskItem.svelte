@@ -2,7 +2,7 @@
   import { createEventDispatcher } from "svelte";
   import type { App } from "obsidian";
   import type { ITask, TaskStatus } from "./types";
-  import { updateTask, updateTaskStatus, removeTask, projects, activeTab } from "./stores";
+  import { updateTask, updateTaskStatus, removeTask, projects, activeTab, calculateTaskEarnings } from "./stores";
   import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
 
@@ -282,9 +282,7 @@
       &#128188; Рабочая
       {#if task.rate && task.status === "done"}
         <span class="task-work-earnings">
-          {task.paymentType === "hour" && task.totalWorkTime
-            ? `${Math.round(task.rate * (task.totalWorkTime / 3600000))} ₽`
-            : `${task.rate} ₽`}
+          {calculateTaskEarnings(task)} ₽
         </span>
       {/if}
     </span>
