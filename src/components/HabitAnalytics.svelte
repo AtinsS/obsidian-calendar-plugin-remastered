@@ -12,6 +12,9 @@
   import { timeLogs, tasks } from "../task-tracker/stores";
   import { formatDuration } from "../task-tracker/TimerManager";
   import { getEarningsForMonth, getEarningsForYear, getMonthlyEarningsForYear } from "../task-tracker/stores";
+  import { app } from "../stores/appStore";
+  import { financialAnalyticsData, getTotalManualIncome } from "../finance/financialAnalyticsStorage";
+  import { VIEW_TYPE_FINANCIAL_ANALYTICS } from "../constants";
 
   let selectedHabitId: string = "all";
   let weeklyStats = getWeeklyStats(12);
@@ -46,11 +49,15 @@
   // Earnings stats
   $: {
     $tasks; // re-compute when tasks change
+    $financialAnalyticsData; // re-compute when manual income changes
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    monthlyEarnings = getEarningsForMonth(currentYear, currentMonth);
-    yearlyEarnings = getEarningsForYear(currentYear);
+    const taskMonthly = getEarningsForMonth(currentYear, currentMonth);
+    const taskYearly = getEarningsForYear(currentYear);
+    const manualIncome = getTotalManualIncome();
+    monthlyEarnings = taskMonthly + manualIncome;
+    yearlyEarnings = taskYearly + manualIncome;
     monthlyChart = getMonthlyEarningsForYear(currentYear);
     maxMonthly = Math.max(...monthlyChart.map(m => m.amount), 1);
   }
@@ -60,6 +67,26 @@
   let maxMonthly = 1;
 
   const monthNames = ["Янв", "Фев", "Мар", "Апр", "Май", "Июн", "Июл", "Авг", "Сен", "Окт", "Ноя", "Дек"];
+
+  async function openFinancialAnalytics(): Promise<void> {
+    const appInstance = get(app);
+    if (!appInstance) return;
+
+    const existing = appInstance.workspace.getLeavesOfType(VIEW_TYPE_FINANCIAL_ANALYTICS);
+    if (existing.length) {
+      appInstance.workspace.revealLeaf(existing[0]);
+      return;
+    }
+
+    const leaf = appInstance.workspace.getLeaf("tab");
+    if (leaf) {
+      await leaf.setViewState({
+        type: VIEW_TYPE_FINANCIAL_ANALYTICS,
+        active: true,
+      });
+      appInstance.workspace.revealLeaf(leaf);
+    }
+  }
 </script>
 
 <div class="habit-analytics">
@@ -165,7 +192,12 @@
 
   <!-- Earnings Section -->
   <div class="habit-analytics-section">
-    <h3>Заработок</h3>
+    <div class="earnings-header">
+      <h3>Заработок</h3>
+      <button class="earnings-detail-btn" on:click={openFinancialAnalytics}>
+        Подробнее →
+      </button>
+    </div>
     <div class="earnings-summary">
       <div class="earnings-card">
         <span class="earnings-value">{monthlyEarnings.toLocaleString("ru-RU")} ₽</span>
@@ -428,6 +460,36 @@
     padding: 20px;
     color: var(--text-muted);
     font-size: 13px;
+  }
+
+  .earnings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .earnings-header h3 {
+    margin: 0;
+  }
+
+  .earnings-detail-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--background-modifier-border);
+    border-radius: 6px;
+    background: var(--background-secondary);
+    color: var(--text-accent);
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .earnings-detail-btn:hover {
+    background: var(--interactive-accent);
+    color: var(--text-on-accent, #fff);
+    border-color: var(--interactive-accent);
   }
 
   @media (max-width: 768px) {

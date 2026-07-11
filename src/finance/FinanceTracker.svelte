@@ -13,6 +13,7 @@
   import { get } from "svelte/store";
   import { tasks } from "../task-tracker/stores";
   import { calculateTaskEarnings } from "../task-tracker/stores";
+  import { financialAnalyticsData, getTotalManualIncome } from "./financialAnalyticsStorage";
 
   let monthKey = getCurrentMonthKey();
   let monthData: FinanceMonthData = {
@@ -60,6 +61,20 @@
     }
   }
 
+  // Auto-update income when source is "analytics" and tasks or manual income change
+  $: {
+    $tasks;
+    $financialAnalyticsData;
+    if (incomeSource === "analytics") {
+      const income = getWorkIncome();
+      updateMonthData(monthKey, {
+        monthlyIncome: income,
+        incomeSource: "analytics",
+      } as any);
+      monthData = getMonthData(monthKey);
+    }
+  }
+
   $: mainTotal = monthData
     ? monthData.mainAccountCategories.reduce((sum, c) => sum + c.amount, 0)
     : 0;
@@ -81,7 +96,7 @@
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
     const allTasks = get(tasks);
-    return allTasks
+    const taskEarnings = allTasks
       .filter((t) => {
         if (!t.isWorkTask || t.status !== "done") return false;
         const match = t.dateUID.match(/^day-(\d{4})-(\d{2})/);
@@ -89,6 +104,7 @@
         return parseInt(match[1]) === year && parseInt(match[2]) === month;
       })
       .reduce((sum, t) => sum + calculateTaskEarnings(t), 0);
+    return taskEarnings + getTotalManualIncome();
   }
 
   function setIncomeSource(source: "analytics" | "manual") {

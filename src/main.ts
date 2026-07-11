@@ -7,6 +7,7 @@ import {
   VIEW_TYPE_SCHEDULE,
   VIEW_TYPE_HABIT_ANALYTICS,
   VIEW_TYPE_FINANCE,
+  VIEW_TYPE_FINANCIAL_ANALYTICS,
 } from "./constants";
 import { settings } from "./ui/stores";
 import { app as appStore } from "./stores/appStore";
@@ -20,12 +21,14 @@ import CalendarView from "./view";
 import ScheduleView from "./views/ScheduleView";
 import HabitAnalyticsView from "./views/HabitAnalyticsView";
 import FinanceView from "./views/FinanceView";
+import FinancialAnalyticsView from "./views/FinancialAnalyticsView";
 import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
 import { initFinanceStores } from "./finance/storage";
+import { initFinancialAnalyticsStores } from "./finance/financialAnalyticsStorage";
 import { NotificationService } from "./services/NotificationService";
 
 declare global {
@@ -56,6 +59,9 @@ export default class CalendarPlugin extends Plugin {
       .forEach((leaf) => leaf.detach());
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_FINANCE)
+      .forEach((leaf) => leaf.detach());
+    this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_FINANCIAL_ANALYTICS)
       .forEach((leaf) => leaf.detach());
   }
 
@@ -93,6 +99,11 @@ export default class CalendarPlugin extends Plugin {
     this.registerView(
       VIEW_TYPE_FINANCE,
       (leaf: WorkspaceLeaf) => new FinanceView(leaf, this)
+    );
+
+    this.registerView(
+      VIEW_TYPE_FINANCIAL_ANALYTICS,
+      (leaf: WorkspaceLeaf) => new FinancialAnalyticsView(leaf, this)
     );
 
     this.addCommand({
@@ -143,6 +154,12 @@ export default class CalendarPlugin extends Plugin {
       callback: () => this.activateFinanceView(),
     });
 
+    this.addCommand({
+      id: "open-financial-analytics",
+      name: "Открыть финансовую аналитику",
+      callback: () => this.activateFinancialAnalyticsView(),
+    });
+
     this.addRibbonIcon("calendar-range", "Расписание", () => {
       this.activateScheduleView();
     });
@@ -166,6 +183,9 @@ export default class CalendarPlugin extends Plugin {
 
     // Initialize finance tracker
     initFinanceStores(this);
+
+    // Initialize financial analytics
+    initFinancialAnalyticsStores(this);
 
     // Initialize notification service
     this.notificationService = new NotificationService(this);
@@ -268,6 +288,25 @@ export default class CalendarPlugin extends Plugin {
     if (leaf) {
       await leaf.setViewState({
         type: VIEW_TYPE_FINANCE,
+        active: true,
+      });
+      workspace.revealLeaf(leaf);
+    }
+  }
+
+  async activateFinancialAnalyticsView(): Promise<void> {
+    const { workspace } = this.app;
+
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_FINANCIAL_ANALYTICS);
+    if (existing.length) {
+      workspace.revealLeaf(existing[0]);
+      return;
+    }
+
+    const leaf = workspace.getLeaf("tab");
+    if (leaf) {
+      await leaf.setViewState({
+        type: VIEW_TYPE_FINANCIAL_ANALYTICS,
         active: true,
       });
       workspace.revealLeaf(leaf);
