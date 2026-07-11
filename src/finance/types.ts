@@ -10,7 +10,7 @@ export interface FinanceMonthData {
   monthlyIncome: number;
   lastMonthExpense: number;
   mainAccountCategories: FinanceCategory[];
-  monthGoals: string;
+  monthGoals: string[];
   savingsCategories: FinanceCategory[];
   distributionRules: string[];
   updatedAt: string;
@@ -25,7 +25,7 @@ export function createEmptyMonthData(): FinanceMonthData {
     monthlyIncome: 0,
     lastMonthExpense: 0,
     mainAccountCategories: [],
-    monthGoals: "",
+    monthGoals: [],
     savingsCategories: [],
     distributionRules: [],
     updatedAt: new Date().toISOString(),

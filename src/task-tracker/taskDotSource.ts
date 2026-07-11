@@ -32,11 +32,21 @@ function getTaskMap(): Map<string, ITask[]> {
     cachedTasks = current;
     cachedMap = new Map();
     for (const t of current) {
+      // Index by assigned date
       const arr = cachedMap.get(t.dateUID);
       if (arr) {
         arr.push(t);
       } else {
         cachedMap.set(t.dateUID, [t]);
+      }
+      // Also index by deadline date if different
+      if (t.deadline && t.deadline !== t.dateUID && t.status !== "done") {
+        const dArr = cachedMap.get(t.deadline);
+        if (dArr) {
+          dArr.push(t);
+        } else {
+          cachedMap.set(t.deadline, [t]);
+        }
       }
     }
   }
@@ -53,11 +63,15 @@ function getMetadataForDate(dateUID: string): IDayMetadata {
 
   let uncompletedCount = 0;
   let completedCount = 0;
+  let hasDeadlineOnDate = false;
   for (const t of dateTasks) {
     if (t.completed) {
       completedCount++;
     } else {
       uncompletedCount++;
+    }
+    if (t.deadline === dateUID && t.status !== "done") {
+      hasDeadlineOnDate = true;
     }
   }
 
@@ -78,6 +92,10 @@ function getMetadataForDate(dateUID: string): IDayMetadata {
 
   if (hasOverdue) {
     classes.push("has-overdue");
+  }
+
+  if (hasDeadlineOnDate) {
+    classes.push("has-deadline");
   }
 
   classes.push("has-task-tracker-tasks");

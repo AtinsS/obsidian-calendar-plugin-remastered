@@ -2,7 +2,7 @@
   import { createEventDispatcher } from "svelte";
   import type { App } from "obsidian";
   import type { ITask, TaskStatus } from "./types";
-  import { updateTask, updateTaskStatus, removeTask, projects } from "./stores";
+  import { updateTask, updateTaskStatus, removeTask, projects, activeTab } from "./stores";
   import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
 
@@ -28,6 +28,11 @@
 
   $: scheduledTimePassed = task.scheduledTime && task.dateUID ? isTimePassed(task.scheduledTime, task.dateUID) : false;
 
+  // Deadline logic
+  $: hasDeadline = !!task.deadline;
+  $: deadlineOverdue = hasDeadline && task.status !== "done" ? isDeadlineOverdue(task.deadline, task.deadlineTime) : false;
+  $: deadlineLabel = hasDeadline ? formatDeadlineLabel(task.deadline, task.deadlineTime) : "";
+
   function isTimePassed(time: string, dateUID: string): boolean {
     const [h, m] = time.split(":").map(Number);
     const now = new Date();
@@ -42,11 +47,54 @@
     return now.getHours() > h || (now.getHours() === h && now.getMinutes() > m);
   }
 
+  function isDeadlineOverdue(deadlineUID: string, deadlineTime?: string): boolean {
+    if (!deadlineUID) return false;
+    const match = deadlineUID.match(/^day-(\d{4}-\d{2}-\d{2})/);
+    if (!match) return false;
+    const now = new Date();
+    const deadlineDate = new Date(match[1] + "T00:00:00");
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (deadlineDate.getTime() < today.getTime()) return true;
+    if (deadlineDate.getTime() > today.getTime()) return false;
+    if (deadlineTime) {
+      const [h, m] = deadlineTime.split(":").map(Number);
+      return now.getHours() > h || (now.getHours() === h && now.getMinutes() > m);
+    }
+    return false;
+  }
+
+  function formatDeadlineLabel(deadlineUID: string, deadlineTime?: string): string {
+    if (!deadlineUID) return "";
+    const match = deadlineUID.match(/^day-(\d{4})-(\d{2})-(\d{2})/);
+    if (!match) return "";
+    const [, year, month, day] = match;
+    const now = new Date();
+    const deadlineDate = new Date(`${year}-${month}-${day}T00:00:00`);
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffMs = deadlineDate.getTime() - today.getTime();
+    const diffDays = Math.round(diffMs / 86400000);
+    let label = "";
+    if (diffDays < 0) {
+      label = `${Math.abs(diffDays)}д просрочено`;
+    } else if (diffDays === 0) {
+      label = "Сегодня";
+    } else if (diffDays === 1) {
+      label = "Завтра";
+    } else {
+      label = `${diffDays}д`;
+    }
+    if (deadlineTime) {
+      label += ` ${deadlineTime}`;
+    }
+    return label;
+  }
+
   const statusIcons: Record<TaskStatus, string> = {
-    todo: "\u25CB",
-    progress: "\u23F3",
-    done: "\u2714",
-    paused: "\u23F8",
+    todo: "🟢",
+    progress: "🔥",
+    done: "✅",
+    paused: "☕",
+    all: "",
   };
 
   function quickStatus(status: TaskStatus) {
@@ -171,6 +219,12 @@
     <span class="task-recurring-icon" title="Повторяющаяся задача">&#8635;</span>
   {/if}
 
+  {#if $activeTab === "all" && task.status !== "done"}
+    <span class="task-status-badge status-badge-{task.status}">
+      {task.status === "todo" ? "Сделать" : task.status === "progress" ? "В работе" : "На паузе"}
+    </span>
+  {/if}
+
   {#if task.scheduledTime && task.status !== "progress"}
     {#if task.status === "done"}
       <span class="task-scheduled done" title="Готово">
@@ -181,6 +235,12 @@
         {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
       </span>
     {/if}
+  {/if}
+
+  {#if hasDeadline && task.status !== "done"}
+    <span class="task-deadline {deadlineOverdue ? 'overdue' : ''}" title={deadlineOverdue ? "Дедлайн просрочен" : "Дедлайн"}>
+      &#9200; {deadlineLabel}
+    </span>
   {/if}
 
   {#if task.status === "progress" && task.timerStartedAt}

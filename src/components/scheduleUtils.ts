@@ -72,12 +72,15 @@ export interface ScheduleEvent {
   title: string;
   start: string;
   end: string;
+  allDay: boolean;
   backgroundColor: string;
   borderColor: string;
   textColor: string;
   extendedProps: {
     task: ITask;
     projectId: string | null;
+    projectColor: string | null;
+    isDeadlineEvent?: boolean;
   };
 }
 
@@ -88,15 +91,14 @@ export function taskToEvent(
   const dateStr = extractDateFromUID(task.dateUID);
   if (!dateStr) return null;
 
-  const start = task.scheduledTime
+  const hasTime = !!task.scheduledTime;
+  const start = hasTime
     ? `${dateStr}T${task.scheduledTime}:00`
-    : `${dateStr}T09:00:00`;
+    : `${dateStr}T00:00:00`;
 
-  const end = calculateEndTime(
-    dateStr,
-    task.scheduledTime || "09:00",
-    task.estimatedTime || 60
-  );
+  const end = hasTime
+    ? calculateEndTime(dateStr, task.scheduledTime, task.estimatedTime || 60)
+    : `${dateStr}T23:59:59`;
 
   const project = projects.find((p) => p.id === task.projectId);
   const hasProject = !!project;
@@ -106,16 +108,57 @@ export function taskToEvent(
     title: task.title,
     start,
     end,
+    allDay: !hasTime,
     backgroundColor: hasProject
-      ? tintWithAlpha(project.color, 0.85)
+      ? tintWithAlpha(project.color, 0.95)
       : getStatusColor(task.status),
     borderColor: hasProject
-      ? tintWithAlpha(project.color, 1)
+      ? project.color
       : getStatusBorder(task.status),
     textColor: "#e8ecf0",
     extendedProps: {
       task,
       projectId: task.projectId,
+      projectColor: project?.color || null,
+    },
+  };
+}
+
+/** Создаёт событие-дедлайн для задачи, если дедлайн отличается от дня задачи */
+function deadlineToEvent(
+  task: ITask,
+  projects: IProject[]
+): ScheduleEvent | null {
+  if (!task.deadline || task.status === "done") return null;
+
+  const deadlineDateStr = extractDateFromUID(task.deadline);
+  const taskDateStr = extractDateFromUID(task.dateUID);
+  // Не дублируем, если дедлайн совпадает с днём задачи
+  if (!deadlineDateStr || deadlineDateStr === taskDateStr) return null;
+
+  const start = task.deadlineTime
+    ? `${deadlineDateStr}T${task.deadlineTime}:00`
+    : `${deadlineDateStr}T23:55:00`;
+  const end = task.deadlineTime
+    ? `${deadlineDateStr}T${task.deadlineTime}:00`
+    : `${deadlineDateStr}T23:59:00`;
+
+  const project = projects.find((p) => p.id === task.projectId);
+
+  return {
+    id: `deadline-${task.id}`,
+    title: `Дедлайн: ${task.title}`,
+    start,
+    end,
+    allDay: false,
+    backgroundColor: "rgba(180, 60, 60, 0.85)",
+    borderColor: "#b43c3c",
+    textColor: "#fff",
+    extendedProps: {
+      task,
+      projectId: task.projectId,
+      projectColor: project?.color || null,
+      isDeadlineEvent: true,
     },
   };
 }
@@ -124,8 +167,13 @@ export function tasksToEvents(
   tasks: ITask[],
   projects: IProject[]
 ): ScheduleEvent[] {
-  return tasks
-    .filter((t) => t.dateUID)
-    .map((task) => taskToEvent(task, projects))
-    .filter(Boolean) as ScheduleEvent[];
+  const events: ScheduleEvent[] = [];
+  for (const task of tasks) {
+    if (!task.dateUID) continue;
+    const mainEvent = taskToEvent(task, projects);
+    if (mainEvent) events.push(mainEvent);
+    const dlEvent = deadlineToEvent(task, projects);
+    if (dlEvent) events.push(dlEvent);
+  }
+  return events;
 }

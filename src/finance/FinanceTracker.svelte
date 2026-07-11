@@ -20,7 +20,7 @@
     monthlyIncome: 0,
     lastMonthExpense: 0,
     mainAccountCategories: [],
-    monthGoals: "",
+    monthGoals: [],
     savingsCategories: [],
     distributionRules: [],
     updatedAt: "",
@@ -201,9 +201,25 @@
     monthData = getMonthData(monthKey);
   }
 
-  function updateGoals(value: string) {
-    updateMonthData(monthKey, { monthGoals: value });
+  function updateGoals(goals: string[]) {
+    updateMonthData(monthKey, { monthGoals: goals });
     monthData = getMonthData(monthKey);
+  }
+
+  function addGoal() {
+    const goals = [...(monthData.monthGoals || []), ""];
+    updateGoals(goals);
+  }
+
+  function updateGoal(index: number, value: string) {
+    const goals = [...(monthData.monthGoals || [])];
+    goals[index] = value;
+    updateGoals(goals);
+  }
+
+  function removeGoal(index: number) {
+    const goals = (monthData.monthGoals || []).filter((_, i) => i !== index);
+    updateGoals(goals);
   }
 
   function updateRules(value: string) {
@@ -226,7 +242,7 @@
     updateMonthData(monthKey, {
       mainAccountCategories: [],
       savingsCategories: [],
-      monthGoals: "",
+      monthGoals: [],
       distributionRules: [],
       monthlyIncome: 0,
     });
@@ -389,13 +405,21 @@
       <span class="glass-icon">🎯</span>
       <h3>Цели на месяц</h3>
     </div>
-    <textarea
-      class="glass-textarea"
-      value={monthData.monthGoals}
-      on:input={(e) => updateGoals(e.target.value)}
-      placeholder="например стрижка, покупка машины..."
-      rows="2"
-    ></textarea>
+    <div class="goals-list">
+      {#each (monthData.monthGoals || []) as goal, i (i)}
+        <div class="goal-row">
+          <input
+            type="text"
+            value={goal}
+            on:input={(e) => updateGoal(i, e.target.value)}
+            class="goal-input"
+            placeholder="Цель..."
+          />
+          <button class="goal-remove-btn" on:click={() => removeGoal(i)} title="Удалить">&#10005;</button>
+        </div>
+      {/each}
+    </div>
+    <button class="glass-add-btn" on:click={addGoal}>+ Добавить цель</button>
   </div>
 
   <!-- Блок 4: Куда отложить -->
@@ -889,6 +913,58 @@
     border-color: var(--fi-accent);
     color: var(--fi-accent);
     background: rgba(95, 153, 225, 0.04);
+  }
+
+  /* ── Goals list ──────────────────────────────────────── */
+  .goals-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .goal-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .goal-input {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--fi-border);
+    border-radius: var(--fi-radius-sm);
+    background: var(--fi-bg);
+    color: var(--fi-text);
+    font-size: 12.5px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+
+  .goal-input:focus {
+    border-color: var(--fi-accent);
+    outline: none;
+  }
+
+  .goal-remove-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--fi-border);
+    border-radius: var(--fi-radius-sm);
+    background: transparent;
+    color: var(--fi-muted);
+    cursor: pointer;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .goal-remove-btn:hover {
+    border-color: var(--fi-danger, #e55);
+    color: var(--fi-danger, #e55);
+    background: rgba(238, 85, 85, 0.08);
   }
 
   /* ── Textarea ────────────────────────────────────────── */

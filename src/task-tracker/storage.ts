@@ -109,5 +109,18 @@ function migrateData(data: ITaskTrackerData): ITaskTrackerData {
     };
   }
 
+  // v5 -> v6: add deadline and deadlineTime fields to tasks
+  if (data.version < 6) {
+    migrated = {
+      ...migrated,
+      tasks: migrated.tasks.map((t) => ({
+        ...t,
+        deadline: undefined,
+        deadlineTime: undefined,
+      })),
+      version: 6,
+    };
+  }
+
   return { ...migrated, version: TASK_TRACKER_DATA_VERSION };
 }

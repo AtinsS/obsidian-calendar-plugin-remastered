@@ -84,6 +84,127 @@ table {
   box-shadow: 0 2px 8px rgba(95, 153, 225, 0.15);
 }
 
+/* ── Month goals indicator ────────────────────────────── */
+.month-goals-indicator {
+  margin-bottom: 8px;
+}
+
+.month-goals-single,
+.month-goals-multi {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: var(--mcp-glass-bg);
+  backdrop-filter: var(--mcp-blur);
+  -webkit-backdrop-filter: var(--mcp-blur);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius);
+  color: var(--mcp-text);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+}
+
+.month-goals-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.month-goals-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.month-goals-show-btn {
+  background: transparent;
+  border: 1px solid var(--mcp-accent);
+  border-radius: 6px;
+  color: var(--mcp-accent);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.month-goals-show-btn:hover {
+  background: var(--mcp-accent-dim);
+}
+
+.month-goals-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+}
+
+/* ── Goals modal ─────────────────────────────────────── */
+.goals-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.goals-modal {
+  background: var(--background-primary, #1e1e2e);
+  border: 1px solid var(--background-modifier-border, #333);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  max-height: 70vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.goals-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--background-modifier-border, #333);
+}
+
+.goals-modal-icon {
+  font-size: 20px;
+}
+
+.goals-modal-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.goals-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+
+.goals-modal-close:hover {
+  color: var(--text-normal, #ccc);
+  background: var(--background-modifier-hover, #333);
+}
+
+.goals-modal-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: calc(70vh - 60px);
+}
+
 .settings-banner {
   background: var(--mcp-glass-bg);
   backdrop-filter: var(--mcp-blur);
@@ -201,6 +322,11 @@ content: attr(data-task-count);
   background: var(--mcp-danger);
   color: #fff;
   animation: pulse-danger 2s ease-in-out infinite;
+}
+
+#calendar-container .day.has-deadline:not(.has-overdue)[data-task-count]::after {
+  border-color: var(--mcp-warning);
+  box-shadow: 0 0 4px rgba(251, 191, 36, 0.4);
 }
 
 @keyframes pulse-danger {
@@ -443,66 +569,136 @@ content: attr(data-task-count);
 .kanban-tabs {
   display: flex;
   gap: 4px;
-  padding: 8px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--mcp-glass-border);
   margin-bottom: 6px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .kanban-tab {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid var(--mcp-glass-border);
-  background: var(--mcp-surface);
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--mcp-text-muted);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 500;
   transition: all var(--mcp-transition);
   white-space: nowrap;
   flex-shrink: 0;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
 }
 
 .kanban-tab:hover {
   color: var(--mcp-text);
-  background: var(--mcp-surface-hover);
-  transform: translateY(-1px);
+  background: var(--mcp-surface);
 }
 
 .kanban-tab.active {
-  color: #000;
-  background: linear-gradient(135deg, var(--mcp-accent), #5eead4);
+  color: var(--mcp-accent);
+  background: var(--mcp-accent-dim);
   border-color: var(--mcp-accent);
-  box-shadow: 0 0 12px var(--mcp-accent-glow);
 }
 
 .kanban-tab-icon {
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1;
 }
 
 .kanban-tab-label {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .kanban-tab-count {
-  font-size: 10px;
-  font-weight: 700;
-  background: rgba(0, 0, 0, 0.15);
-  color: inherit;
-  padding: 1px 6px;
-  border-radius: 10px;
-  min-width: 18px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--mcp-text-muted);
+  background: var(--mcp-surface);
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 16px;
   text-align: center;
 }
 
 .kanban-tab.active .kanban-tab-count {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(95, 153, 225, 0.2);
+  color: var(--mcp-accent);
+}
+
+/* ============================================
+   SEARCH BAR
+   ============================================ */
+.task-tracker-search-bar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--mcp-glass-border);
+  margin-bottom: 6px;
+}
+
+.task-tracker-search-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: 8px;
+  background: var(--mcp-surface);
+  color: var(--mcp-text);
+  font-size: 12px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.task-tracker-search-input:focus {
+  border-color: var(--mcp-accent);
+}
+
+.task-tracker-search-input::placeholder {
+  color: var(--mcp-text-faint);
+}
+
+/* ============================================
+   DROPDOWN MENU
+   ============================================ */
+.task-tracker-menu-wrapper {
+  position: relative;
+}
+
+.task-tracker-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.task-tracker-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text-normal);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.1s;
+}
+
+.task-tracker-dropdown-item:hover {
+  background: var(--background-modifier-hover);
 }
 
 /* ============================================
@@ -512,9 +708,11 @@ content: attr(data-task-count);
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  padding: 8px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--mcp-glass-border);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  max-height: 80px;
+  overflow-y: auto;
 }
 
 .task-tracker-filter-btn {
@@ -522,16 +720,15 @@ content: attr(data-task-count);
   border: 1px solid var(--mcp-glass-border);
   color: var(--mcp-text-muted);
   cursor: pointer;
-  padding: 5px 14px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 12px;
   transition: all var(--mcp-transition);
   display: flex;
   align-items: center;
-  gap: 5px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .task-tracker-filter-btn:hover {
@@ -590,6 +787,12 @@ content: attr(data-task-count);
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.project-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 .group-name { flex: 1; }
@@ -898,6 +1101,68 @@ content: attr(data-task-count);
 .task-scheduled.passed {
   color: var(--mcp-danger);
   background: var(--mcp-danger-dim);
+}
+
+.task-status-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status-badge-todo {
+  color: rgba(180, 195, 215, 0.8);
+  background: rgba(140, 160, 190, 0.15);
+}
+
+.status-badge-progress {
+  color: rgba(225, 195, 130, 0.85);
+  background: rgba(214, 178, 108, 0.15);
+}
+
+.status-badge-paused {
+  color: rgba(200, 170, 110, 0.85);
+  background: rgba(180, 150, 100, 0.15);
+}
+
+.task-deadline {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mcp-warning);
+  background: rgba(251, 191, 36, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.task-deadline.overdue {
+  color: var(--mcp-danger);
+  background: var(--mcp-danger-dim);
+  animation: deadline-pulse 2s ease-in-out infinite;
+}
+
+@keyframes deadline-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.task-date-group-header {
+  display: flex;
+  align-items: center;
+  padding: 10px 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mcp-accent);
+  gap: 6px;
+  border-bottom: 1px solid var(--mcp-glass-border);
+  margin-bottom: 4px;
+}
+
+.date-group-label {
+  flex: 1;
 }
 
 .task-priority {
@@ -1897,9 +2162,13 @@ content: attr(data-task-count);
   }
 
   .kanban-tab {
-    padding: 4px 6px;
-    font-size: 11px;
+    padding: 4px 7px;
+    font-size: 10px;
     gap: 3px;
+  }
+
+  .kanban-tab-icon {
+    font-size: 11px;
   }
 
   .kanban-tab-label {
@@ -1907,54 +2176,8 @@ content: attr(data-task-count);
   }
 
   .kanban-tab-count {
-    font-size: 10px;
-    padding: 1px 5px;
-  }
-
-  /* Dropdown menu */
-  .task-tracker-menu-wrapper {
-    position: relative;
-  }
-
-  .task-tracker-dropdown {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    margin-top: 4px;
-    background: var(--background-primary);
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    min-width: 180px;
-    overflow: hidden;
-  }
-
-  .task-tracker-dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 100%;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: var(--text-normal);
-    background: none;
-    border: none;
-    cursor: pointer;
-    text-align: left;
-    white-space: nowrap;
-  }
-
-  .task-tracker-dropdown-item .dropdown-label-full {
-    display: none;
-  }
-
-  .task-tracker-dropdown-item .dropdown-label-short {
-    display: inline;
-  }
-
-  .task-tracker-dropdown-item:hover {
-    background: var(--background-modifier-hover);
+    font-size: 9px;
+    padding: 1px 4px;
   }
 
   /* Task actions dropdown */
@@ -2304,12 +2527,10 @@ content: attr(data-task-count);
 
 .schedule-view-container .fc .fc-event {
   cursor: pointer;
-  border-width: 0 !important;
-  border-left-width: 3px !important;
-  border-left-style: solid !important;
+  border: none !important;
   border-radius: 8px !important;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .schedule-view-container .fc .fc-timegrid-event {
@@ -2318,9 +2539,23 @@ content: attr(data-task-count);
 }
 
 .schedule-view-container .fc .fc-event:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transform: none;
+  box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 4px 16px rgba(0, 0, 0, 0.25);
   filter: brightness(1.15);
+}
+
+.schedule-view-container .fc .fc-event.fc-dragging,
+.schedule-view-container .fc .fc-event-event-dragging,
+.schedule-view-container .fc .fc-event-mirror {
+  transition: none !important;
+  transform: none !important;
+  will-change: auto;
+  opacity: 0.9;
+  z-index: 9999;
+  box-shadow: none !important;
+  filter: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .schedule-view-container .fc-event-main-inner {
@@ -2689,4 +2924,9 @@ content: attr(data-task-count);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.schedule-view-container .fc .fc-daygrid-event.sch-event-deadline-parent {
+  background-color: rgba(180, 60, 60, 0.85) !important;
+  border-left-color: #b43c3c !important;
 }

@@ -5,29 +5,29 @@
   $: currentDate = $selectedDate;
 
   $: counts = {
+    all: $tasks.filter(
+      (t) => t.status !== "done" && (!currentDate || t.dateUID === currentDate)
+    ).length,
     todo: $tasks.filter(
-      (t) =>
-        t.status === "todo" && t.dateUID === currentDate
+      (t) => t.status === "todo" && (!currentDate || t.dateUID === currentDate)
     ).length,
     progress: $tasks.filter(
-      (t) =>
-        t.status === "progress" && t.dateUID === currentDate
+      (t) => t.status === "progress" && (!currentDate || t.dateUID === currentDate)
     ).length,
     paused: $tasks.filter(
-      (t) =>
-        t.status === "paused" && t.dateUID === currentDate
+      (t) => t.status === "paused" && (!currentDate || t.dateUID === currentDate)
     ).length,
     done: $tasks.filter(
-      (t) =>
-        t.status === "done" && t.dateUID === currentDate
+      (t) => t.status === "done" && (!currentDate || t.dateUID === currentDate)
     ).length,
   };
 
-  const tabs: { key: TaskStatus; label: string; icon: string }[] = [
-    { key: "todo", label: "Сделать", icon: "\u25CB" },
-    { key: "progress", label: "В работе", icon: "\u23F3" },
-    { key: "paused", label: "На паузе", icon: "\u23F8" },
-    { key: "done", label: "Готово", icon: "\u2714" },
+  const tabs: { key: TaskStatus; icon: string; label: string }[] = [
+    { key: "all", icon: "📋", label: "Все" },
+    { key: "todo", icon: "🟢", label: "Сделать" },
+    { key: "progress", icon: "🔥", label: "В работе" },
+    { key: "paused", icon: "☕", label: "На паузе" },
+    { key: "done", icon: "✅", label: "Готово" },
   ];
 
   function setTab(tab: TaskStatus) {
@@ -44,7 +44,9 @@
     >
       <span class="kanban-tab-icon">{tab.icon}</span>
       <span class="kanban-tab-label">{tab.label}</span>
-      <span class="kanban-tab-count">{counts[tab.key]}</span>
+      {#if counts[tab.key] > 0}
+        <span class="kanban-tab-count">{counts[tab.key]}</span>
+      {/if}
     </button>
   {/each}
 </div>

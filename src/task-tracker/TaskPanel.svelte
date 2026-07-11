@@ -17,6 +17,7 @@
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
   import { settings } from "../ui/stores";
+  import { getDateUID } from "obsidian-daily-notes-interface";
   import TaskItem from "./TaskItem.svelte";
   import KanbanTabs from "./KanbanTabs.svelte";
   import TimeLogsModal from "./TimeLogsModal.svelte";
@@ -28,19 +29,29 @@
   let collapsed = false;
   let showTimeLogs = false;
   let showMenu = false;
+  let searchQuery = "";
 
   $: currentDate = $selectedDate;
   $: allTasksForDate = currentDate
     ? $tasks.filter((t) => t.dateUID === currentDate)
-    : [];
+    : $tasks;
   $: filteredTasks = allTasksForDate.filter((t) => {
-    if (t.status !== $activeTab) return false;
     if ($taskFilter.projectId && t.projectId !== $taskFilter.projectId)
       return false;
-    return true;
+    // Search filter
+    if (searchQuery && !t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      return false;
+    // Tasks with deadlines are always visible
+    if (t.deadline && t.status !== "done") return true;
+    // "all" tab — show everything except done
+    if ($activeTab === "all") return t.status !== "done";
+    return t.status === $activeTab;
   });
 
-  $: taskGroups = groupTasksByProject(filteredTasks, $projects);
+  $: showAllDates = !currentDate;
+  $: taskGroups = showAllDates
+    ? groupTasksByDateAndProject(filteredTasks, $projects)
+    : groupTasksByProject(filteredTasks, $projects);
   $: totalCount = allTasksForDate.length;
   $: doneCount = allTasksForDate.filter((t) => t.status === "done").length;
 
@@ -74,6 +85,36 @@
 
     if (noProject.length > 0) {
       result.unshift({ project: null, tasks: noProject });
+    }
+
+    return result;
+  }
+
+  function groupTasksByDateAndProject(
+    taskList: ITask[],
+    projectList: IProject[]
+  ): { dateUID: string; dateLabel: string; groups: { project: IProject | null; tasks: ITask[] }[] }[] {
+    const byDate = new Map<string, ITask[]>();
+    for (const task of taskList) {
+      const key = task.dateUID || "unassigned";
+      const arr = byDate.get(key) || [];
+      arr.push(task);
+      byDate.set(key, arr);
+    }
+
+    const sortedDates = Array.from(byDate.keys()).sort((a, b) => {
+      if (a === "unassigned") return 1;
+      if (b === "unassigned") return -1;
+      return a.localeCompare(b);
+    });
+
+    const result: { dateUID: string; dateLabel: string; groups: { project: IProject | null; tasks: ITask[] }[] }[] = [];
+
+    for (const dateKey of sortedDates) {
+      const dateTasks = byDate.get(dateKey)!;
+      const label = dateKey === "unassigned" ? "Без даты" : formatDate(dateKey);
+      const groups = groupTasksByProject(dateTasks, projectList);
+      result.push({ dateUID: dateKey, dateLabel: label, groups });
     }
 
     return result;
@@ -198,6 +239,11 @@
   function closeMenu() {
     showMenu = false;
   }
+
+  function goToToday() {
+    const todayUID = getDateUID(window.moment(), "day");
+    selectedDate.set(todayUID);
+  }
 </script>
 
 <div
@@ -234,74 +280,69 @@
         </span>
       {/if}
       <button
-        class="task-tracker-btn desktop-only"
-        on:click|stopPropagation={() => (showTimeLogs = true)}
-        aria-label="Логи времени"
-        title="Логи времени"
+        class="task-tracker-btn"
+        on:click|stopPropagation={goToToday}
+        title="Перейти к сегодня"
       >
-        &#9201;
-      </button>
-      <button
-        class="task-tracker-btn desktop-only"
-        on:click|stopPropagation={clearCompletedTasks}
-        aria-label="Очистить выполненные"
-        title="Очистить выполненные"
-      >
-        &#128465;
+        ☀️
       </button>
       <button
         class="task-tracker-btn"
         on:click|stopPropagation={openCreateTask}
-        aria-label="Добавить задачу"
         title="Добавить задачу"
       >
         +
       </button>
-      <div class="task-tracker-menu-wrapper mobile-only">
+      <button
+        class="task-tracker-btn"
+        on:click|stopPropagation={openProjectSettings}
+        title="Управление проектами"
+      >
+        ❇️
+      </button>
+      <div class="task-tracker-menu-wrapper">
         <button
           class="task-tracker-btn"
           on:click|stopPropagation={toggleMenu}
-          aria-label="Ещё"
           title="Ещё"
         >
           &#8942;
         </button>
         {#if showMenu}
-          <div class="task-tracker-dropdown">
+          <div class="task-tracker-dropdown" on:click|stopPropagation role="menu">
             <button
               class="task-tracker-dropdown-item"
+              role="menuitem"
               on:click|stopPropagation={() => { showTimeLogs = true; closeMenu(); }}
             >
-              &#9201; <span class="dropdown-label-full">Логи времени</span><span class="dropdown-label-short">Логи</span>
+              &#9201; Логи времени
             </button>
             <button
               class="task-tracker-dropdown-item"
+              role="menuitem"
               on:click|stopPropagation={() => { clearCompletedTasks(); closeMenu(); }}
             >
-              &#128465; <span class="dropdown-label-full">Очистить выполненные</span><span class="dropdown-label-short">Очистить</span>
-            </button>
-            <button
-              class="task-tracker-dropdown-item"
-              on:click|stopPropagation={() => { openProjectSettings(); closeMenu(); }}
-            >
-              &#9881; <span class="dropdown-label-full">Настройки проектов</span><span class="dropdown-label-short">Проекты</span>
+              &#128465; Очистить выполненные
             </button>
           </div>
         {/if}
       </div>
-      <button
-        class="task-tracker-btn desktop-only"
-        on:click|stopPropagation={openProjectSettings}
-        aria-label="Настройки проектов"
-        title="Настройки проектов"
-      >
-        &#9881;
-      </button>
     </div>
   </div>
 
   {#if !collapsed}
     <KanbanTabs />
+
+    {#if $activeTab === "all" && !currentDate}
+      <div class="task-tracker-search-bar">
+        <input
+          type="text"
+          class="task-tracker-search-input"
+          placeholder="Поиск задач..."
+          bind:value={searchQuery}
+        />
+      </div>
+    {/if}
 
     {#if $projects.filter((p) => !p.archived).length > 0}
       <div class="task-tracker-filter-bar">
@@ -317,6 +358,9 @@
           <button
             class="task-tracker-filter-btn project-filter"
             class:active={$taskFilter.projectId === project.id}
+            style={$taskFilter.projectId === project.id
+              ? `background: ${project.color}; border-color: ${project.color}; color: #fff;`
+              : ''}
             on:click={() =>
               taskFilter.update((f) => ({
                 ...f,
@@ -324,10 +368,14 @@
                   f.projectId === project.id ? null : project.id,
               }))}
           >
-            <span
-              class="filter-dot"
-              style="background-color: {project.color}"
-            ></span>
+            {#if project.icon}
+              <span class="project-icon">{project.icon}</span>
+            {:else}
+              <span
+                class="filter-dot"
+                style="background-color: {project.color}"
+              ></span>
+            {/if}
             {project.name}
           </button>
         {/each}
@@ -337,22 +385,64 @@
     <div class="task-tracker-list">
       {#if filteredTasks.length === 0}
         <div class="task-tracker-empty">
-          {#if !currentDate}
-            Выберите дату на календаре
+          {#if !currentDate && $tasks.length === 0}
+            Нет задач
+          {:else if !currentDate}
+            Нет задач в этом статусе
           {:else if allTasksForDate.length === 0}
             Нет задач на эту дату
           {:else}
             Нет задач в этом статусе
           {/if}
         </div>
+      {:else if showAllDates}
+        {#each taskGroups as dateGroup (dateGroup.dateUID)}
+          <div class="task-date-group-header">
+            <span class="date-group-label">{dateGroup.dateLabel}</span>
+          </div>
+          {#each dateGroup.groups as group (dateGroup.dateUID + "-" + (group.project?.id || "none"))}
+            {#if group.project}
+              <div class="task-group-header">
+                {#if group.project.icon}
+                  <span class="project-icon">{group.project.icon}</span>
+                {:else}
+                  <span
+                    class="project-dot"
+                    style="background-color: {group.project.color}"
+                  ></span>
+                {/if}
+                <span class="group-name">{group.project.name}</span>
+                <span class="group-count">{group.tasks.length}</span>
+              </div>
+            {:else}
+              <div class="task-group-header">
+                <span class="group-name">Без проекта</span>
+                <span class="group-count">{group.tasks.length}</span>
+              </div>
+            {/if}
+
+            {#each group.tasks as task (task.id)}
+              <TaskItem
+                {task}
+                {appInstance}
+                on:complete={(e) => handleTaskComplete(e.detail.task)}
+                on:delete={(e) => handleTaskDelete(e.detail.task)}
+              />
+            {/each}
+          {/each}
+        {/each}
       {:else}
         {#each taskGroups as group (group.project?.id || "none")}
           {#if group.project}
             <div class="task-group-header">
-              <span
-                class="project-dot"
-                style="background-color: {group.project.color}"
-              ></span>
+              {#if group.project.icon}
+                <span class="project-icon">{group.project.icon}</span>
+              {:else}
+                <span
+                  class="project-dot"
+                  style="background-color: {group.project.color}"
+                ></span>
+              {/if}
               <span class="group-name">{group.project.name}</span>
               <span class="group-count">{group.tasks.length}</span>
             </div>

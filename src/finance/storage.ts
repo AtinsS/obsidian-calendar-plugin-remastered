@@ -84,6 +84,11 @@ export function getCurrentBalance(monthKey: string): number {
   return data.monthlyIncome - data.lastMonthExpense;
 }
 
+export function getMonthGoals(monthKey: string): string[] {
+  const data = getMonthData(monthKey);
+  return (data.monthGoals || []).filter((g) => g.trim());
+}
+
 export function getStoredMonthKeys(): string[] {
   return Object.keys(get(financeData)).sort();
 }

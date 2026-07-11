@@ -4,7 +4,7 @@ export interface RecurrenceConfig {
   daysOfWeek?: number[];
 }
 
-export type TaskStatus = "todo" | "progress" | "done" | "paused";
+export type TaskStatus = "todo" | "progress" | "done" | "paused" | "all";
 
 export interface ITask {
   id: string;
@@ -33,6 +33,8 @@ export interface ITask {
   rate?: number;
   overtimeStart?: number; // hour when overtime begins (e.g., 8 = after 8 hours)
   overtimeMultiplier?: number; // rate multiplier during overtime (e.g., 1.5 = 1.5x)
+  deadline?: DateUID; // deadline date (format: "day-YYYY-MM-DD")
+  deadlineTime?: string; // deadline time (format: "HH:MM")
 }
 
 export interface IProject {
@@ -65,7 +67,7 @@ export interface ITaskTrackerData {
 
 export type DateUID = string;
 
-export const TASK_TRACKER_DATA_VERSION = 5;
+export const TASK_TRACKER_DATA_VERSION = 6;
 export const MAX_TIME_LOGS = 30;
 
 export const DEFAULT_PROJECT_COLORS = [

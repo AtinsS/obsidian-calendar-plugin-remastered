@@ -26,10 +26,13 @@ import {
 
 import TaskPanel from "./task-tracker/TaskPanel.svelte";
 import { taskDotSource } from "./task-tracker/taskDotSource";
-import { selectedDate, tasks as taskStore } from "./task-tracker/stores";
+import { selectedDate } from "./task-tracker/stores";
 
 import HabitPanel from "./habit-tracker/HabitPanel.svelte";
 import { habitSource } from "./habit-tracker/habitSource";
+
+import { getMonthGoals } from "./finance/storage";
+import { financeData } from "./finance/storage";
 
 export default class CalendarView extends ItemView {
   private calendar: Calendar;
@@ -37,6 +40,9 @@ export default class CalendarView extends ItemView {
   private habitPanel: HabitPanel;
   private settings: ISettings;
   private plugin: CalendarPlugin;
+  private goalsContainer: HTMLElement;
+  private goalsUnsub: (() => void) | null = null;
+  private currentMonthKey = "";
 
   constructor(leaf: WorkspaceLeaf, plugin?: CalendarPlugin) {
     super(leaf);
@@ -103,6 +109,10 @@ export default class CalendarView extends ItemView {
 
   onClose(): Promise<void> {
     this.removeTooltip();
+    if (this.goalsUnsub) {
+      this.goalsUnsub();
+      this.goalsUnsub = null;
+    }
     if (this.calendar) {
       this.calendar.$destroy();
     }
@@ -130,6 +140,12 @@ export default class CalendarView extends ItemView {
       }
     });
 
+    // Monthly goals indicator
+    this.goalsContainer = (this as any).contentEl.createDiv({
+      cls: "month-goals-indicator",
+    });
+    this.updateGoalsIndicator();
+
     // Integration point: external plugins can listen for `calendar:open`
     // to feed in additional sources.
     const sources = [
@@ -151,6 +167,10 @@ export default class CalendarView extends ItemView {
         onHoverWeek: this.onHoverWeek,
         onContextMenuDay: this.onContextMenuDay,
         onContextMenuWeek: this.onContextMenuWeek,
+        onMonthChange: (mk: string) => {
+          this.currentMonthKey = mk;
+          this.updateGoalsIndicator(mk);
+        },
         sources,
       },
     });
@@ -176,6 +196,78 @@ export default class CalendarView extends ItemView {
         },
       });
     }
+
+    // Subscribe to finance data changes (deferred to avoid init issues)
+    setTimeout(() => {
+      this.goalsUnsub = financeData.subscribe(() => {
+        this.updateGoalsIndicator(this.currentMonthKey);
+      });
+    }, 200);
+  }
+
+  private updateGoalsIndicator(monthKey?: string): void {
+    if (!this.goalsContainer) return;
+
+    if (!monthKey) {
+      const now = new Date();
+      monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    const goals = getMonthGoals(monthKey);
+    this.renderGoalsIndicator(goals, monthKey);
+  }
+
+  private renderGoalsIndicator(goals: string[], monthKey: string): void {
+    if (!this.goalsContainer) return;
+    this.goalsContainer.empty();
+
+    if (goals.length === 0) return;
+
+    if (goals.length === 1) {
+      // Single goal — text only, no button
+      const wrapper = this.goalsContainer.createDiv({ cls: "month-goals-single" });
+      wrapper.createEl("span", { text: "🎯", cls: "month-goals-icon" });
+      wrapper.createEl("span", { text: `Цель: ${goals[0]}`, cls: "month-goals-text" });
+    } else {
+      // Multiple goals — first goal text + "Показать" button
+      const wrapper = this.goalsContainer.createDiv({ cls: "month-goals-multi" });
+      wrapper.createEl("span", { text: "🎯", cls: "month-goals-icon" });
+      wrapper.createEl("span", { text: `Цель: ${goals[0]}`, cls: "month-goals-text" });
+      const showBtn = wrapper.createEl("button", { text: `Показать все (${goals.length})`, cls: "month-goals-show-btn" });
+      showBtn.addEventListener("click", () => {
+        this.showGoalsModal(monthKey);
+      });
+    }
+  }
+
+  private showGoalsModal(monthKey: string): void {
+    const goals = getMonthGoals(monthKey);
+    if (goals.length === 0) return;
+
+    const months = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+    const [y, m] = monthKey.split("-");
+    const monthName = `${months[parseInt(m) - 1]} ${y}`;
+
+    const overlay = document.body.createDiv({ cls: "goals-modal-overlay" });
+    const modal = overlay.createDiv({ cls: "goals-modal" });
+
+    const header = modal.createDiv({ cls: "goals-modal-header" });
+    header.createEl("span", { text: "🎯", cls: "goals-modal-icon" });
+    header.createEl("h2", { text: `Цели на ${monthName}` });
+    const closeBtn = header.createEl("button", { text: "✕", cls: "goals-modal-close" });
+
+    const body = modal.createDiv({ cls: "goals-modal-body" });
+    goals.forEach((goal, i) => {
+      const item = body.createDiv({ cls: "goal-item" });
+      item.createEl("span", { text: `${i + 1}.`, cls: "goal-number" });
+      item.createEl("span", { text: goal, cls: "goal-text" });
+    });
+
+    const close = () => overlay.remove();
+    closeBtn.addEventListener("click", close);
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) close();
+    });
   }
 
   private activeTooltip: HTMLElement | null = null;
@@ -195,78 +287,8 @@ export default class CalendarView extends ItemView {
         date.format(format),
         note?.path
       );
-      return;
     }
-
-    // Show uncompleted tasks tooltip
-    const dateUID = getDateUID(date, "day");
-    const allTasks = get(taskStore);
-    const uncompleted = allTasks.filter(
-      (t) => t.dateUID === dateUID && !t.completed
-    );
-
-    this.removeTooltip();
-
-    if (uncompleted.length === 0) return;
-
-    const el = targetEl as HTMLElement;
-    const rect = el.getBoundingClientRect();
-
-    const tooltip = document.createElement("div");
-    tooltip.className = "calendar-task-tooltip";
-    tooltip.style.cssText = `
-      position: fixed;
-      left: ${rect.left}px;
-      top: ${rect.bottom + 4}px;
-      z-index: 1000;
-      background: var(--background-primary);
-      border: 1px solid var(--background-modifier-border);
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 12px;
-      color: var(--text-normal);
-      max-width: 220px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      pointer-events: none;
-    `;
-
-    const items = uncompleted.slice(0, 7);
-    for (const t of items) {
-      const row = document.createElement("div");
-      row.style.cssText = "padding: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;";
-
-      const statusIcon = t.status === "progress" ? "\u23F3" : t.status === "done" ? "\u2714" : "\u25CB";
-      const priorityIcon = t.priority === "high" ? "!" : t.priority === "medium" ? "~" : "";
-      const noteIcon = t.notePath ? " \uD83D\uDCDD" : "";
-      const timeIcon = t.scheduledTime ? ` \uD83D\uDD52${t.scheduledTime}` : "";
-      const recurringIcon = t.recurrence ? " \u21BB" : "";
-
-      const iconSpan = document.createElement("span");
-      iconSpan.style.cssText = "color: var(--text-faint); font-size: 10px; min-width: 14px; text-align: center;";
-      iconSpan.textContent = statusIcon;
-
-      const textSpan = document.createElement("span");
-      textSpan.style.cssText = "overflow: hidden; text-overflow: ellipsis;";
-      textSpan.textContent = (priorityIcon ? priorityIcon + " " : "") + t.title;
-
-      const metaSpan = document.createElement("span");
-      metaSpan.style.cssText = "color: var(--text-faint); font-size: 10px; flex-shrink: 0;";
-      metaSpan.textContent = `${noteIcon}${timeIcon}${recurringIcon}`;
-
-      row.appendChild(iconSpan);
-      row.appendChild(textSpan);
-      row.appendChild(metaSpan);
-      tooltip.appendChild(row);
-    }
-    if (uncompleted.length > 7) {
-      const more = document.createElement("div");
-      more.style.cssText = "padding: 3px 0; color: var(--text-faint); font-size: 11px; text-align: center;";
-      more.textContent = `+${uncompleted.length - 7} ещё`;
-      tooltip.appendChild(more);
-    }
-
-    document.body.appendChild(tooltip);
-    this.activeTooltip = tooltip;
+    // Tooltips disabled — tasks are visible in the task panel
   }
 
   private removeTooltip(): void {

@@ -29,6 +29,10 @@ export default class ScheduleView extends ItemView {
     const container = this.containerEl.children[1];
     container.empty();
     container.addClass("schedule-view-container");
+    // Ensure the content area fills the available height
+    (container as HTMLElement).style.height = "100%";
+    (container as HTMLElement).style.display = "flex";
+    (container as HTMLElement).style.flexDirection = "column";
 
     this.svelteComponent = new ScheduleCalendar({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

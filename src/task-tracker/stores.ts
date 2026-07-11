@@ -352,6 +352,8 @@ export function createNextRecurringInstance(taskId: string): void {
     rate: task.rate,
     overtimeStart: task.overtimeStart,
     overtimeMultiplier: task.overtimeMultiplier,
+    deadline: task.deadline,
+    deadlineTime: task.deadlineTime,
   });
 }
 
@@ -443,6 +445,8 @@ export function generateMonthlyRecurringTasks(taskId: string): void {
         rate: task.rate,
         overtimeStart: task.overtimeStart,
         overtimeMultiplier: task.overtimeMultiplier,
+        deadline: task.deadline,
+        deadlineTime: task.deadlineTime,
       });
       created++;
     }

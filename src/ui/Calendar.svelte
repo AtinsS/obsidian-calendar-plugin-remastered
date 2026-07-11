@@ -86,6 +86,17 @@
   export let onClickWeek: (date: Moment, isMetaPressed: boolean) => boolean;
   export let onContextMenuDay: (date: Moment, event: MouseEvent) => boolean;
   export let onContextMenuWeek: (date: Moment, event: MouseEvent) => boolean;
+  export let onMonthChange: (monthKey: string) => void = () => {};
+
+  let lastMonthKey = "";
+
+  $: {
+    const mk = `${displayedMonth.year()}-${String(displayedMonth.month() + 1).padStart(2, "0")}`;
+    if (mk !== lastMonthKey) {
+      lastMonthKey = mk;
+      onMonthChange(mk);
+    }
+  }
 
   const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 

@@ -20,7 +20,6 @@
   import {
     tasksToEvents,
   } from "./scheduleUtils";
-
   export let plugin: CalendarPlugin;
 
   let calendarEl: HTMLDivElement;
@@ -172,8 +171,9 @@
         day: "День",
       },
       slotMinTime: "06:00:00",
-      slotMaxTime: "24:00:00",
-      allDaySlot: false,
+      slotMaxTime: "30:00:00",
+      allDaySlot: true,
+      allDayText: "Без времени",
       // На телефоне слот 15 минут — удобнее для выбора времени тапом
       slotDuration: isSmallPhone ? "00:15:00" : "00:30:00",
       slotLabelInterval: "01:00",
@@ -202,6 +202,9 @@
       eventClick: handleEventClick,
       eventDrop: handleEventDrop,
       eventResize: handleEventResize,
+      eventDidMount: handleEventDidMount,
+      eventDragStart: handleEventDragStart,
+      eventDragStop: handleEventDragStop,
       select: handleSelect,
     });
 
@@ -226,47 +229,123 @@
   function renderEventContent(eventInfo: any) {
     const { time, event } = eventInfo;
     const task = event.extendedProps.task as ITask;
-    const mobile = isMobile;
+    const isDeadlineEvent = event.extendedProps.isDeadlineEvent as boolean;
 
+    if (isDeadlineEvent) {
+      return {
+        html: `
+          <div class="sch-event sch-event-compact sch-event-deadline">
+            <span class="sch-deadline-icon">&#9200;</span>
+            <span class="sch-event-title">${event.title}</span>
+          </div>
+        `,
+      };
+    }
+
+    const displayTime = time || (task.scheduledTime || "");
     const statusLabel =
       task.status === "progress" ? "В работе" :
       task.status === "paused" ? "На паузе" :
       task.status === "done" ? "Готово" : "";
+    const statusHtml = statusLabel
+      ? `<span class="sch-event-status sch-status-${task.status}">${statusLabel}</span>`
+      : "";
     const priorityBadge =
       task.priority === "high" ? '<span class="sch-priority sch-priority-high">!</span>' :
       task.priority === "medium" ? '<span class="sch-priority sch-priority-mid">~</span>' : "";
-    const noteIcon = task.notePath && !mobile
-      ? '<span class="sch-note-icon" title="Заметка-задача">&#128221;</span>' : "";
-    const durationLabel = task.estimatedTime && !mobile
-      ? `<span class="sch-duration">${task.estimatedTime >= 60 ? Math.floor(task.estimatedTime / 60) + 'ч ' + (task.estimatedTime % 60 > 0 ? (task.estimatedTime % 60) + 'м' : '') : task.estimatedTime + 'м'}</span>` : "";
     const workBadge = task.isWorkTask
       ? '<span class="sch-work-badge" title="Рабочая задача">&#128188;</span>' : "";
 
+    let deadlineHtml = "";
+    if (task.deadline && task.status !== "done") {
+      const match = task.deadline.match(/^day-(\d{4})-(\d{2})-(\d{2})/);
+      if (match) {
+        const [, y, m, d] = match;
+        const now = new Date();
+        const dl = new Date(`${y}-${m}-${d}T00:00:00`);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffDays = Math.round((dl.getTime() - today.getTime()) / 86400000);
+        let dlLabel = "";
+        if (diffDays < 0) dlLabel = `${Math.abs(diffDays)}д просрочено`;
+        else if (diffDays === 0) dlLabel = "Сегодня";
+        else if (diffDays === 1) dlLabel = "Завтра";
+        else dlLabel = `${diffDays}д`;
+        if (task.deadlineTime) dlLabel += ` ${task.deadlineTime}`;
+        const isOverdue = diffDays < 0;
+        deadlineHtml = `<span class="sch-deadline ${isOverdue ? 'sch-deadline-overdue' : ''}" title="Дедлайн">${dlLabel}</span>`;
+      }
+    }
+
     return {
       html: `
-        <div class="sch-event">
-          <div class="sch-event-header">
-            ${priorityBadge}
-            <span class="sch-event-title">${event.title}</span>
-            ${noteIcon}
-            ${workBadge}
-          </div>
-          <div class="sch-event-meta">
-            ${time ? `<span class="sch-event-time">${time}</span>` : ""}
-            ${statusLabel ? `<span class="sch-event-status sch-status-${task.status}">${statusLabel}</span>` : ""}
-            ${durationLabel}
-          </div>
+        <div class="sch-event sch-event-compact">
+          ${displayTime ? `<span class="sch-event-time">${displayTime}</span>` : ""}
+          <span class="sch-event-title">${event.title}</span>
+          ${statusHtml}
+          ${workBadge}
+          ${priorityBadge}
+          ${deadlineHtml}
         </div>
       `,
     };
   }
 
+  function handleEventDidMount(info: any): void {
+    const el = info.el;
+    const task = info.event.extendedProps.task as ITask;
+    const projectColor = info.event.extendedProps.projectColor as string | null;
+    const isDeadlineEvent = info.event.extendedProps.isDeadlineEvent as boolean;
+
+    if (isDeadlineEvent) {
+      el.style.backgroundColor = "rgba(180, 60, 60, 0.85)";
+      el.style.boxShadow = "inset 3px 0 0 #b43c3c";
+      el.style.cursor = "default";
+      el.style.pointerEvents = "none";
+      const deadlineDateStr = info.event.start
+        ? `${info.event.start.getFullYear()}-${String(info.event.start.getMonth()+1).padStart(2,"0")}-${String(info.event.start.getDate()).padStart(2,"0")}`
+        : "";
+      el.setAttribute("title", `Дедлайн задачи: ${task.title}\nДата: ${deadlineDateStr}${task.deadlineTime ? ' ' + task.deadlineTime : ''}`);
+      return;
+    }
+
+    if (projectColor) {
+      el.style.setProperty("--event-project-color", projectColor);
+      el.style.backgroundColor = projectColor;
+    }
+
+    // Tooltip: recurrence + estimated time
+    const lines: string[] = [];
+    if (task.recurrence) {
+      const recMap: Record<string, string> = { daily: "Ежедневно", weekly: "Еженедельно", monthly: "Ежемесячно" };
+      lines.push(`Повторение: ${recMap[task.recurrence.type] || task.recurrence.type}`);
+    }
+    if (task.estimatedTime) {
+      const h = Math.floor(task.estimatedTime / 60);
+      const m = task.estimatedTime % 60;
+      lines.push(`Ожидаемое: ${h > 0 ? h + 'ч ' : ''}${m > 0 ? m + 'м' : ''}`);
+    }
+    if (lines.length > 0) {
+      el.setAttribute("title", lines.join("\n"));
+    }
+    el.setAttribute("title", lines.join("\n"));
+  }
+
   function handleEventClick(info: any): void {
+    if (info.event.extendedProps.isDeadlineEvent) return;
     const task = info.event.extendedProps.task as ITask;
     openTaskEditor(task);
   }
 
+  function handleEventDragStart(_info: any): void {
+    // Reserved for future use
+  }
+
+  function handleEventDragStop(): void {
+    // Reserved for future use
+  }
+
   function handleEventDrop(info: any): void {
+    if (info.event.extendedProps.isDeadlineEvent) return;
     const task = info.event.extendedProps.task as ITask;
     const newStart = info.event.start as Date;
 
@@ -370,6 +449,7 @@
 
 <style>
   .schedule-calendar-wrapper {
+    flex: 1;
     height: 100%;
     width: 100%;
     position: relative;
@@ -515,8 +595,12 @@
   :global(.fc .fc-timegrid-axis-cushion),
   :global(.fc .fc-timegrid-slot-label-cushion) {
     color: var(--mcp-text-faint, var(--text-faint));
-    font-size: 10px;
-    font-weight: 400;
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  :global(.fc .fc-timegrid-slot) {
+    height: 30px;
   }
 
   :global(.fc .fc-daygrid-day-number) {
@@ -576,12 +660,26 @@
 
   :global(.fc .fc-event) {
     cursor: pointer;
-    border-width: 0 !important;
-    border-left-width: 3px !important;
-    border-left-style: solid !important;
+    border: none !important;
     border-radius: 8px !important;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  :global(.fc .fc-event:has(.sch-event)) {
+    background-color: var(--event-project-color, rgba(110, 130, 160, 0.8)) !important;
+    box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  :global(.fc .fc-event:has(.sch-event-compact)) {
+    background-color: var(--event-project-color, rgba(110, 130, 160, 0.8)) !important;
+    box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  :global(.sch-event) {
+    padding: 4px 8px;
+    line-height: 1.35;
+    min-width: 0;
   }
 
   :global(.fc .fc-timegrid-event) {
@@ -590,14 +688,91 @@
   }
 
   :global(.fc .fc-event:hover) {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transform: none;
+    box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 4px 16px rgba(0, 0, 0, 0.25);
     filter: brightness(1.15);
+  }
+
+  :global(.fc .fc-event.fc-dragging),
+  :global(.fc .fc-event-event-dragging),
+  :global(.fc .fc-event-mirror) {
+    transition: none !important;
+    transform: none !important;
+    will-change: auto;
+    opacity: 0.9;
+    z-index: 9999;
+    box-shadow: none !important;
+    filter: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   :global(.fc .fc-event-main) {
     border-radius: 8px;
     overflow: hidden;
+  }
+
+  :global(.sch-event-compact) {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    line-height: 1.35;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  :global(.sch-event-compact .sch-event-time) {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    flex-shrink: 0;
+  }
+
+  :global(.sch-event-compact .sch-event-title) {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+    min-width: 0;
+  }
+
+  :global(.sch-recurrence) {
+    font-size: 11px;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  :global(.sch-deadline) {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(251, 191, 36, 0.3);
+    color: rgba(255, 230, 150, 0.95);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  :global(.sch-deadline-overdue) {
+    background: rgba(220, 100, 100, 0.4);
+    color: rgba(255, 180, 180, 0.95);
+  }
+
+  :global(.sch-event-deadline) {
+    opacity: 0.9;
+  }
+
+  :global(.sch-event-deadline .sch-event-title) {
+    color: #fff;
+    font-style: italic;
+  }
+
+  :global(.sch-deadline-icon) {
+    font-size: 11px;
+    flex-shrink: 0;
   }
 
   /* ===== Кастомный контент события ===== */
@@ -888,10 +1063,6 @@
       min-height: 28px;
     }
 
-    :global(.fc .fc-timegrid-event) {
-      border-left-width: 2.5px !important;
-    }
-
     :global(.sch-event) {
       padding: 2px 5px;
       line-height: 1.3;
@@ -1033,7 +1204,6 @@
       padding: 1px 4px;
       font-size: 10px;
       border-radius: 3px;
-      border-left-width: 2px !important;
       line-height: 1.3;
     }
 
@@ -1091,7 +1261,7 @@
     }
 
     :global(.fc .fc-timegrid-slot) {
-      height: 36px;
+      height: 32px;
     }
 
     :global(.fc .fc-timegrid-axis) {

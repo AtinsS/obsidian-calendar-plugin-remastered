@@ -29,6 +29,9 @@ export class TaskModal extends Modal {
   private rate = "";
   private overtimeStart = "";
   private overtimeMultiplier = "";
+  private deadlineDateUID = "";
+  private deadlineDateValue = "";
+  private deadlineTime = "";
 
   constructor(
     app: App,
@@ -70,6 +73,13 @@ export class TaskModal extends Modal {
         if (this.task.overtimeMultiplier) {
           this.overtimeMultiplier = String(this.task.overtimeMultiplier);
         }
+      }
+      if (this.task.deadline) {
+        this.deadlineDateUID = this.task.deadline;
+        this.deadlineDateValue = this.extractDateValue(this.task.deadline);
+      }
+      if (this.task.deadlineTime) {
+        this.deadlineTime = this.task.deadlineTime;
       }
     } else {
       this.dateUID = get(selectedDate) || "";
@@ -193,6 +203,37 @@ export class TaskModal extends Modal {
           .setValue(this.scheduledTime)
           .onChange((value) => {
             this.scheduledTime = value;
+          });
+        text.inputEl.type = "time";
+        text.inputEl.style.maxWidth = "120px";
+      });
+
+    new Setting(contentEl)
+      .setName("Дедлайн")
+      .setDesc("Необязательно. Крайний срок выполнения задачи.")
+      .addText((text) => {
+        text
+          .setPlaceholder("ГГГГ-ММ-ДД")
+          .setValue(this.deadlineDateValue)
+          .onChange((value) => {
+            this.deadlineDateValue = value;
+            if (value) {
+              const m = window.moment(value, "YYYY-MM-DD", true);
+              if (m.isValid()) {
+                this.deadlineDateUID = getDateUID(m, "day");
+              }
+            } else {
+              this.deadlineDateUID = "";
+            }
+          });
+        text.inputEl.type = "date";
+      })
+      .addText((text) => {
+        text
+          .setPlaceholder("Время")
+          .setValue(this.deadlineTime)
+          .onChange((value) => {
+            this.deadlineTime = value;
           });
         text.inputEl.type = "time";
         text.inputEl.style.maxWidth = "120px";
@@ -478,6 +519,8 @@ export class TaskModal extends Modal {
       rate: this.isWorkTask && this.rate ? parseFloat(this.rate.replace(",", ".")) : undefined,
       overtimeStart: this.isWorkTask && this.paymentType === "hour" && this.overtimeStart ? parseInt(this.overtimeStart) : undefined,
       overtimeMultiplier: this.isWorkTask && this.paymentType === "hour" && this.overtimeMultiplier ? parseFloat(this.overtimeMultiplier.replace(",", ".")) : undefined,
+      deadline: this.deadlineDateUID || undefined,
+      deadlineTime: this.deadlineTime || undefined,
     });
 
     this.close();

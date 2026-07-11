@@ -30,6 +30,8 @@ function buildNoteContent(task: ITask, project: IProject | null): string {
     `date: ${task.dateUID}`,
     `priority: ${task.priority}`,
     project ? `project: ${project.name}` : "",
+    task.deadline ? `deadline: ${task.deadline}` : "",
+    task.deadlineTime ? `deadline_time: ${task.deadlineTime}` : "",
     "---",
   ]
     .filter((line) => line !== "")
@@ -124,6 +126,12 @@ export async function syncTaskToFrontmatter(
   if (project) {
     newFrontmatter.push(`project: ${project.name}`);
   }
+  if (task.deadline) {
+    newFrontmatter.push(`deadline: ${task.deadline}`);
+  }
+  if (task.deadlineTime) {
+    newFrontmatter.push(`deadline_time: ${task.deadlineTime}`);
+  }
 
   newFrontmatter.push("---");
 
@@ -175,6 +183,14 @@ export function setupNoteTaskSync(app: App): void {
       frontmatter.priority !== task.priority
     ) {
       changes.priority = frontmatter.priority;
+    }
+
+    if (frontmatter.deadline !== undefined && frontmatter.deadline !== task.deadline) {
+      changes.deadline = frontmatter.deadline || undefined;
+    }
+
+    if (frontmatter.deadline_time !== undefined && frontmatter.deadline_time !== task.deadlineTime) {
+      changes.deadlineTime = frontmatter.deadline_time || undefined;
     }
 
     if (Object.keys(changes).length > 0) {
