@@ -286,6 +286,15 @@
       >
         ☀️
       </button>
+      {#if currentDate}
+        <button
+          class="task-tracker-btn show-all-btn"
+          on:click|stopPropagation={() => selectedDate.set(null)}
+          title="Показать все задачи"
+        >
+          📋
+        </button>
+      {/if}
       <button
         class="task-tracker-btn"
         on:click|stopPropagation={openCreateTask}

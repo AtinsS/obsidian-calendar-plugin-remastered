@@ -1,7 +1,8 @@
 import { writable, get } from "svelte/store";
 import type CalendarPlugin from "../main";
-import type { IFinanceData, FinanceMonthData } from "./types";
-import { createEmptyMonthData } from "./types";
+import type { IFinanceData, FinanceMonthData, MonthGoal } from "./types";
+import { createEmptyMonthData, generateGoalId } from "./types";
+import { loadVaultData, saveVaultData } from "../io/vaultStorage";
 
 export const financeData = writable<IFinanceData>({});
 
@@ -17,24 +18,25 @@ export function reloadFinanceStores(): void {
   loadFinanceData();
 }
 
-function loadFinanceData(): void {
+async function loadFinanceData(): Promise<void> {
   if (!pluginInstance) return;
-  pluginInstance.loadData().then((data: any) => {
-    if (data?.finance) {
-      financeData.set(data.finance);
-    }
-  });
+
+  // Finance always uses vaultStorage (calendar-data.json)
+  const vaultData = await loadVaultData(pluginInstance.app);
+  if (vaultData.finance) {
+    financeData.set(vaultData.finance as IFinanceData);
+  }
 }
 
-function debouncedSave(): void {
+async function debouncedSave(): Promise<void> {
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
+  saveTimeout = setTimeout(async () => {
     if (!pluginInstance) return;
-    pluginInstance.loadData().then((existing: any) => {
-      const data = existing || {};
-      data.finance = get(financeData);
-      pluginInstance.saveData(data);
-    });
+
+    // Finance always saves to vaultStorage (calendar-data.json)
+    const vaultData = await loadVaultData(pluginInstance.app);
+    vaultData.finance = get(financeData) as unknown as Record<string, unknown>;
+    await saveVaultData(pluginInstance.app, vaultData);
   }, 300);
 }
 
@@ -48,7 +50,30 @@ export function getMonthData(monthKey: string): FinanceMonthData {
   if (!allData[monthKey]) {
     return createEmptyMonthData();
   }
-  return allData[monthKey];
+  const data = allData[monthKey];
+
+  // Migration: convert old string[] monthGoals to MonthGoal[]
+  if (Array.isArray(data.monthGoals) && data.monthGoals.length > 0 && typeof data.monthGoals[0] === "string") {
+    const migratedGoals: MonthGoal[] = (data.monthGoals as any[]).map((g: any) => ({
+      id: generateGoalId(),
+      icon: "🎯",
+      name: typeof g === "string" ? g : "Цель",
+      currentAmount: 0,
+      targetAmount: 0,
+    }));
+    data.monthGoals = migratedGoals;
+  }
+
+  // Migration: ensure savingsCategories have percent and completed
+  if (data.savingsCategories) {
+    data.savingsCategories = data.savingsCategories.map((c: any) => ({
+      ...c,
+      percent: c.percent ?? 0,
+      completed: c.completed ?? false,
+    }));
+  }
+
+  return data;
 }
 
 export function updateMonthData(monthKey: string, changes: Partial<FinanceMonthData>): void {
@@ -84,9 +109,9 @@ export function getCurrentBalance(monthKey: string): number {
   return data.monthlyIncome - data.lastMonthExpense;
 }
 
-export function getMonthGoals(monthKey: string): string[] {
+export function getMonthGoals(monthKey: string) {
   const data = getMonthData(monthKey);
-  return (data.monthGoals || []).filter((g) => g.trim());
+  return data.monthGoals || [];
 }
 
 export function getStoredMonthKeys(): string[] {

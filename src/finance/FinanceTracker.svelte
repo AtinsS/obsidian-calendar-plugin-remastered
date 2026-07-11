@@ -8,8 +8,8 @@
     deleteMonthData,
     deleteMonthsBefore,
   } from "./storage";
-  import type { FinanceCategory, FinanceMonthData } from "./types";
-  import { generateCategoryId } from "./types";
+  import type { FinanceCategory, FinanceMonthData, MonthGoal, SavingsCategory } from "./types";
+  import { generateCategoryId, generateGoalId } from "./types";
   import { get } from "svelte/store";
   import { tasks } from "../task-tracker/stores";
   import { calculateTaskEarnings } from "../task-tracker/stores";
@@ -28,6 +28,10 @@
   let incomeSource: "analytics" | "manual" = "analytics";
   let manualIncome = 0;
   let recalcTimeout: ReturnType<typeof setTimeout> | null = null;
+  let editingRules = false;
+  let editingGoalId: string | null = null;
+  let editingMainCatId: string | null = null;
+  let editingSavingsId: string | null = null;
 
   const MONTH_NAMES = [
     "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -48,20 +52,16 @@
     monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  function goToday(): void {
-    monthKey = getCurrentMonthKey();
-  }
-
   $: {
     $financeData;
-    monthData = getMonthData(monthKey);
-    if (monthData) {
+    const newData = getMonthData(monthKey);
+    if (newData) {
+      monthData = newData;
       incomeSource = (monthData as any).incomeSource || "analytics";
       manualIncome = monthData.monthlyIncome;
     }
   }
 
-  // Auto-update income when source is "analytics" and tasks or manual income change
   $: {
     $tasks;
     $financialAnalyticsData;
@@ -81,15 +81,24 @@
   $: savingsTotal = monthData
     ? monthData.savingsCategories.reduce((sum, c) => sum + c.amount, 0)
     : 0;
-  $: balance = monthData
-    ? monthData.monthlyIncome - mainTotal
+  $: goalsTotal = monthData
+    ? (monthData.monthGoals || []).reduce((sum, g) => sum + g.currentAmount, 0)
     : 0;
-  $: balanceStatus =
-    balance >= savingsTotal
-      ? "ok"
-      : balance >= savingsTotal * 0.8
-        ? "warn"
-        : "danger";
+  $: balance = monthData
+    ? monthData.monthlyIncome - mainTotal - goalsTotal
+    : 0;
+
+  // Previous month data for deltas
+  $: prevMonthData = (() => {
+    const d = new Date(displayYear, displayMonth - 2, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const all = $financeData || {};
+    return all[key] || null;
+  })();
+
+  $: incomeDelta = prevMonthData ? monthData.monthlyIncome - prevMonthData.monthlyIncome : 0;
+  $: expenseDelta = prevMonthData ? mainTotal - (prevMonthData.mainAccountCategories?.reduce((s, c) => s + c.amount, 0) || 0) : 0;
+  $: balanceDelta = prevMonthData ? balance - ((prevMonthData.monthlyIncome || 0) - (prevMonthData.mainAccountCategories?.reduce((s, c) => s + c.amount, 0) || 0)) : 0;
 
   function getWorkIncome(): number {
     const now = new Date();
@@ -152,29 +161,61 @@
 
   function removeMainCategory(id: string) {
     updateMonthData(monthKey, {
-      mainAccountCategories: monthData.mainAccountCategories.filter(
-        (c) => c.id !== id,
-      ),
+      mainAccountCategories: monthData.mainAccountCategories.filter(c => c.id !== id),
     });
     monthData = getMonthData(monthKey);
   }
 
   function updateMainCategory(id: string, changes: Partial<FinanceCategory>) {
     updateMonthData(monthKey, {
-      mainAccountCategories: monthData.mainAccountCategories.map((c) =>
-        c.id === id ? { ...c, ...changes } : c,
+      mainAccountCategories: monthData.mainAccountCategories.map(c =>
+        c.id === id ? { ...c, ...changes } : c
       ),
     });
     monthData = getMonthData(monthKey);
   }
 
+  // ── Goals ──
+  function addGoal() {
+    const newGoal: MonthGoal = {
+      id: generateGoalId(),
+      icon: "🎯",
+      name: "Новая цель",
+      currentAmount: 0,
+      targetAmount: 0,
+    };
+    updateMonthData(monthKey, {
+      monthGoals: [...(monthData.monthGoals || []), newGoal],
+    });
+    monthData = getMonthData(monthKey);
+  }
+
+  function removeGoal(id: string) {
+    updateMonthData(monthKey, {
+      monthGoals: (monthData.monthGoals || []).filter(g => g.id !== id),
+    });
+    monthData = getMonthData(monthKey);
+  }
+
+  function updateGoal(id: string, changes: Partial<MonthGoal>) {
+    updateMonthData(monthKey, {
+      monthGoals: (monthData.monthGoals || []).map(g =>
+        g.id === id ? { ...g, ...changes } : g
+      ),
+    });
+    monthData = getMonthData(monthKey);
+  }
+
+  // ── Savings ──
   function addSavingsCategory() {
-    const newCat: FinanceCategory = {
+    const newCat: SavingsCategory = {
       id: generateCategoryId(),
       name: "Новая цель",
       icon: "🎯",
       amount: 0,
       order: monthData.savingsCategories.length,
+      percent: 0,
+      completed: false,
     };
     updateMonthData(monthKey, {
       savingsCategories: [...monthData.savingsCategories, newCat],
@@ -184,58 +225,88 @@
 
   function removeSavingsCategory(id: string) {
     updateMonthData(monthKey, {
-      savingsCategories: monthData.savingsCategories.filter((c) => c.id !== id),
+      savingsCategories: monthData.savingsCategories.filter(c => c.id !== id),
     });
     monthData = getMonthData(monthKey);
   }
 
-  function updateSavingsCategory(
-    id: string,
-    changes: Partial<FinanceCategory>,
-  ) {
+  function updateSavingsCategory(id: string, changes: Partial<SavingsCategory>) {
     updateMonthData(monthKey, {
-      savingsCategories: monthData.savingsCategories.map((c) =>
-        c.id === id ? { ...c, ...changes } : c,
+      savingsCategories: monthData.savingsCategories.map(c =>
+        c.id === id ? { ...c, ...changes } : c
       ),
     });
     monthData = getMonthData(monthKey);
   }
 
-  function updateGoals(goals: string[]) {
-    updateMonthData(monthKey, { monthGoals: goals });
-    monthData = getMonthData(monthKey);
+  // ── Rules ──
+  let rulesText = "";
+
+  function startEditRules(): void {
+    rulesText = monthData.distributionRules.join("\n");
+    editingRules = true;
   }
 
-  function addGoal() {
-    const goals = [...(monthData.monthGoals || []), ""];
-    updateGoals(goals);
-  }
-
-  function updateGoal(index: number, value: string) {
-    const goals = [...(monthData.monthGoals || [])];
-    goals[index] = value;
-    updateGoals(goals);
-  }
-
-  function removeGoal(index: number) {
-    const goals = (monthData.monthGoals || []).filter((_, i) => i !== index);
-    updateGoals(goals);
-  }
-
-  function updateRules(value: string) {
-    const rules = value.split("\n").filter((r) => r.trim());
+  function saveRules() {
+    const rules = rulesText.split("\n").filter(r => r.trim());
     updateMonthData(monthKey, { distributionRules: rules });
     monthData = getMonthData(monthKey);
+    editingRules = false;
   }
 
   function formatMoney(amount: number): string {
     return amount.toLocaleString("ru-RU");
   }
 
-  // --- Очистка данных ---
+  function formatDelta(amount: number): string {
+    if (amount === 0) return "";
+    const sign = amount > 0 ? "+" : "";
+    return `${sign}${formatMoney(amount)} ₽ к прошлому месяцу`;
+  }
+
+  // ── Cleanup ──
   let showCleanup = false;
   $: storedKeys = $financeData ? getStoredMonthKeys() : [];
-  $: oldKeys = storedKeys.filter((k) => k < getCurrentMonthKey());
+  $: oldKeys = storedKeys.filter(k => k < getCurrentMonthKey());
+
+  let prevMonthKey: string | null = null;
+  $: {
+    const allData = $financeData || {};
+    const keys = Object.keys(allData);
+    const d = new Date(displayYear, displayMonth - 2, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    prevMonthKey = keys.includes(key) ? key : null;
+  }
+
+  function duplicatePrevMonth(): void {
+    if (!prevMonthKey) return;
+    const prev = getMonthData(prevMonthKey);
+    const blankCat = (c: FinanceCategory): FinanceCategory => ({
+      id: generateCategoryId(),
+      name: c.name,
+      icon: c.icon,
+      amount: 0,
+      order: c.order,
+    });
+    const blankGoal = (g: MonthGoal): MonthGoal => ({
+      id: generateGoalId(),
+      icon: g.icon,
+      name: g.name,
+      currentAmount: 0,
+      targetAmount: g.targetAmount,
+    });
+    updateMonthData(monthKey, {
+      mainAccountCategories: prev.mainAccountCategories.map(blankCat),
+      monthGoals: (prev.monthGoals || []).map(blankGoal),
+      savingsCategories: (prev.savingsCategories || []).map(c => ({
+        ...blankCat(c),
+        percent: c.percent,
+        completed: false,
+      } as SavingsCategory)),
+      distributionRules: [...prev.distributionRules],
+    });
+    monthData = getMonthData(monthKey);
+  }
 
   function clearCurrentMonth(): void {
     if (!confirm(`Очистить данные за ${displayMonthName}?`)) return;
@@ -260,52 +331,29 @@
     for (const k of storedKeys) deleteMonthData(k);
     monthData = getMonthData(monthKey);
   }
-
-  let prevMonthKey: string | null = null;
-
-  $: {
-    const allData = $financeData || {};
-    const keys = Object.keys(allData);
-    const d = new Date(displayYear, displayMonth - 2, 1);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    prevMonthKey = keys.includes(key) ? key : null;
-  }
-
-  function duplicatePrevMonth(): void {
-    if (!prevMonthKey) return;
-    const prev = getMonthData(prevMonthKey);
-    const blankCat = (c: FinanceCategory): FinanceCategory => ({
-      id: generateCategoryId(),
-      name: c.name,
-      icon: c.icon,
-      amount: 0,
-      order: c.order,
-    });
-    updateMonthData(monthKey, {
-      mainAccountCategories: prev.mainAccountCategories.map(blankCat),
-      distributionRules: [...prev.distributionRules],
-    });
-    monthData = getMonthData(monthKey);
-  }
 </script>
 
 <div class="finance-tracker">
-  <div class="month-nav">
+  <!-- Month Navigator -->
+  <div class="month-selector">
     <button class="month-nav-btn" on:click={prevMonth}>&#8249;</button>
-    <button class="month-nav-title" on:click={goToday}>
-      {displayMonthName}
-      {#if !isCurrentMonth}
-        <span class="month-today-dot"></span>
-      {/if}
-    </button>
+    <select bind:value={monthKey} class="month-select">
+      {#each Array.from({length: 12}, (_, i) => i + 1) as m}
+        <option value="{displayYear}-{String(m).padStart(2, '0')}">
+          {MONTH_NAMES[m - 1]} {displayYear}
+        </option>
+      {/each}
+    </select>
     <button class="month-nav-btn" on:click={nextMonth}>&#8250;</button>
   </div>
+
+  <h2>💰 Распределение финансовых средств</h2>
+
   {#if prevMonthKey}
     <button class="dup-btn" on:click={duplicatePrevMonth}>
       Дублировать траты с прошлого месяца
     </button>
   {/if}
-  <h2>💰 Распределение финансовых средств</h2>
 
   <!-- Блок 1: Общий баланс -->
   <div class="glass-card">
@@ -317,21 +365,19 @@
       <button
         class="toggle-btn"
         class:active={incomeSource === "analytics"}
-        on:click={() => setIncomeSource("analytics")}>Из аналитики</button
-      >
+        on:click={() => setIncomeSource("analytics")}
+      >Из аналитики</button>
       <button
         class="toggle-btn"
         class:active={incomeSource === "manual"}
-        on:click={() => setIncomeSource("manual")}>Вручную</button
-      >
+        on:click={() => setIncomeSource("manual")}
+      >Вручную</button>
     </div>
     <div class="balance-grid">
       <div class="balance-item">
         <span class="balance-label">Поступления</span>
         {#if incomeSource === "analytics"}
-          <span class="balance-value income"
-            >{formatMoney(monthData.monthlyIncome)} ₽</span
-          >
+          <span class="balance-value income">{formatMoney(monthData.monthlyIncome)} ₽</span>
         {:else}
           <input
             type="number"
@@ -341,16 +387,29 @@
             class="balance-input income-input"
           />
         {/if}
+        {#if incomeDelta !== 0}
+          <span class="balance-delta" class:delta-up={incomeDelta > 0} class:delta-down={incomeDelta < 0}>
+            {formatDelta(incomeDelta)}
+          </span>
+        {/if}
       </div>
       <div class="balance-item">
         <span class="balance-label">Основные расходы</span>
         <span class="balance-value expense">{formatMoney(mainTotal)} ₽</span>
+        {#if expenseDelta !== 0}
+          <span class="balance-delta" class:delta-up={expenseDelta < 0} class:delta-down={expenseDelta > 0}>
+            {formatDelta(-expenseDelta)}
+          </span>
+        {/if}
       </div>
       <div class="balance-item total">
         <span class="balance-label">Остаток</span>
-        <span class="balance-value {balanceStatus}"
-          >{formatMoney(balance)} ₽</span
-        >
+        <span class="balance-value {balance >= 0 ? 'income' : 'expense'}">{formatMoney(balance)} ₽</span>
+        {#if balanceDelta !== 0}
+          <span class="balance-delta" class:delta-up={balanceDelta > 0} class:delta-down={balanceDelta < 0}>
+            {formatDelta(balanceDelta)}
+          </span>
+        {/if}
       </div>
     </div>
   </div>
@@ -364,36 +423,21 @@
     </div>
     <div class="categories-list">
       {#each monthData.mainAccountCategories as cat (cat.id)}
-        <div class="category-row">
-          <input
-            type="text"
-            value={cat.icon}
-            on:change={(e) =>
-              updateMainCategory(cat.id, { icon: e.target.value })}
-            class="cat-icon"
-            maxlength="2"
-          />
-          <input
-            type="text"
-            value={cat.name}
-            on:change={(e) =>
-              updateMainCategory(cat.id, { name: e.target.value })}
-            class="cat-name"
-          />
-          <input
-            type="number"
-            value={cat.amount}
-            on:change={(e) =>
-              updateMainCategory(cat.id, {
-                amount: parseFloat(e.target.value) || 0,
-              })}
-            min="0"
-            class="cat-amount"
-          />
-          <button class="cat-delete" on:click={() => removeMainCategory(cat.id)}
-            >✕</button
-          >
-        </div>
+        {#if editingMainCatId === cat.id}
+          <div class="category-row editing">
+            <input type="text" value={cat.icon} on:change={(e) => updateMainCategory(cat.id, { icon: e.target.value })} class="cat-edit-icon" maxlength="2" />
+            <input type="text" value={cat.name} on:change={(e) => updateMainCategory(cat.id, { name: e.target.value })} class="cat-edit-name" />
+            <input type="number" value={cat.amount} on:change={(e) => updateMainCategory(cat.id, { amount: parseFloat(e.target.value) || 0 })} min="0" class="cat-edit-amount" />
+            <button class="goal-done-btn" on:click={() => editingMainCatId = null}>✓</button>
+          </div>
+        {:else}
+          <div class="category-row" on:click={() => editingMainCatId = cat.id}>
+            <span class="cat-icon-display">{cat.icon}</span>
+            <span class="cat-name-display">{cat.name}</span>
+            <span class="cat-amount-display">{formatMoney(cat.amount)} ₽</span>
+            <button class="cat-delete" on:click|stopPropagation={() => removeMainCategory(cat.id)}>✕</button>
+          </div>
+        {/if}
       {/each}
     </div>
     <button class="glass-add-btn" on:click={addMainCategory}>+ Добавить</button>
@@ -406,17 +450,36 @@
       <h3>Цели на месяц</h3>
     </div>
     <div class="goals-list">
-      {#each (monthData.monthGoals || []) as goal, i (i)}
-        <div class="goal-row">
-          <input
-            type="text"
-            value={goal}
-            on:input={(e) => updateGoal(i, e.target.value)}
-            class="goal-input"
-            placeholder="Цель..."
-          />
-          <button class="goal-remove-btn" on:click={() => removeGoal(i)} title="Удалить">&#10005;</button>
-        </div>
+      {#each (monthData.monthGoals || []) as goal (goal.id)}
+        {#if editingGoalId === goal.id}
+          <div class="goal-row editing">
+            <input type="text" value={goal.icon} on:change={(e) => updateGoal(goal.id, { icon: e.target.value })} class="goal-edit-icon" maxlength="2" />
+            <div class="goal-info">
+              <div class="goal-edit-row">
+                <input type="text" value={goal.name} on:change={(e) => updateGoal(goal.id, { name: e.target.value })} class="goal-edit-name" placeholder="Название" />
+                <input type="number" value={goal.currentAmount} on:change={(e) => updateGoal(goal.id, { currentAmount: parseFloat(e.target.value) || 0 })} min="0" class="goal-edit-amount" placeholder="Накоплено" />
+                <span class="goal-edit-sep">/</span>
+                <input type="number" value={goal.targetAmount} on:change={(e) => updateGoal(goal.id, { targetAmount: parseFloat(e.target.value) || 0 })} min="0" class="goal-edit-amount" placeholder="Цель" />
+              </div>
+            </div>
+            <button class="goal-done-btn" on:click={() => editingGoalId = null}>✓</button>
+          </div>
+        {:else}
+          <div class="goal-row" on:click={() => editingGoalId = goal.id}>
+            <span class="goal-icon">{goal.icon}</span>
+            <div class="goal-info">
+              <div class="goal-header">
+                <span class="goal-name">{goal.name}</span>
+                <span class="goal-amounts">{formatMoney(goal.currentAmount)} ₽ / {formatMoney(goal.targetAmount)} ₽</span>
+              </div>
+              <div class="goal-progress-bar">
+                <div class="goal-progress-fill" style="width: {goal.targetAmount > 0 ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100)) : 0}%"></div>
+              </div>
+              <span class="goal-percent">{goal.targetAmount > 0 ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100)) : 0}%</span>
+            </div>
+            <button class="cat-delete" on:click|stopPropagation={() => removeGoal(goal.id)}>✕</button>
+          </div>
+        {/if}
       {/each}
     </div>
     <button class="glass-add-btn" on:click={addGoal}>+ Добавить цель</button>
@@ -427,48 +490,35 @@
     <div class="glass-card-header">
       <span class="glass-icon">💰</span>
       <h3>Куда отложить</h3>
-      <span class="glass-badge" class:badge-warn={savingsTotal > balance}
-        >осталось {formatMoney(Math.max(0, balance - savingsTotal))} ₽</span
-      >
+      <span class="glass-badge" class:badge-warn={savingsTotal > balance}>
+        осталось {formatMoney(Math.max(0, balance - savingsTotal))} ₽
+      </span>
     </div>
     <div class="categories-list">
       {#each monthData.savingsCategories as cat (cat.id)}
-        <div class="category-row">
-          <input
-            type="text"
-            value={cat.icon}
-            on:change={(e) =>
-              updateSavingsCategory(cat.id, { icon: e.target.value })}
-            class="cat-icon"
-            maxlength="2"
-          />
-          <input
-            type="text"
-            value={cat.name}
-            on:change={(e) =>
-              updateSavingsCategory(cat.id, { name: e.target.value })}
-            class="cat-name"
-          />
-          <input
-            type="number"
-            value={cat.amount}
-            on:change={(e) =>
-              updateSavingsCategory(cat.id, {
-                amount: parseFloat(e.target.value) || 0,
-              })}
-            min="0"
-            class="cat-amount"
-          />
-          <button
-            class="cat-delete"
-            on:click={() => removeSavingsCategory(cat.id)}>✕</button
-          >
-        </div>
+        {#if editingSavingsId === cat.id}
+          <div class="category-row editing">
+            <input type="text" value={cat.icon} on:change={(e) => updateSavingsCategory(cat.id, { icon: e.target.value })} class="cat-edit-icon" maxlength="2" />
+            <input type="text" value={cat.name} on:change={(e) => updateSavingsCategory(cat.id, { name: e.target.value })} class="cat-edit-name" />
+            <input type="number" value={cat.amount} on:change={(e) => updateSavingsCategory(cat.id, { amount: parseFloat(e.target.value) || 0 })} min="0" class="cat-edit-amount" />
+            <button class="goal-done-btn" on:click={() => editingSavingsId = null}>✓</button>
+          </div>
+        {:else}
+          <div class="category-row">
+            <span class="cat-icon-display">{cat.icon}</span>
+            <span class="cat-name-display">{cat.name}</span>
+            <span class="cat-amount-display">{formatMoney(cat.amount)} ₽</span>
+            <span class="cat-percent">{monthData.monthlyIncome > 0 ? Math.round((cat.amount / monthData.monthlyIncome) * 100) : 0}%</span>
+            <div class="savings-actions">
+              <input type="number" min="0" max="100" placeholder="%" class="savings-percent-input" on:change={(e) => { const pct = parseInt(e.target.value) || 0; updateSavingsCategory(cat.id, { amount: Math.round(monthData.monthlyIncome * pct / 100) }); e.target.value = ''; }} />
+              <input type="number" min="0" placeholder="₽" class="savings-amount-input" on:change={(e) => { updateSavingsCategory(cat.id, { amount: parseFloat(e.target.value) || 0 }); e.target.value = ''; }} />
+            </div>
+            <button class="cat-delete" on:click={() => removeSavingsCategory(cat.id)}>✕</button>
+          </div>
+        {/if}
       {/each}
     </div>
-    <button class="glass-add-btn" on:click={addSavingsCategory}
-      >+ Добавить</button
-    >
+    <button class="glass-add-btn" on:click={addSavingsCategory}>+ Добавить</button>
     {#if savingsTotal > balance}
       <div class="glass-warning">
         ⚠️ Превышение бюджета на {formatMoney(savingsTotal - balance)} ₽
@@ -482,13 +532,31 @@
       <span class="glass-icon">📋</span>
       <h3>Правила распределения</h3>
     </div>
-    <textarea
-      class="glass-textarea rules"
-      value={monthData.distributionRules.join("\n")}
-      on:input={(e) => updateRules(e.target.value)}
-      placeholder="Правила распределения..."
-      rows="8"
-    ></textarea>
+    {#if editingRules}
+      <textarea
+        class="glass-textarea rules"
+        bind:value={rulesText}
+        placeholder="Правила распределения..."
+        rows="6"
+      ></textarea>
+      <div class="rules-actions">
+        <button class="rules-save-btn" on:click={saveRules}>Сохранить</button>
+        <button class="rules-cancel-btn" on:click={() => { editingRules = false; rulesText = monthData.distributionRules.join("\n"); }}>Отмена</button>
+      </div>
+    {:else}
+      <div class="rules-display" on:click={startEditRules}>
+        {#each monthData.distributionRules as rule, i}
+          <div class="rule-item">
+            <span class="rule-number">{i + 1}</span>
+            <span class="rule-text">{rule}</span>
+          </div>
+        {/each}
+        {#if monthData.distributionRules.length === 0}
+          <div class="rules-empty">Нажмите, чтобы добавить правила</div>
+        {/if}
+        <div class="rules-edit-hint">✏️ Нажмите для редактирования</div>
+      </div>
+    {/if}
   </div>
 
   <!-- Блок 6: Управление данными -->
@@ -507,17 +575,11 @@
           {/if}
         </div>
         <div class="cleanup-actions">
-          <button class="cleanup-btn" on:click={clearCurrentMonth}>
-            Очистить текущий месяц
-          </button>
+          <button class="cleanup-btn" on:click={clearCurrentMonth}>Очистить текущий месяц</button>
           {#if oldKeys.length > 0}
-            <button class="cleanup-btn warn" on:click={clearOldMonths}>
-              Удалить {oldKeys.length} устаревших мес.
-            </button>
+            <button class="cleanup-btn warn" on:click={clearOldMonths}>Удалить {oldKeys.length} устаревших мес.</button>
           {/if}
-          <button class="cleanup-btn danger" on:click={clearAllData}>
-            Удалить всё
-          </button>
+          <button class="cleanup-btn danger" on:click={clearAllData}>Удалить всё</button>
         </div>
       </div>
     {/if}
@@ -525,146 +587,166 @@
 </div>
 
 <style>
-  /* ── Soft finance palette ─────────────────────────────── */
   .finance-tracker {
-    --fi-bg: var(--background-primary);
-    --fi-surface: var(--background-secondary);
-    --fi-border: rgba(128, 128, 128, 0.10);
-    --fi-border-focus: rgba(128, 128, 128, 0.22);
+    --fi-bg: transparent;
+    --fi-surface: var(--mcp-glass-bg, rgba(35, 40, 55, 0.4));
+    --fi-surface-hover: var(--mcp-glass-highlight, rgba(255, 255, 255, 0.02));
+    --fi-border: var(--mcp-glass-border, rgba(255, 255, 255, 0.04));
+    --fi-border-focus: var(--mcp-accent, rgba(95, 153, 225, 0.479));
     --fi-muted: var(--text-muted);
     --fi-text: var(--text-normal);
     --fi-accent: var(--interactive-accent);
-    --fi-green: #5a9e7a;
-    --fi-green-bg: rgba(90, 158, 122, 0.08);
-    --fi-red: #c06058;
-    --fi-red-bg: rgba(192, 96, 88, 0.07);
-    --fi-amber: #b8924a;
-    --fi-amber-bg: rgba(184, 146, 74, 0.08);
-    --fi-radius: 14px;
-    --fi-radius-sm: 10px;
+    --fi-green: var(--mcp-success, rgba(80, 200, 160, 0.8));
+    --fi-green-bg: rgba(80, 200, 160, 0.1);
+    --fi-red: var(--mcp-danger, rgba(220, 150, 150, 0.8));
+    --fi-red-bg: rgba(220, 150, 150, 0.1);
+    --fi-amber: var(--mcp-warning, rgba(220, 190, 130, 0.8));
+    --fi-amber-bg: rgba(220, 190, 130, 0.1);
+    --fi-radius: var(--mcp-radius, 14px);
+    --fi-radius-sm: var(--mcp-radius-sm, 10px);
+    --fi-blur: var(--mcp-blur, blur(20px));
+    --fi-shadow: var(--mcp-shadow, 0 8px 32px rgba(0, 0, 0, 0.15));
+    --fi-shadow-glow: var(--mcp-shadow-glow, 0 0 40px rgba(80, 170, 210, 0.06));
 
-    padding: 20px 16px 32px;
+    padding: 24px 16px 32px;
     height: 100%;
     overflow-y: auto;
     background: var(--fi-bg);
     color: var(--fi-text);
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
   .finance-tracker h2 {
-    margin: 0 0 20px;
-    font-size: 18px;
-    font-weight: 600;
+    margin: 0 0 22px;
+    font-size: 20px;
+    font-weight: 700;
     color: var(--fi-text);
     text-align: center;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   /* ── Month navigator ─────────────────────────────────── */
-  .month-nav {
+  .month-selector {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    margin-bottom: 18px;
+    gap: 10px;
+    margin-bottom: 16px;
   }
 
   .month-nav-btn {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: 1px solid var(--fi-border);
-    border-radius: 9px;
+    border-radius: var(--fi-radius-sm);
     background: var(--fi-surface);
+    backdrop-filter: var(--fi-blur);
+    -webkit-backdrop-filter: var(--fi-blur);
     color: var(--fi-muted);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     padding: 0;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition: all 0.2s ease;
   }
 
   .month-nav-btn:hover {
-    background: var(--fi-border);
+    background: var(--fi-surface-hover);
+    color: var(--fi-text);
+    border-color: var(--fi-accent);
+    transform: translateY(-1px);
+  }
+
+  .month-display {
+    min-width: 180px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
     color: var(--fi-text);
   }
 
-  .month-nav-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 5px 14px;
+  .month-select {
+    border-radius: var(--fi-radius-sm);
     border: 1px solid var(--fi-border);
-    border-radius: 9px;
     background: var(--fi-surface);
+    backdrop-filter: var(--fi-blur);
+    -webkit-backdrop-filter: var(--fi-blur);
     color: var(--fi-text);
-    cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     font-family: inherit;
-    transition: background 0.15s, border-color 0.15s;
+    min-width: 180px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
 
-  .month-nav-title:hover {
-    background: var(--fi-border);
+  .month-select:focus {
+    border-color: var(--fi-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
   }
 
-  .month-today-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--fi-accent);
-    opacity: 0.8;
+  .month-select:hover {
+    border-color: var(--fi-accent);
   }
 
   /* ── Duplicate button ────────────────────────────────── */
   .dup-btn {
     display: block;
-    width: 100%;
-    margin-bottom: 14px;
-    padding: 9px 12px;
+    margin: 0 auto 20px;
     border: 1px solid var(--fi-border);
     border-radius: var(--fi-radius-sm);
     background: var(--fi-surface);
+    backdrop-filter: var(--fi-blur);
+    -webkit-backdrop-filter: var(--fi-blur);
     color: var(--fi-accent);
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
     font-family: inherit;
-    transition: background 0.15s, border-color 0.15s;
+    transition: all 0.2s ease;
   }
 
   .dup-btn:hover {
-    background: var(--fi-border);
+    background: var(--fi-surface-hover);
     border-color: var(--fi-accent);
+    transform: translateY(-1px);
   }
 
   /* ── Glass card ──────────────────────────────────────── */
   .glass-card {
     background: var(--fi-surface);
+    backdrop-filter: var(--fi-blur);
+    -webkit-backdrop-filter: var(--fi-blur);
     border: 1px solid var(--fi-border);
     border-radius: var(--fi-radius);
-    padding: 16px;
-    margin-bottom: 14px;
-    transition: border-color 0.2s;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: var(--fi-shadow);
+    transition: all 0.25s ease;
   }
 
   .glass-card:hover {
-    border-color: var(--fi-border-focus);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: var(--fi-shadow-glow);
   }
 
   .glass-card-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
     border-bottom: 1px solid var(--fi-border);
   }
 
   .glass-icon {
-    font-size: 16px;
-    opacity: 0.85;
+    font-size: 18px;
+    opacity: 0.9;
   }
 
   .glass-card-header h3 {
@@ -673,16 +755,18 @@
     font-weight: 600;
     color: var(--fi-text);
     flex: 1;
-    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
   }
 
   .glass-badge {
     font-size: 13px;
     font-weight: 600;
     color: var(--fi-accent);
-    background: var(--fi-bg);
-    padding: 3px 10px;
-    border-radius: 8px;
+    background: var(--fi-surface-hover);
+    padding: 4px 12px;
+    border-radius: var(--fi-radius-sm);
     letter-spacing: -0.01em;
   }
 
@@ -694,33 +778,36 @@
   /* ── Income toggle ───────────────────────────────────── */
   .income-toggle {
     display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 16px;
+    background: var(--fi-surface-hover);
+    border-radius: var(--fi-radius-sm);
+    padding: 4px;
   }
 
   .toggle-btn {
     flex: 1;
-    padding: 7px 10px;
-    border: 1px solid var(--fi-border);
-    border-radius: var(--fi-radius-sm);
-    background: var(--fi-bg);
+    padding: 9px 12px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
     color: var(--fi-muted);
     cursor: pointer;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
     font-family: inherit;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
   }
 
   .toggle-btn.active {
     background: var(--fi-accent);
     color: var(--text-on-accent, #fff);
-    border-color: var(--fi-accent);
+    box-shadow: 0 2px 8px var(--fi-accent);
   }
 
   .toggle-btn:hover:not(.active) {
-    background: var(--fi-border);
     color: var(--fi-text);
+    background: rgba(255, 255, 255, 0.04);
   }
 
   .income-input {
@@ -732,144 +819,184 @@
   .balance-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 10px;
   }
 
   .balance-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 12px 8px;
-    background: var(--fi-bg);
+    padding: 16px 10px;
+    background: var(--fi-surface-hover);
     border-radius: var(--fi-radius-sm);
     border: 1px solid var(--fi-border);
-    transition: border-color 0.2s;
+    transition: all 0.2s ease;
+  }
+
+  .balance-item:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   .balance-item.total {
-    border-color: rgba(128, 128, 128, 0.18);
+    border-color: rgba(255, 255, 255, 0.08);
+    background: linear-gradient(135deg, rgba(80, 200, 160, 0.08), rgba(95, 153, 225, 0.08));
   }
 
   .balance-label {
     font-size: 10px;
     color: var(--fi-muted);
     text-transform: uppercase;
-    letter-spacing: 0.6px;
-    margin-bottom: 5px;
-    opacity: 0.8;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+    font-weight: 500;
   }
 
   .balance-value {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 700;
     color: var(--fi-text);
     letter-spacing: -0.02em;
   }
 
-  .balance-value.income {
-    color: var(--fi-green);
+  .balance-value.income { color: var(--fi-green); }
+  .balance-value.expense { color: var(--fi-red); }
+
+  .balance-delta {
+    font-size: 10px;
+    font-weight: 500;
+    margin-top: 6px;
   }
 
-  .balance-value.expense {
-    color: var(--fi-red);
-  }
-
-  .balance-value.ok {
-    color: var(--fi-green);
-  }
-
-  .balance-value.warn {
-    color: var(--fi-amber);
-  }
-
-  .balance-value.danger {
-    color: var(--fi-red);
-  }
+  .delta-up { color: var(--fi-green); }
+  .delta-down { color: var(--fi-red); }
 
   .balance-input {
     width: 100%;
     text-align: center;
-    padding: 6px 6px;
+    padding: 8px;
     border: 1px solid var(--fi-border);
-    border-radius: 8px;
-    background: var(--fi-bg);
+    border-radius: var(--fi-radius-sm);
+    background: var(--background-primary);
     color: var(--fi-text);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     font-family: inherit;
-    transition: border-color 0.15s;
+    transition: all 0.2s ease;
   }
 
   .balance-input:focus {
     border-color: var(--fi-accent);
     outline: none;
+    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
   }
 
   /* ── Categories list ─────────────────────────────────── */
   .categories-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
   }
 
   .category-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    background: var(--fi-bg);
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--fi-surface-hover);
     border-radius: var(--fi-radius-sm);
     border: 1px solid var(--fi-border);
-    transition: border-color 0.15s;
+    transition: all 0.2s ease;
   }
 
   .category-row:hover {
-    border-color: var(--fi-border-focus);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
   }
 
-  .cat-icon {
-    width: 34px;
+  .cat-icon-display {
+    font-size: 16px;
+    width: 24px;
     text-align: center;
-    font-size: 15px;
-    padding: 5px 2px;
-    border: 1px solid var(--fi-border);
-    border-radius: 8px;
-    background: var(--fi-surface);
-    color: var(--fi-text);
-    transition: border-color 0.15s;
+    flex-shrink: 0;
   }
 
-  .cat-name {
+  .cat-name-display {
     flex: 1;
-    padding: 5px 8px;
-    border: 1px solid var(--fi-border);
-    border-radius: 8px;
-    background: var(--fi-surface);
+    font-size: 13px;
     color: var(--fi-text);
-    font-size: 12.5px;
-    font-family: inherit;
-    transition: border-color 0.15s;
   }
 
-  .cat-amount {
-    width: 90px;
-    text-align: right;
-    padding: 5px 8px;
-    border: 1px solid var(--fi-border);
-    border-radius: 8px;
-    background: var(--fi-surface);
-    color: var(--fi-text);
-    font-size: 12.5px;
+  .cat-amount-display {
+    font-size: 13px;
     font-weight: 600;
-    font-family: inherit;
-    transition: border-color 0.15s;
+    color: var(--fi-text);
+    letter-spacing: -0.01em;
   }
 
-  .cat-icon:focus,
-  .cat-name:focus,
-  .cat-amount:focus {
+  .cat-percent {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--fi-muted);
+    min-width: 36px;
+    text-align: right;
+  }
+
+  .cat-check {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--fi-green);
+    background: transparent;
+    color: var(--fi-green);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+
+  .cat-check:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  .cat-check.completed {
+    background: var(--fi-green);
+    border-color: var(--fi-green);
+    color: #fff;
+    opacity: 1;
+  }
+
+  .savings-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .savings-percent-input,
+  .savings-amount-input {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid var(--fi-border);
+    border-radius: 6px;
+    background: var(--background-primary);
+    color: var(--fi-text);
+    font-size: 11px;
+    font-family: inherit;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .savings-percent-input:focus,
+  .savings-amount-input:focus {
     border-color: var(--fi-accent);
     outline: none;
+    box-shadow: 0 0 0 2px rgba(95, 153, 225, 0.15);
   }
 
   .cat-delete {
@@ -877,11 +1004,12 @@
     border: none;
     color: var(--fi-muted);
     cursor: pointer;
-    padding: 4px 6px;
+    padding: 6px 8px;
     font-size: 12px;
-    border-radius: 6px;
+    border-radius: var(--fi-radius-sm);
     opacity: 0.4;
-    transition: opacity 0.15s, color 0.15s, background 0.15s;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
   }
 
   .category-row:hover .cat-delete {
@@ -893,98 +1021,212 @@
     background: var(--fi-red-bg);
   }
 
-  /* ── Add button ──────────────────────────────────────── */
-  .glass-add-btn {
-    display: block;
-    width: 100%;
-    margin-top: 8px;
-    padding: 7px;
-    background: transparent;
-    border: 1px dashed var(--fi-border);
-    border-radius: var(--fi-radius-sm);
-    color: var(--fi-muted);
-    cursor: pointer;
-    font-size: 11.5px;
-    font-family: inherit;
-    transition: all 0.15s;
-  }
-
-  .glass-add-btn:hover {
+  /* ── Inline edit ─────────────────────────────────────── */
+  .category-row.editing,
+  .goal-row.editing {
+    background: var(--background-primary);
     border-color: var(--fi-accent);
-    color: var(--fi-accent);
-    background: rgba(95, 153, 225, 0.04);
   }
 
-  /* ── Goals list ──────────────────────────────────────── */
+  .cat-edit-icon,
+  .goal-edit-icon {
+    width: 38px;
+    text-align: center;
+    font-size: 16px;
+    padding: 6px 4px;
+    border: 1px solid var(--fi-border);
+    border-radius: 8px;
+    background: var(--fi-surface-hover);
+    color: var(--fi-text);
+  }
+
+  .cat-edit-name,
+  .goal-edit-name {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--fi-border);
+    border-radius: 8px;
+    background: var(--fi-surface-hover);
+    color: var(--fi-text);
+    font-size: 12.5px;
+    font-family: inherit;
+  }
+
+  .cat-edit-amount,
+  .goal-edit-amount {
+    width: 100px;
+    text-align: right;
+    padding: 7px 10px;
+    border: 1px solid var(--fi-border);
+    border-radius: 8px;
+    background: var(--fi-surface-hover);
+    color: var(--fi-text);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+
+  .cat-edit-icon:focus,
+  .cat-edit-name:focus,
+  .cat-edit-amount:focus,
+  .goal-edit-icon:focus,
+  .goal-edit-name:focus,
+  .goal-edit-amount:focus {
+    border-color: var(--fi-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
+  }
+
+  .goal-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .goal-edit-sep {
+    color: var(--fi-muted);
+    font-size: 13px;
+  }
+
+  .goal-done-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--fi-green);
+    background: var(--fi-green);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+  }
+
+  .goal-done-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 8px var(--fi-green);
+  }
+
+  /* ── Goals ───────────────────────────────────────────── */
   .goals-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
   }
 
   .goal-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-  }
-
-  .goal-input {
-    flex: 1;
-    padding: 7px 10px;
-    border: 1px solid var(--fi-border);
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--fi-surface-hover);
     border-radius: var(--fi-radius-sm);
-    background: var(--fi-bg);
-    color: var(--fi-text);
-    font-size: 12.5px;
-    font-family: inherit;
-    transition: border-color 0.15s;
+    border: 1px solid var(--fi-border);
+    transition: all 0.2s ease;
   }
 
-  .goal-input:focus {
-    border-color: var(--fi-accent);
-    outline: none;
+  .goal-row:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
   }
 
-  .goal-remove-btn {
-    width: 26px;
-    height: 26px;
+  .goal-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .goal-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .goal-header {
     display: flex;
     align-items: center;
-    justify-content: center;
-    border: 1px solid var(--fi-border);
-    border-radius: var(--fi-radius-sm);
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .goal-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--fi-text);
+  }
+
+  .goal-amounts {
+    font-size: 11px;
+    color: var(--fi-muted);
+    white-space: nowrap;
+  }
+
+  .goal-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--fi-border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .goal-progress-fill {
+    height: 100%;
+    background: var(--fi-accent);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .goal-percent {
+    font-size: 11px;
+    color: var(--fi-muted);
+  }
+
+  /* ── Add button ──────────────────────────────────────── */
+  .glass-add-btn {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 9px;
     background: transparent;
+    border: 1px dashed var(--fi-border);
+    border-radius: var(--fi-radius-sm);
     color: var(--fi-muted);
     cursor: pointer;
-    font-size: 11px;
-    flex-shrink: 0;
-    transition: all 0.15s;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.2s ease;
   }
 
-  .goal-remove-btn:hover {
-    border-color: var(--fi-danger, #e55);
-    color: var(--fi-danger, #e55);
-    background: rgba(238, 85, 85, 0.08);
+  .glass-add-btn:hover {
+    border-color: var(--fi-accent);
+    color: var(--fi-accent);
+    background: rgba(95, 153, 225, 0.06);
+    transform: translateY(-1px);
   }
 
-  /* ── Textarea ────────────────────────────────────────── */
+  /* ── Rules ────────────────────────────────────────────── */
   .glass-textarea {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border: 1px solid var(--fi-border);
     border-radius: var(--fi-radius-sm);
-    background: var(--fi-bg);
+    background: var(--background-primary);
     color: var(--fi-text);
     font-size: 12.5px;
     font-family: inherit;
     resize: vertical;
     line-height: 1.6;
-    transition: border-color 0.15s;
+    transition: all 0.2s ease;
   }
 
   .glass-textarea:focus {
     border-color: var(--fi-accent);
     outline: none;
+    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
   }
 
   .glass-textarea.rules {
@@ -992,20 +1234,120 @@
     line-height: 1.8;
   }
 
+  .rules-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .rules-save-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: var(--fi-radius-sm);
+    background: var(--fi-accent);
+    color: var(--text-on-accent, #fff);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .rules-save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--fi-accent);
+  }
+
+  .rules-cancel-btn {
+    padding: 8px 16px;
+    border: 1px solid var(--fi-border);
+    border-radius: var(--fi-radius-sm);
+    background: transparent;
+    color: var(--fi-muted);
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .rules-cancel-btn:hover {
+    color: var(--fi-text);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .rules-display {
+    cursor: pointer;
+    padding: 4px 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .rules-display:hover {
+    opacity: 0.8;
+  }
+
+  .rule-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .rule-number {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--fi-accent);
+    color: var(--text-on-accent, #fff);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .rule-text {
+    font-size: 12.5px;
+    color: var(--fi-text);
+    line-height: 1.5;
+    padding-top: 2px;
+  }
+
+  .rules-empty {
+    text-align: center;
+    padding: 16px;
+    color: var(--fi-muted);
+    font-size: 12px;
+  }
+
+  .rules-edit-hint {
+    text-align: center;
+    padding: 10px 0 4px;
+    color: var(--fi-muted);
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .rules-display:hover .rules-edit-hint {
+    opacity: 1;
+    color: var(--fi-accent);
+  }
+
   /* ── Warning ─────────────────────────────────────────── */
   .glass-warning {
-    margin-top: 8px;
-    padding: 8px 12px;
+    margin-top: 10px;
+    padding: 10px 14px;
     background: var(--fi-amber-bg);
-    border: 1px solid rgba(184, 146, 74, 0.15);
+    border: 1px solid rgba(220, 190, 130, 0.2);
     border-radius: var(--fi-radius-sm);
     color: var(--fi-amber);
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
   }
 
   .over-budget {
-    border-color: rgba(192, 96, 88, 0.2);
+    border-color: rgba(220, 150, 150, 0.25);
   }
 
   /* ── Cleanup ─────────────────────────────────────────── */
@@ -1017,16 +1359,16 @@
   .cleanup-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
-    padding: 12px 16px;
+    padding: 14px 18px;
     background: none;
     border: none;
     color: var(--fi-muted);
     cursor: pointer;
-    font-size: 12.5px;
+    font-size: 13px;
     font-family: inherit;
-    transition: color 0.15s;
+    transition: color 0.2s ease;
   }
 
   .cleanup-toggle:hover {
@@ -1035,8 +1377,8 @@
 
   .cleanup-arrow {
     margin-left: auto;
-    font-size: 14px;
-    transition: transform 0.2s;
+    font-size: 16px;
+    transition: transform 0.2s ease;
   }
 
   .cleanup-arrow.open {
@@ -1044,14 +1386,14 @@
   }
 
   .cleanup-body {
-    padding: 0 16px 14px;
+    padding: 0 18px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
   .cleanup-info {
-    font-size: 11.5px;
+    font-size: 12px;
     color: var(--fi-muted);
   }
 
@@ -1062,29 +1404,29 @@
   .cleanup-actions {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 6px;
   }
 
   .cleanup-btn {
-    padding: 7px 12px;
+    padding: 9px 14px;
     border: 1px solid var(--fi-border);
     border-radius: var(--fi-radius-sm);
-    background: var(--fi-bg);
+    background: var(--fi-surface-hover);
     color: var(--fi-text);
     cursor: pointer;
-    font-size: 11.5px;
+    font-size: 12px;
     font-family: inherit;
     text-align: left;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
   }
 
   .cleanup-btn:hover {
-    background: var(--fi-border);
+    transform: translateY(-1px);
   }
 
   .cleanup-btn.warn {
     color: var(--fi-amber);
-    border-color: rgba(184, 146, 74, 0.2);
+    border-color: rgba(220, 190, 130, 0.25);
   }
 
   .cleanup-btn.warn:hover {
@@ -1093,7 +1435,7 @@
 
   .cleanup-btn.danger {
     color: var(--fi-red);
-    border-color: rgba(192, 96, 88, 0.2);
+    border-color: rgba(220, 150, 150, 0.25);
   }
 
   .cleanup-btn.danger:hover {
@@ -1103,15 +1445,20 @@
   /* ── Mobile ──────────────────────────────────────────── */
   @media (max-width: 768px) {
     .finance-tracker {
-      padding: 14px 10px 28px;
+      padding: 16px 12px 28px;
     }
 
     .balance-grid {
       grid-template-columns: 1fr;
     }
 
-    .cat-amount {
-      width: 72px;
+    .balance-value {
+      font-size: 16px;
+    }
+
+    .goal-header {
+      flex-direction: column;
+      align-items: flex-start;
     }
   }
 </style>

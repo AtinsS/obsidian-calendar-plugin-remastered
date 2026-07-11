@@ -46,7 +46,7 @@
   /* Размытие и переходы */
   --mcp-blur: blur(20px);
   --mcp-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+}а
 
 /* ============================================
    SETTINGS BANNER
@@ -229,6 +229,7 @@ table {
 #calendar-container {
   width: 100%;
   min-width: 0;
+  overflow: hidden;
 }
 
 #calendar-container .calendar {
@@ -500,6 +501,12 @@ content: attr(data-task-count);
   background: var(--mcp-accent-dim);
   border-color: var(--mcp-accent);
   box-shadow: var(--mcp-shadow-glow);
+}
+
+.task-tracker-btn.show-all-btn {
+  background: var(--mcp-accent-dim);
+  border-color: var(--mcp-accent);
+  color: var(--mcp-accent);
 }
 
 /* Dropdown labels — desktop shows full, mobile shows short */
@@ -874,6 +881,16 @@ content: attr(data-task-count);
   background: var(--mcp-success-dim);
 }
 
+.task-status-btn.status-done:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.task-status-btn.status-done:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 /* Note icon */
 .note-icon {
   font-size: 18px;
@@ -955,9 +972,6 @@ content: attr(data-task-count);
   outline-offset: 1px;
 }
 
-.task-item.completed {
-  opacity: 0.4;
-}
 
 .task-project-dot {
   width: 6px;
@@ -1786,6 +1800,17 @@ content: attr(data-task-count);
   color: var(--mcp-accent);
   background: var(--mcp-accent-dim);
   border-color: var(--mcp-accent);
+}
+
+.habit-edit-btn:disabled {
+  opacity: 0.3 !important;
+  cursor: not-allowed;
+}
+
+.habit-edit-btn:disabled:hover {
+  color: var(--mcp-text-muted);
+  background: var(--mcp-surface);
+  border-color: var(--mcp-glass-border);
 }
 
 .habit-delete-btn:hover {

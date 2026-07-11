@@ -283,18 +283,15 @@ export function getHabitStats(habitId: string): HabitStats {
     longestStreak = Math.max(longestStreak, streak);
   }
 
-  // Completion rate (based on days since creation)
+  // Completion rate (last 7 days)
   const habit = get(habits).find((h) => h.id === habitId);
   let completionRate = 0;
   if (habit) {
-    const created = moment(habit.createdAt).startOf("day");
     const today = moment().startOf("day");
-    const daysSinceCreation = today.diff(created, "days") + 1;
-    if (daysSinceCreation > 0) {
-      completionRate = Math.round(
-        (totalCompletions / daysSinceCreation) * 100
-      );
-    }
+    const weekAgo = today.clone().subtract(7, "days");
+    const recentLogs = logs.filter(l => moment(l.date).isAfter(weekAgo));
+    const maxPerWeek = habit.frequency === "weekly" ? 1 : 7;
+    completionRate = Math.min(100, Math.round((recentLogs.length / maxPerWeek) * 100));
   }
 
   const lastCompleted = logs.length > 0 ? logs[0].date : null;

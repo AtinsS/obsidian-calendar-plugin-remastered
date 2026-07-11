@@ -217,22 +217,23 @@ export default class CalendarView extends ItemView {
     this.renderGoalsIndicator(goals, monthKey);
   }
 
-  private renderGoalsIndicator(goals: string[], monthKey: string): void {
+  private renderGoalsIndicator(goals: any[], monthKey: string): void {
     if (!this.goalsContainer) return;
     this.goalsContainer.empty();
 
     if (goals.length === 0) return;
 
+    const firstGoal = goals[0];
+    const label = firstGoal.name || firstGoal;
+
     if (goals.length === 1) {
-      // Single goal — text only, no button
       const wrapper = this.goalsContainer.createDiv({ cls: "month-goals-single" });
-      wrapper.createEl("span", { text: "🎯", cls: "month-goals-icon" });
-      wrapper.createEl("span", { text: `Цель: ${goals[0]}`, cls: "month-goals-text" });
+      wrapper.createEl("span", { text: firstGoal.icon || "🎯", cls: "month-goals-icon" });
+      wrapper.createEl("span", { text: `Цель: ${label}`, cls: "month-goals-text" });
     } else {
-      // Multiple goals — first goal text + "Показать" button
       const wrapper = this.goalsContainer.createDiv({ cls: "month-goals-multi" });
-      wrapper.createEl("span", { text: "🎯", cls: "month-goals-icon" });
-      wrapper.createEl("span", { text: `Цель: ${goals[0]}`, cls: "month-goals-text" });
+      wrapper.createEl("span", { text: firstGoal.icon || "🎯", cls: "month-goals-icon" });
+      wrapper.createEl("span", { text: `Цель: ${label}`, cls: "month-goals-text" });
       const showBtn = wrapper.createEl("button", { text: `Показать все (${goals.length})`, cls: "month-goals-show-btn" });
       showBtn.addEventListener("click", () => {
         this.showGoalsModal(monthKey);
@@ -257,10 +258,12 @@ export default class CalendarView extends ItemView {
     const closeBtn = header.createEl("button", { text: "✕", cls: "goals-modal-close" });
 
     const body = modal.createDiv({ cls: "goals-modal-body" });
-    goals.forEach((goal, i) => {
+    goals.forEach((goal: any, i: number) => {
       const item = body.createDiv({ cls: "goal-item" });
       item.createEl("span", { text: `${i + 1}.`, cls: "goal-number" });
-      item.createEl("span", { text: goal, cls: "goal-text" });
+      const name = goal.name || goal;
+      const icon = goal.icon || "🎯";
+      item.createEl("span", { text: `${icon} ${name}`, cls: "goal-text" });
     });
 
     const close = () => overlay.remove();

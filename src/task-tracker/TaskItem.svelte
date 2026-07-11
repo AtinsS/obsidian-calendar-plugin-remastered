@@ -129,13 +129,13 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      quickStatus("progress");
+      if (task.status !== "done") quickStatus("progress");
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       handleDelete();
     } else if (e.key === "e" || e.key === "E") {
       e.preventDefault();
-      handleEdit();
+      if (task.status !== "done") handleEdit();
     }
   }
 
@@ -186,13 +186,14 @@
   {:else}
     <button
       class="task-status-btn status-{task.status}"
+      disabled={task.status === "done"}
       on:click|stopPropagation={() => {
-        if (task.status === "done") quickStatus("todo");
+        if (task.status === "done") return;
         else if (task.status === "progress") quickStatus("done");
         else if (task.status === "paused") quickStatus("done");
         else quickStatus("done");
       }}
-      title="Статус: {task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : task.status === 'paused' ? 'На паузе' : 'Готово'}"
+      title={task.status === 'done' ? 'Готово (только удаление)' : task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : 'На паузе'}
       aria-label="Изменить статус"
     >
       {statusIcons[task.status]}
@@ -299,62 +300,70 @@
     </button>
     {#if showActionsMenu}
       <div class="task-actions-menu" on:click|stopPropagation role="menu">
-        <button
-          class="task-actions-item"
-          disabled={task.status === "progress" || task.status === "paused"}
-          on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
-        >
-          &#9203; В работу
-        </button>
-        {#if task.status === "progress"}
+        {#if task.status === "done"}
           <button
-            class="task-actions-item"
-            on:click|stopPropagation={() => { quickStatus("paused"); closeActionsMenu(); }}
+            class="task-actions-item danger"
+            on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}
           >
-            &#9208; На паузу
+            &#10005; Удалить
           </button>
+        {:else}
           <button
             class="task-actions-item"
-            on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
-          >
-            &#8634; Вернуть
-          </button>
-        {/if}
-        {#if task.status === "paused"}
-          <button
-            class="task-actions-item"
+            disabled={task.status === "progress" || task.status === "paused"}
             on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
           >
-            &#9654; Продолжить
+            &#9203; В работу
           </button>
+          {#if task.status === "progress"}
+            <button
+              class="task-actions-item"
+              on:click|stopPropagation={() => { quickStatus("paused"); closeActionsMenu(); }}
+            >
+              &#9208; На паузу
+            </button>
+            <button
+              class="task-actions-item"
+              on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+            >
+              &#8634; Вернуть
+            </button>
+          {/if}
+          {#if task.status === "paused"}
+            <button
+              class="task-actions-item"
+              on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
+            >
+              &#9654; Продолжить
+            </button>
+            <button
+              class="task-actions-item"
+              on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+            >
+              &#8634; Вернуть
+            </button>
+          {/if}
+          {#if task.notePath}
+            <button
+              class="task-actions-item"
+              on:click|stopPropagation={() => { dispatch("complete", { task }); closeActionsMenu(); }}
+            >
+              &#10003; Готово
+            </button>
+          {/if}
           <button
             class="task-actions-item"
-            on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+            on:click|stopPropagation={() => { handleEdit(); closeActionsMenu(); }}
           >
-            &#8634; Вернуть
+            &#9998; Редактировать
           </button>
-        {/if}
-        {#if task.notePath}
           <button
-            class="task-actions-item"
-            disabled={task.status === "done"}
-            on:click|stopPropagation={() => { dispatch("complete", { task }); closeActionsMenu(); }}
+            class="task-actions-item danger"
+            on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}
           >
-            &#10003; Готово
+            &#10005; Удалить
           </button>
         {/if}
-        <button
-          class="task-actions-item"
-          on:click|stopPropagation={() => { handleEdit(); closeActionsMenu(); }}
-        >
-          &#9998; Редактировать
-        </button>
-        <button
-          class="task-actions-item danger"
-          on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}
-        >
-          &#10005; Удалить
-        </button>
       </div>
     {/if}
   </div>

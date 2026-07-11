@@ -6,12 +6,25 @@ export interface FinanceCategory {
   order: number;
 }
 
+export interface MonthGoal {
+  id: string;
+  icon: string;
+  name: string;
+  currentAmount: number;
+  targetAmount: number;
+}
+
+export interface SavingsCategory extends FinanceCategory {
+  percent: number;
+  completed: boolean;
+}
+
 export interface FinanceMonthData {
   monthlyIncome: number;
   lastMonthExpense: number;
   mainAccountCategories: FinanceCategory[];
-  monthGoals: string[];
-  savingsCategories: FinanceCategory[];
+  monthGoals: MonthGoal[];
+  savingsCategories: SavingsCategory[];
   distributionRules: string[];
   updatedAt: string;
 }
@@ -30,6 +43,10 @@ export function createEmptyMonthData(): FinanceMonthData {
     distributionRules: [],
     updatedAt: new Date().toISOString(),
   };
+}
+
+export function generateGoalId(): string {
+  return `fg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export function generateCategoryId(): string {

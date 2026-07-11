@@ -1,5 +1,6 @@
 import { writable, get } from "svelte/store";
 import type CalendarPlugin from "../main";
+import { loadVaultData, saveVaultData } from "../io/vaultStorage";
 
 export interface ManualIncomeSource {
   id: string;
@@ -29,24 +30,25 @@ export function reloadFinancialAnalyticsStores(): void {
   loadFinancialAnalyticsData();
 }
 
-function loadFinancialAnalyticsData(): void {
+async function loadFinancialAnalyticsData(): Promise<void> {
   if (!pluginInstance) return;
-  pluginInstance.loadData().then((data: any) => {
-    if (data?.financialAnalytics) {
-      financialAnalyticsData.set(data.financialAnalytics);
-    }
-  });
+
+  // Always uses vaultStorage (calendar-data.json)
+  const vaultData = await loadVaultData(pluginInstance.app);
+  if (vaultData.financialAnalytics) {
+    financialAnalyticsData.set(vaultData.financialAnalytics as IFinancialAnalyticsData);
+  }
 }
 
-function debouncedSave(): void {
+async function debouncedSave(): Promise<void> {
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
+  saveTimeout = setTimeout(async () => {
     if (!pluginInstance) return;
-    pluginInstance.loadData().then((existing: any) => {
-      const data = existing || {};
-      data.financialAnalytics = get(financialAnalyticsData);
-      pluginInstance.saveData(data);
-    });
+
+    // Always saves to vaultStorage (calendar-data.json)
+    const vaultData = await loadVaultData(pluginInstance.app);
+    vaultData.financialAnalytics = get(financialAnalyticsData) as unknown as Record<string, unknown>;
+    await saveVaultData(pluginInstance.app, vaultData);
   }, 300);
 }
 

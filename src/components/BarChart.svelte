@@ -4,6 +4,7 @@
   import { formatDuration } from "../task-tracker/TimerManager";
 
   export let logs: TimeLog[] = [];
+  export let mode: "bar" | "area" = "bar";
 
   let canvas: HTMLCanvasElement;
   let container: HTMLDivElement;
@@ -64,13 +65,12 @@
     const accentColor = computedStyles.getPropertyValue("--mcp-accent").trim() || "rgba(95, 153, 225, 0.479)";
     const textMuted = computedStyles.getPropertyValue("--mcp-text-muted").trim() || "rgba(200, 210, 220, 0.5)";
     const textFaint = computedStyles.getPropertyValue("--mcp-text-faint").trim() || "rgba(200, 210, 220, 0.25)";
-    const glassHighlight = computedStyles.getPropertyValue("--mcp-glass-highlight").trim() || "rgba(255, 255, 255, 0.02)";
 
     ctx.clearRect(0, 0, width, height);
 
-    const paddingLeft = 0;
+    const paddingLeft = 8;
     const paddingRight = 8;
-    const paddingTop = 14;
+    const paddingTop = 18;
     const paddingBottom = 24;
     const chartWidth = width - paddingLeft - paddingRight;
     const chartHeight = height - paddingTop - paddingBottom;
@@ -78,6 +78,16 @@
     const barCount = dayData.length;
     const barGap = Math.max(3, Math.min(8, chartWidth / barCount * 0.2));
     const barWidth = Math.max(4, (chartWidth - barGap * (barCount + 1)) / barCount);
+
+    // Parse accent color
+    const accentMatch = accentColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+    let barR = 95, barG = 153, barB = 225, barA = 0.85;
+    if (accentMatch) {
+      barR = parseInt(accentMatch[1]);
+      barG = parseInt(accentMatch[2]);
+      barB = parseInt(accentMatch[3]);
+      barA = accentMatch[4] ? parseFloat(accentMatch[4]) : 0.85;
+    }
 
     // Draw horizontal grid lines
     const gridLines = 3;
@@ -93,70 +103,161 @@
     }
     ctx.setLineDash([]);
 
-    // Parse accent color for gradient
-    const accentMatch = accentColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-    let barR = 95, barG = 153, barB = 225, barA = 0.85;
-    if (accentMatch) {
-      barR = parseInt(accentMatch[1]);
-      barG = parseInt(accentMatch[2]);
-      barB = parseInt(accentMatch[3]);
-      barA = accentMatch[4] ? parseFloat(accentMatch[4]) : 0.85;
-    }
+    if (mode === "area") {
+      // ── Area / Line chart with Catmull-Rom spline ──
+      const points: { x: number; y: number }[] = [];
+      const minBarHeight = 3;
 
-    // Draw bars
-    const minBarHeight = 3;
-    for (let i = 0; i < barCount; i++) {
-      const d = dayData[i];
-      const barH = maxMs > 0 ? Math.max(minBarHeight, (d.totalMs / maxMs) * chartHeight) : minBarHeight;
-      const x = paddingLeft + barGap + i * (barWidth + barGap);
-      const y = paddingTop + chartHeight - barH;
-
-      const isHovered = i === hoveredBar;
-
-      // Bar with rounded top corners
-      const radius = Math.min(4, barWidth / 3);
-      ctx.beginPath();
-      ctx.moveTo(x, y + radius);
-      ctx.arcTo(x, y, x + radius, y, radius);
-      ctx.arcTo(x + barWidth, y, x + barWidth, y + radius, radius);
-      ctx.lineTo(x + barWidth, paddingTop + chartHeight);
-      ctx.lineTo(x, paddingTop + chartHeight);
-      ctx.closePath();
-
-      if (isHovered) {
-        ctx.fillStyle = `rgba(${barR}, ${barG}, ${barB}, 1)`;
-      } else {
-        const grad = ctx.createLinearGradient(x, y, x, paddingTop + chartHeight);
-        grad.addColorStop(0, `rgba(${barR}, ${barG}, ${barB}, ${barA})`);
-        grad.addColorStop(1, `rgba(${barR}, ${barG}, ${barB}, ${barA * 0.4})`);
-        ctx.fillStyle = grad;
+      for (let i = 0; i < barCount; i++) {
+        const d = dayData[i];
+        const barH = maxMs > 0 ? Math.max(minBarHeight, (d.totalMs / maxMs) * chartHeight) : minBarHeight;
+        const x = paddingLeft + barGap + i * (barWidth + barGap) + barWidth / 2;
+        const y = paddingTop + chartHeight - barH;
+        points.push({ x, y });
       }
-      ctx.fill();
 
-      if (isHovered) {
-        ctx.shadowColor = `rgba(${barR}, ${barG}, ${barB}, 0.4)`;
-        ctx.shadowBlur = 12;
+      if (points.length > 1) {
+        // Catmull-Rom to Bezier conversion for smooth curves
+        const tension = 0.3;
+
+        // Area fill
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, paddingTop + chartHeight);
+        ctx.lineTo(points[0].x, points[0].y);
+
+        for (let i = 0; i < points.length - 1; i++) {
+          const p0 = points[Math.max(0, i - 1)];
+          const p1 = points[i];
+          const p2 = points[i + 1];
+          const p3 = points[Math.min(points.length - 1, i + 2)];
+
+          const cp1x = p1.x + (p2.x - p0.x) * tension;
+          const cp1y = p1.y + (p2.y - p0.y) * tension;
+          const cp2x = p2.x - (p3.x - p1.x) * tension;
+          const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+        }
+        ctx.lineTo(points[points.length - 1].x, paddingTop + chartHeight);
+        ctx.closePath();
+
+        const areaGrad = ctx.createLinearGradient(0, paddingTop, 0, paddingTop + chartHeight);
+        areaGrad.addColorStop(0, `rgba(${barR}, ${barG}, ${barB}, ${barA * 0.4})`);
+        areaGrad.addColorStop(0.5, `rgba(${barR}, ${barG}, ${barB}, ${barA * 0.15})`);
+        areaGrad.addColorStop(1, `rgba(${barR}, ${barG}, ${barB}, 0.01)`);
+        ctx.fillStyle = areaGrad;
         ctx.fill();
-        ctx.shadowBlur = 0;
+
+        // Line with glow
+        ctx.save();
+        ctx.shadowColor = `rgba(${barR}, ${barG}, ${barB}, 0.5)`;
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+          const cp1x = points[i - 1].x + (points[i].x - points[Math.max(0, i - 2)].x) * tension;
+          const cp1y = points[i - 1].y + (points[i].y - points[Math.max(0, i - 2)].y) * tension;
+          const cp2x = points[i].x - (points[Math.min(points.length - 1, i + 1)].x - points[i - 1].x) * tension;
+          const cp2y = points[i].y - (points[Math.min(points.length - 1, i + 1)].y - points[i - 1].y) * tension;
+          ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, points[i].x, points[i].y);
+        }
+        ctx.strokeStyle = `rgba(${barR}, ${barG}, ${barB}, ${barA})`;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.restore();
       }
 
-      // Date label
-      ctx.fillStyle = isHovered ? textMuted : textFaint;
-      ctx.font = `${Math.max(8, Math.min(10, barWidth * 0.6))}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(d.label, x + barWidth / 2, height - 6);
-    }
+      // Draw dots and labels
+      for (let i = 0; i < barCount; i++) {
+        const d = dayData[i];
+        const p = points[i];
+        const isHovered = i === hoveredBar;
 
-    // Duration label on top of hovered bar
-    if (hoveredBar >= 0 && hoveredBar < barCount) {
-      const d = dayData[hoveredBar];
-      const barH = maxMs > 0 ? Math.max(minBarHeight, (d.totalMs / maxMs) * chartHeight) : minBarHeight;
-      const x = paddingLeft + barGap + hoveredBar * (barWidth + barGap);
+        // Outer glow for hovered
+        if (isHovered) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${barR}, ${barG}, ${barB}, 0.15)`;
+          ctx.fill();
+        }
 
-      ctx.fillStyle = textMuted;
-      ctx.font = `bold ${Math.max(9, Math.min(11, barWidth * 0.7))}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillText(formatDuration(d.totalMs), x + barWidth / 2, paddingTop + chartHeight - barH - 4);
+        // Dot
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, isHovered ? 5 : 3, 0, Math.PI * 2);
+        ctx.fillStyle = isHovered ? `rgba(${barR}, ${barG}, ${barB}, 1)` : `rgba(${barR}, ${barG}, ${barB}, 0.8)`;
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = isHovered ? 2 : 1.5;
+        ctx.stroke();
+
+        // Duration label on hover
+        if (isHovered) {
+          ctx.fillStyle = textMuted;
+          ctx.font = `bold 10px sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText(formatDuration(d.totalMs), p.x, p.y - 10);
+        }
+
+        // Date label
+        ctx.fillStyle = isHovered ? textMuted : textFaint;
+        ctx.font = `${Math.max(8, Math.min(10, barWidth * 0.6))}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(d.label, p.x, height - 6);
+      }
+    } else {
+      // ── Bar chart (original) ──
+      const minBarHeight = 3;
+      for (let i = 0; i < barCount; i++) {
+        const d = dayData[i];
+        const barH = maxMs > 0 ? Math.max(minBarHeight, (d.totalMs / maxMs) * chartHeight) : minBarHeight;
+        const x = paddingLeft + barGap + i * (barWidth + barGap);
+        const y = paddingTop + chartHeight - barH;
+
+        const isHovered = i === hoveredBar;
+
+        const radius = Math.min(4, barWidth / 3);
+        ctx.beginPath();
+        ctx.moveTo(x, y + radius);
+        ctx.arcTo(x, y, x + radius, y, radius);
+        ctx.arcTo(x + barWidth, y, x + barWidth, y + radius, radius);
+        ctx.lineTo(x + barWidth, paddingTop + chartHeight);
+        ctx.lineTo(x, paddingTop + chartHeight);
+        ctx.closePath();
+
+        if (isHovered) {
+          ctx.fillStyle = `rgba(${barR}, ${barG}, ${barB}, 1)`;
+        } else {
+          const grad = ctx.createLinearGradient(x, y, x, paddingTop + chartHeight);
+          grad.addColorStop(0, `rgba(${barR}, ${barG}, ${barB}, ${barA})`);
+          grad.addColorStop(1, `rgba(${barR}, ${barG}, ${barB}, ${barA * 0.4})`);
+          ctx.fillStyle = grad;
+        }
+        ctx.fill();
+
+        if (isHovered) {
+          ctx.shadowColor = `rgba(${barR}, ${barG}, ${barB}, 0.4)`;
+          ctx.shadowBlur = 12;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.fillStyle = isHovered ? textMuted : textFaint;
+        ctx.font = `${Math.max(8, Math.min(10, barWidth * 0.6))}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(d.label, x + barWidth / 2, height - 6);
+      }
+
+      // Duration label on top of hovered bar
+      if (hoveredBar >= 0 && hoveredBar < barCount) {
+        const d = dayData[hoveredBar];
+        const barH = maxMs > 0 ? Math.max(minBarHeight, (d.totalMs / maxMs) * chartHeight) : minBarHeight;
+        const x = paddingLeft + barGap + hoveredBar * (barWidth + barGap);
+
+        ctx.fillStyle = textMuted;
+        ctx.font = `bold ${Math.max(9, Math.min(11, barWidth * 0.7))}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.fillText(formatDuration(d.totalMs), x + barWidth / 2, paddingTop + chartHeight - barH - 4);
+      }
     }
   }
 

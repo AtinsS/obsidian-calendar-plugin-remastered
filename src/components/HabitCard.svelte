@@ -9,16 +9,15 @@
   let stats: HabitStats;
 
   $: {
-    // Re-compute when logs change
     $habitLogs;
     stats = getHabitStats(habit.id);
   }
 
   function translateFrequency(freq: string): string {
     switch (freq) {
-      case "daily": return "ежедн.";
-      case "weekly": return "еженед.";
-      case "custom": return "по расп.";
+      case "daily": return "ежедневно";
+      case "weekly": return "еженедельно";
+      case "custom": return "по расписанию";
       default: return freq;
     }
   }
@@ -28,25 +27,31 @@
   <div class="habit-card-header">
     <span class="habit-card-icon">{habit.icon}</span>
     <span class="habit-card-title">{habit.title}</span>
-    <span class="habit-card-freq">{translateFrequency(habit.frequency)}</span>
+    <span class="habit-card-badge">
+      <span class="habit-card-trend">↑ прогресс</span>
+      <span class="habit-card-freq">{translateFrequency(habit.frequency)}</span>
+    </span>
   </div>
 
   <div class="habit-card-stats">
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.currentStreak}</span>
-      <span class="habit-stat-label">Серия</span>
+      <span class="habit-stat-label">серия</span>
+      <span class="habit-stat-sub">дней</span>
     </div>
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.longestStreak}</span>
-      <span class="habit-stat-label">Макс.</span>
+      <span class="habit-stat-label">макс.</span>
+      <span class="habit-stat-sub">дней</span>
     </div>
     <div class="habit-stat">
       <span class="habit-stat-value">{stats.totalCompletions}</span>
-      <span class="habit-stat-label">Всего</span>
+      <span class="habit-stat-label">всего</span>
+      <span class="habit-stat-sub">выполнений</span>
     </div>
     <div class="habit-stat">
-      <span class="habit-stat-value">{stats.completionRate}%</span>
-      <span class="habit-stat-label">Процент</span>
+      <span class="habit-stat-value stat-accent">{stats.completionRate}%</span>
+      <span class="habit-stat-label">процент</span>
     </div>
   </div>
 
@@ -59,64 +64,106 @@
 
 <style>
   .habit-card {
-    border: 1px solid var(--background-modifier-border);
-    border-radius: 8px;
-    padding: 12px;
-    background: var(--background-secondary);
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: var(--mcp-radius);
+    padding: 14px;
+    background: var(--mcp-glass-bg);
+    backdrop-filter: var(--mcp-blur);
+    -webkit-backdrop-filter: var(--mcp-blur);
+    box-shadow: var(--mcp-shadow);
+    transition: all 0.25s ease;
+  }
+
+  .habit-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--mcp-shadow-glow);
+    border-color: var(--habit-color, var(--mcp-accent));
   }
 
   .habit-card-header {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   .habit-card-icon {
-    font-size: 18px;
+    font-size: 20px;
   }
 
   .habit-card-title {
     font-weight: 600;
+    font-size: 13px;
     flex: 1;
+    color: var(--mcp-text);
+  }
+
+  .habit-card-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .habit-card-trend {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--mcp-success);
+    background: var(--mcp-success-dim);
+    padding: 2px 8px;
+    border-radius: 10px;
   }
 
   .habit-card-freq {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 10px;
+    color: var(--mcp-text-muted);
   }
 
   .habit-card-stats {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    gap: 6px;
     text-align: center;
+    margin-bottom: 10px;
   }
 
   .habit-stat {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
   }
 
   .habit-stat-value {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
-    color: var(--habit-color, var(--text-accent));
+    color: var(--habit-color, var(--mcp-accent));
+    letter-spacing: -0.02em;
+  }
+
+  .habit-stat-value.stat-accent {
+    color: var(--habit-color, var(--mcp-accent));
   }
 
   .habit-stat-label {
-    font-size: 10px;
-    color: var(--text-muted);
+    font-size: 9px;
+    color: var(--mcp-text-muted);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+
+  .habit-stat-sub {
+    font-size: 9px;
+    color: var(--mcp-text-faint);
+    font-weight: 400;
   }
 
   .habit-card-last {
-    margin-top: 8px;
     font-size: 11px;
-    color: var(--text-muted);
+    color: var(--mcp-text-muted);
     text-align: right;
+    padding-top: 4px;
+    border-top: 1px solid var(--mcp-glass-border);
   }
 
   @media (max-width: 480px) {

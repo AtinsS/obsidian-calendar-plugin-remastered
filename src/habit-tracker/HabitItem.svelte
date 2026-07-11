@@ -81,8 +81,9 @@
 
   <button
     class="habit-edit-btn"
+    disabled={isCompleted}
     on:click={handleEdit}
-    aria-label="Редактировать привычку"
+    aria-label={isCompleted ? "Нельзя редактировать выполненную привычку" : "Редактировать привычку"}
   >
     &#9998;
   </button>

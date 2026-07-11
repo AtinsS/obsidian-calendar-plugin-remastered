@@ -94,11 +94,11 @@ export function taskToEvent(
   const hasTime = !!task.scheduledTime;
   const start = hasTime
     ? `${dateStr}T${task.scheduledTime}:00`
-    : `${dateStr}T00:00:00`;
+    : `${dateStr}T09:00:00`;
 
   const end = hasTime
     ? calculateEndTime(dateStr, task.scheduledTime, task.estimatedTime || 60)
-    : `${dateStr}T23:59:59`;
+    : calculateEndTime(dateStr, "09:00", task.estimatedTime || 60);
 
   const project = projects.find((p) => p.id === task.projectId);
   const hasProject = !!project;
@@ -113,7 +113,7 @@ export function taskToEvent(
       ? tintWithAlpha(project.color, 0.95)
       : getStatusColor(task.status),
     borderColor: hasProject
-      ? project.color
+      ? tintWithAlpha(project.color, 0.6)
       : getStatusBorder(task.status),
     textColor: "#e8ecf0",
     extendedProps: {

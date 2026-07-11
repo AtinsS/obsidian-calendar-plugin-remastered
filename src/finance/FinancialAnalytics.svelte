@@ -18,7 +18,24 @@
   let newIncomeAmount = 0;
   let newIncomeDate = new Date().toISOString().split("T")[0];
 
-  $: allWorkTasks = $tasks.filter((t) => t.isWorkTask);
+  const now = new Date();
+  let selectedYear = now.getFullYear();
+  let selectedMonth = now.getMonth() + 1;
+
+  const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+
+  function getMonthUID(year: number, month: number): string {
+    return `day-${year}-${String(month).padStart(2, "0")}`;
+  }
+
+  $: monthPrefix = getMonthUID(selectedYear, selectedMonth);
+
+  $: allWorkTasks = $tasks.filter((t) => {
+    if (!t.isWorkTask) return false;
+    const match = t.dateUID.match(/^day-(\d{4})-(\d{2})/);
+    if (!match) return false;
+    return parseInt(match[1]) === selectedYear && parseInt(match[2]) === selectedMonth;
+  });
   $: doneTasks = allWorkTasks.filter((t) => t.status === "done");
   $: todoTasks = allWorkTasks.filter((t) => t.status !== "done");
 
@@ -122,6 +139,29 @@
 <div class="financial-analytics">
   <div class="fa-header">
     <h2>Финансовая аналитика</h2>
+    <div class="fa-month-selector">
+      <button class="fa-month-nav" on:click={() => {
+        if (selectedMonth === 1) {
+          selectedMonth = 12;
+          selectedYear--;
+        } else {
+          selectedMonth--;
+        }
+      }}>◀</button>
+      <select bind:value={selectedMonth} class="fa-month-select">
+        {#each monthNames as name, i}
+          <option value={i + 1}>{name} {selectedYear}</option>
+        {/each}
+      </select>
+      <button class="fa-month-nav" on:click={() => {
+        if (selectedMonth === 12) {
+          selectedMonth = 1;
+          selectedYear++;
+        } else {
+          selectedMonth++;
+        }
+      }}>▶</button>
+    </div>
   </div>
 
   <!-- Summary Cards -->
@@ -271,65 +311,119 @@
 
 <style>
   .financial-analytics {
-    padding: 20px 16px 32px;
+    padding: 24px 16px 32px;
     height: 100%;
     overflow-y: auto;
-    background: var(--background-primary);
+    background: transparent;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
   .fa-header h2 {
-    margin: 0 0 20px;
-    font-size: 18px;
-    font-weight: 600;
+    margin: 0 0 16px;
+    font-size: 20px;
+    font-weight: 700;
     text-align: center;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
+  }
+
+  .fa-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .fa-month-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .fa-month-nav {
+    background: var(--mcp-glass-bg);
+    border: 1px solid var(--mcp-glass-border);
+    color: var(--mcp-text-muted);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: var(--mcp-radius-sm);
+    font-size: 12px;
+    transition: all 0.2s ease;
+    backdrop-filter: var(--mcp-blur);
+    -webkit-backdrop-filter: var(--mcp-blur);
+  }
+
+  .fa-month-nav:hover {
+    color: var(--mcp-accent);
+    border-color: var(--mcp-accent);
+    transform: translateY(-1px);
+  }
+
+  .fa-month-select {
+    border-radius: var(--mcp-radius-sm);
+    border: 1px solid var(--mcp-glass-border);
+    background: var(--mcp-glass-bg);
+    backdrop-filter: var(--mcp-blur);
+    -webkit-backdrop-filter: var(--mcp-blur);
+    color: var(--mcp-text);
+    font-size: 13px;
+    font-family: inherit;
+    min-width: 160px;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .fa-month-select:focus {
+    border-color: var(--mcp-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--mcp-accent-dim);
   }
 
   /* ── Summary Cards ──────────────────────────────────── */
   .fa-summary {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 14px;
+    margin-bottom: 28px;
   }
 
   .fa-summary-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 16px 12px;
+    padding: 20px 14px;
     background: var(--mcp-glass-bg);
     backdrop-filter: var(--mcp-blur);
     -webkit-backdrop-filter: var(--mcp-blur);
     border: 1px solid var(--mcp-glass-border);
     border-radius: var(--mcp-radius);
     box-shadow: var(--mcp-shadow);
-    transition: all var(--mcp-transition);
+    transition: all 0.25s ease;
   }
 
   .fa-summary-card:hover {
     border-color: var(--mcp-accent);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
     box-shadow: var(--mcp-shadow-glow);
   }
 
   .fa-summary-card.total {
     background: linear-gradient(
       135deg,
-      rgba(80, 200, 160, 0.12),
-      rgba(95, 153, 225, 0.12)
+      rgba(80, 200, 160, 0.15),
+      rgba(95, 153, 225, 0.15)
     );
-    border-color: rgba(80, 200, 160, 0.2);
+    border-color: rgba(80, 200, 160, 0.25);
   }
 
   .fa-summary-icon {
-    font-size: 20px;
-    margin-bottom: 8px;
-    opacity: 0.8;
+    font-size: 22px;
+    margin-bottom: 10px;
+    opacity: 0.85;
   }
 
   .fa-summary-value {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
     color: var(--mcp-text);
     letter-spacing: -0.02em;
@@ -340,48 +434,61 @@
   }
 
   .fa-summary-label {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--mcp-text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-top: 4px;
+    letter-spacing: 0.8px;
+    margin-top: 6px;
+    font-weight: 500;
   }
 
   /* ── Section ────────────────────────────────────────── */
   .fa-section {
     margin-bottom: 24px;
+    padding: 20px;
+    background: var(--mcp-glass-bg);
+    backdrop-filter: var(--mcp-blur);
+    -webkit-backdrop-filter: var(--mcp-blur);
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: var(--mcp-radius);
+    box-shadow: var(--mcp-shadow);
+  }
+
+  .fa-section:last-child {
+    margin-bottom: 0;
   }
 
   .fa-section-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
   }
 
   .fa-section-header h3 {
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--mcp-text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
   }
 
   /* ── Tabs ───────────────────────────────────────────── */
   .fa-tabs {
     display: flex;
     gap: 4px;
-    background: var(--mcp-glass-bg);
-    backdrop-filter: var(--mcp-blur);
-    -webkit-backdrop-filter: var(--mcp-blur);
+    background: var(--mcp-glass-highlight);
     border: 1px solid var(--mcp-glass-border);
     border-radius: var(--mcp-radius-sm);
-    padding: 3px;
+    padding: 4px;
   }
 
   .fa-tab {
-    padding: 6px 12px;
+    padding: 7px 14px;
     border: none;
     border-radius: 8px;
     background: transparent;
@@ -390,12 +497,13 @@
     font-size: 11.5px;
     font-weight: 500;
     font-family: inherit;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
   }
 
   .fa-tab.active {
     background: var(--mcp-accent);
     color: var(--text-on-accent, #fff);
+    box-shadow: 0 2px 8px var(--mcp-accent-dim);
   }
 
   .fa-tab:hover:not(.active) {
@@ -407,31 +515,27 @@
   .fa-task-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .fa-task-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    background: var(--mcp-glass-bg);
-    backdrop-filter: var(--mcp-blur);
-    -webkit-backdrop-filter: var(--mcp-blur);
+    gap: 14px;
+    padding: 16px;
+    background: var(--mcp-glass-highlight);
     border: 1px solid var(--mcp-glass-border);
-    border-radius: var(--mcp-radius);
-    box-shadow: var(--mcp-shadow);
-    transition: all var(--mcp-transition);
+    border-radius: var(--mcp-radius-sm);
+    transition: all 0.2s ease;
   }
 
   .fa-task-item:hover {
     border-color: var(--mcp-accent);
     transform: translateY(-1px);
-    box-shadow: var(--mcp-shadow-glow);
   }
 
   .fa-task-item.completed {
-    opacity: 0.75;
+    opacity: 0.7;
   }
 
   .fa-task-item.completed .fa-task-title {
@@ -448,6 +552,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
   }
 
   .fa-task-info {
@@ -489,14 +594,14 @@
   }
 
   .fa-task-earning {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 700;
     color: var(--mcp-success);
   }
 
   /* ── Income Section ─────────────────────────────────── */
   .fa-add-btn {
-    padding: 6px 12px;
+    padding: 8px 16px;
     border: 1px solid var(--mcp-glass-border);
     border-radius: var(--mcp-radius-sm);
     background: var(--mcp-glass-bg);
@@ -504,44 +609,45 @@
     -webkit-backdrop-filter: var(--mcp-blur);
     color: var(--mcp-accent);
     cursor: pointer;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
     font-family: inherit;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
   }
 
   .fa-add-btn:hover {
-    background: var(--mcp-surface);
+    background: var(--mcp-accent);
     border-color: var(--mcp-accent);
+    color: var(--text-on-accent, #fff);
+    transform: translateY(-1px);
   }
 
   .fa-add-form {
     display: grid;
     grid-template-columns: 1fr 120px 140px auto;
-    gap: 8px;
-    margin-bottom: 12px;
-    padding: 14px;
-    background: var(--mcp-glass-bg);
-    backdrop-filter: var(--mcp-blur);
-    -webkit-backdrop-filter: var(--mcp-blur);
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 16px;
+    background: var(--mcp-glass-highlight);
     border: 1px solid var(--mcp-glass-border);
-    border-radius: var(--mcp-radius);
+    border-radius: var(--mcp-radius-sm);
   }
 
   .fa-input {
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: 1px solid var(--mcp-glass-border);
-    border-radius: 8px;
+    border-radius: var(--mcp-radius-sm);
     background: var(--background-primary);
     color: var(--mcp-text);
     font-size: 12.5px;
     font-family: inherit;
-    transition: border-color 0.15s;
+    transition: all 0.2s ease;
   }
 
   .fa-input:focus {
     border-color: var(--mcp-accent);
     outline: none;
+    box-shadow: 0 0 0 3px var(--mcp-accent-dim);
   }
 
   .fa-input-amount {
@@ -549,47 +655,43 @@
   }
 
   .fa-submit-btn {
-    padding: 8px 16px;
+    padding: 10px 18px;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--mcp-radius-sm);
     background: var(--mcp-accent);
     color: var(--text-on-accent, #fff);
     cursor: pointer;
     font-size: 12px;
     font-weight: 500;
     font-family: inherit;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
   }
 
   .fa-submit-btn:hover {
-    opacity: 0.9;
     transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--mcp-accent-dim);
   }
 
   .fa-income-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .fa-income-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
-    background: var(--mcp-glass-bg);
-    backdrop-filter: var(--mcp-blur);
-    -webkit-backdrop-filter: var(--mcp-blur);
+    padding: 16px;
+    background: var(--mcp-glass-highlight);
     border: 1px solid var(--mcp-glass-border);
-    border-radius: var(--mcp-radius);
-    box-shadow: var(--mcp-shadow);
-    transition: all var(--mcp-transition);
+    border-radius: var(--mcp-radius-sm);
+    transition: all 0.2s ease;
   }
 
   .fa-income-item:hover {
     border-color: var(--mcp-accent);
     transform: translateY(-1px);
-    box-shadow: var(--mcp-shadow-glow);
   }
 
   .fa-income-info {
@@ -615,7 +717,7 @@
   }
 
   .fa-income-amount {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
     color: var(--mcp-success);
   }
@@ -625,11 +727,11 @@
     border: none;
     color: var(--mcp-text-muted);
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 6px 10px;
     font-size: 12px;
-    border-radius: 6px;
+    border-radius: var(--mcp-radius-sm);
     opacity: 0.4;
-    transition: all 0.15s;
+    transition: all 0.2s ease;
   }
 
   .fa-income-item:hover .fa-delete-btn {
@@ -669,6 +771,14 @@
       margin-top: 8px;
       padding-top: 8px;
       border-top: 1px solid var(--mcp-glass-border);
+    }
+
+    .fa-summary-value {
+      font-size: 18px;
+    }
+
+    .fa-task-earning {
+      font-size: 14px;
     }
   }
 </style>

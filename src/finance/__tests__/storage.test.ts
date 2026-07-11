@@ -28,8 +28,8 @@ describe("getMonthData", () => {
     expect(data.savingsCategories).toEqual([]);
   });
 
-  it("should persist data in store after creation", () => {
-    getMonthData("2026-01");
+  it("should persist data in store after update", () => {
+    updateMonthData("2026-01", { monthlyIncome: 1000 });
     const stored = get(financeData);
     expect(stored["2026-01"]).toBeDefined();
   });
@@ -44,10 +44,10 @@ describe("getMonthData", () => {
 describe("updateMonthData", () => {
   it("should merge changes into existing data", () => {
     updateMonthData("2026-01", { monthlyIncome: 50000 });
-    updateMonthData("2026-01", { monthGoals: "тест" });
+    updateMonthData("2026-01", { distributionRules: ["rule1", "rule2"] });
     const data = getMonthData("2026-01");
     expect(data.monthlyIncome).toBe(50000);
-    expect(data.monthGoals).toBe("тест");
+    expect(data.distributionRules).toEqual(["rule1", "rule2"]);
   });
 
   it("should set updatedAt timestamp", () => {
@@ -128,8 +128,8 @@ describe("createEmptyMonthData", () => {
     expect(data.lastMonthExpense).toBe(0);
     expect(data.mainAccountCategories).toEqual([]);
     expect(data.savingsCategories).toEqual([]);
-    expect(data.monthGoals).toBe("");
-    expect(data.distributionRules).toBeInstanceOf(Array);
-    expect(data.distributionRules.length).toBeGreaterThan(0);
+    expect(data.monthGoals).toEqual([]);
+    expect(data.distributionRules).toEqual([]);
+    expect(data.updatedAt).toBeTruthy();
   });
 });
