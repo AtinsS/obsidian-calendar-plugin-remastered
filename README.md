@@ -3,6 +3,10 @@
 Календарь, трекер задач и привычек, финансовый планировщик — всё в одном плагине для [Obsidian](https://obsidian.md).
 Разработан на основе [Calendar](https://github.com/liamcain/obsidian-calendar-plugin) от Liam Cain.
 
+> [!attention] Важно
+> Для мобильного обсидиана адаптация хромает, пэтому в будущем будет реализован мобильный функционал отдельным приложением.
+
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Obsidian](https://img.shields.io/badge/Obsidian-1.12.7-7C3AED?logo=obsidian)](https://obsidian.md)
 [![Svelte](https://img.shields.io/badge/Svelte-3.x-FF3E00?logo=svelte)](https://svelte.dev/)
@@ -24,7 +28,6 @@
 - Создание задач одним кликом по свободному слоту
 - Перетаскивание событий (drag & drop) для изменения времени
 - Цветовая индикация проектов
-- Адаптация под мобильный Obsidian
 
 ### ✅ Трекер задач
 Мини-канбан с четырьмя статусами:
@@ -127,11 +130,6 @@
 
 [Svelte 3.x](https://svelte.dev/) · [FullCalendar 6.x](https://fullcalendar.io/) · [Luxon 3.x](https://moment.github.io/luxon/) · [TypeScript 4.x](https://www.typescriptlang.org/) · Canvas API
 
----
-
-## Что ещё хочу добавить?
-
-- Телеграмм-бот с напоминаниями (может быть не только)
 
 ---
 
