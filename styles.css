@@ -205,6 +205,98 @@ table {
   max-height: calc(70vh - 60px);
 }
 
+.month-goals-remaining {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.month-goals-nav-btn {
+  background: transparent;
+  border: 1px solid var(--mcp-accent);
+  border-radius: 6px;
+  font-size: 12px;
+  padding: 3px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+
+.month-goals-nav-btn:hover {
+  background: var(--mcp-accent-dim);
+}
+
+.goal-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--background-modifier-border, #333);
+}
+
+.goal-item:last-child {
+  border-bottom: none;
+}
+
+.goal-number {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 20px;
+}
+
+.goal-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.goal-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.goal-amounts-detail {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.goal-remaining {
+  font-size: 11px;
+  color: var(--interactive-accent);
+  font-weight: 600;
+}
+
+.goal-remaining.done {
+  color: var(--text-success, #80c8a0);
+}
+
+.goals-modal-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--background-modifier-border, #333);
+  display: flex;
+  justify-content: center;
+}
+
+.goals-modal-nav-btn {
+  padding: 8px 16px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent, #fff);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.goals-modal-nav-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
 .settings-banner {
   background: var(--mcp-glass-bg);
   backdrop-filter: var(--mcp-blur);
@@ -749,6 +841,17 @@ content: attr(data-task-count);
   background: var(--mcp-accent);
   border-color: var(--mcp-accent);
   box-shadow: var(--mcp-shadow-glow);
+}
+
+.task-tracker-filter-btn.dragging {
+  opacity: 0.4;
+  transform: scale(0.95);
+}
+
+.task-tracker-filter-btn.drag-over {
+  border-color: var(--mcp-accent);
+  box-shadow: 0 0 0 2px var(--mcp-accent);
+  transform: scale(1.05);
 }
 
 .task-tracker-filter-separator {

@@ -223,20 +223,46 @@ export default class CalendarView extends ItemView {
 
     if (goals.length === 0) return;
 
-    const firstGoal = goals[0];
-    const label = firstGoal.name || firstGoal;
-
     if (goals.length === 1) {
+      const goal = goals[0];
+      const remaining = (goal.targetAmount || 0) - (goal.currentAmount || 0);
+      const remainingText = remaining > 0
+        ? `Осталось накопить: ${remaining.toLocaleString("ru-RU")} ₽`
+        : (remaining === 0 ? "Цель достигнута!" : `Превышено на ${Math.abs(remaining).toLocaleString("ru-RU")} ₽`);
+
       const wrapper = this.goalsContainer.createDiv({ cls: "month-goals-single" });
-      wrapper.createEl("span", { text: firstGoal.icon || "🎯", cls: "month-goals-icon" });
-      wrapper.createEl("span", { text: `Цель: ${label}`, cls: "month-goals-text" });
+      wrapper.createEl("span", { text: goal.icon || "🎯", cls: "month-goals-icon" });
+      const textEl = wrapper.createEl("span", { cls: "month-goals-text" });
+      textEl.createEl("strong", { text: goal.name || "Цель" });
+      textEl.createEl("span", { text: ` — ${remainingText}`, cls: "month-goals-remaining" });
+
+      const navBtn = wrapper.createEl("button", { text: "💰", cls: "month-goals-nav-btn" });
+      navBtn.title = "Перейти к распределению средств";
+      navBtn.addEventListener("click", () => {
+        if (this.plugin) {
+          this.plugin.activateFinanceView();
+        }
+      });
     } else {
       const wrapper = this.goalsContainer.createDiv({ cls: "month-goals-multi" });
-      wrapper.createEl("span", { text: firstGoal.icon || "🎯", cls: "month-goals-icon" });
-      wrapper.createEl("span", { text: `Цель: ${label}`, cls: "month-goals-text" });
-      const showBtn = wrapper.createEl("button", { text: `Показать все (${goals.length})`, cls: "month-goals-show-btn" });
+      wrapper.createEl("span", { text: "🎯", cls: "month-goals-icon" });
+      const summary = goals.map(g => {
+        const rem = (g.targetAmount || 0) - (g.currentAmount || 0);
+        return `${g.icon || "🎯"} ${g.name || "Цель"}: ${rem > 0 ? `ост. ${rem.toLocaleString("ru-RU")} ₽` : "✓"}`;
+      }).join(" | ");
+      wrapper.createEl("span", { text: summary, cls: "month-goals-text" });
+
+      const showBtn = wrapper.createEl("button", { text: `Все (${goals.length})`, cls: "month-goals-show-btn" });
       showBtn.addEventListener("click", () => {
         this.showGoalsModal(monthKey);
+      });
+
+      const navBtn = wrapper.createEl("button", { text: "💰", cls: "month-goals-nav-btn" });
+      navBtn.title = "Перейти к распределению средств";
+      navBtn.addEventListener("click", () => {
+        if (this.plugin) {
+          this.plugin.activateFinanceView();
+        }
       });
     }
   }
@@ -259,11 +285,30 @@ export default class CalendarView extends ItemView {
 
     const body = modal.createDiv({ cls: "goals-modal-body" });
     goals.forEach((goal: any, i: number) => {
+      const remaining = (goal.targetAmount || 0) - (goal.currentAmount || 0);
       const item = body.createDiv({ cls: "goal-item" });
       item.createEl("span", { text: `${i + 1}.`, cls: "goal-number" });
       const name = goal.name || goal;
       const icon = goal.icon || "🎯";
       item.createEl("span", { text: `${icon} ${name}`, cls: "goal-text" });
+      const amountsEl = item.createDiv({ cls: "goal-amounts" });
+      amountsEl.createEl("span", {
+        text: `${(goal.currentAmount || 0).toLocaleString("ru-RU")} ₽ / ${(goal.targetAmount || 0).toLocaleString("ru-RU")} ₽`,
+        cls: "goal-amounts-detail",
+      });
+      amountsEl.createEl("span", {
+        text: remaining > 0 ? `Осталось: ${remaining.toLocaleString("ru-RU")} ₽` : (remaining === 0 ? "✓ Достигнуто" : `Превышено: ${Math.abs(remaining).toLocaleString("ru-RU")} ₽`),
+        cls: remaining > 0 ? "goal-remaining" : "goal-remaining done",
+      });
+    });
+
+    const footer = modal.createDiv({ cls: "goals-modal-footer" });
+    const navBtn = footer.createEl("button", { text: "💰 Перейти к распределению", cls: "goals-modal-nav-btn" });
+    navBtn.addEventListener("click", () => {
+      close();
+      if (this.plugin) {
+        this.plugin.activateFinanceView();
+      }
     });
 
     const close = () => overlay.remove();

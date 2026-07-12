@@ -6,6 +6,7 @@ import type { ITask, RecurrenceConfig } from "./types";
 import { projects, selectedDate } from "./stores";
 import { settings } from "../ui/stores";
 import { FolderSuggestModal } from "../modals/FolderSuggestModal";
+import { FileSuggestModal } from "../modals/FileSuggestModal";
 
 export class TaskModal extends Modal {
   private task: ITask | null;
@@ -16,11 +17,14 @@ export class TaskModal extends Modal {
   private dateUID = "";
   private dateValue = "";
   private priority: "low" | "medium" | "high" = "medium";
-  private isNoteTask = false;
-  private notePathInput = "";
+  private notePathInput = ""; // привязанная существующая заметка
+  private isNoteTask = false; // создать новую заметку
+  private newNotePathInput = ""; // путь для новой заметки
   private recurrenceType: "none" | "daily" | "weekly" | "monthly" = "none";
   private recurrenceInterval = 1;
   private recurrenceDaysOfWeek: number[] = [];
+  private recurrenceUntilDateUID = "";
+  private recurrenceUntilDateValue = "";
   private estimatedTimeHours = "";
   private estimatedTimeMinutes = "";
   private scheduledTime = "";
@@ -48,12 +52,19 @@ export class TaskModal extends Modal {
       this.dateUID = this.task.dateUID;
       this.dateValue = this.extractDateValue(this.task.dateUID);
       this.priority = this.task.priority;
-      this.isNoteTask = !!this.task.notePath;
+      this.isNoteTask = !!this.task.isNoteTask;
       this.notePathInput = this.task.notePath || "";
+      if (this.task.isNoteTask && this.task.notePath) {
+        this.newNotePathInput = this.task.notePath;
+      }
       if (this.task.recurrence) {
         this.recurrenceType = this.task.recurrence.type;
         this.recurrenceInterval = this.task.recurrence.interval || 1;
         this.recurrenceDaysOfWeek = this.task.recurrence.daysOfWeek || [];
+        if (this.task.recurrence.until) {
+          this.recurrenceUntilDateUID = this.task.recurrence.until;
+          this.recurrenceUntilDateValue = this.extractDateValue(this.task.recurrence.until);
+        }
       }
       if (this.task.estimatedTime) {
         const totalMin = this.task.estimatedTime;
@@ -98,6 +109,7 @@ export class TaskModal extends Modal {
       text: this.task ? "Редактировать задачу" : "Новая задача",
     });
 
+    // 1. Название
     new Setting(contentEl)
       .setName("Название")
       .addText((text) =>
@@ -107,31 +119,12 @@ export class TaskModal extends Modal {
           .onChange((value) => {
             this.titleInput = value;
             if (this.isNoteTask && !this.task) {
-              this.updateNotePathPreview();
+              this.updateNewNotePathPreview();
             }
           })
       );
 
-    const projectOptions: Record<string, string> = { "": "Без проекта" };
-    get(projects).forEach((p) => {
-      projectOptions[p.id] = `${p.icon} ${p.name}`;
-    });
-
-    new Setting(contentEl)
-      .setName("Проект")
-      .addDropdown((dropdown) => {
-        Object.entries(projectOptions).forEach(([id, label]) => {
-          dropdown.addOption(id, label);
-        });
-        dropdown.setValue(this.projectId || "");
-        dropdown.onChange((value) => {
-          this.projectId = value || null;
-          if (this.isNoteTask && !this.task) {
-            this.updateNotePathPreview();
-          }
-        });
-      });
-
+    // 2. Дата
     new Setting(contentEl)
       .setName("Дата")
       .addText((text) => {
@@ -152,6 +145,28 @@ export class TaskModal extends Modal {
         text.inputEl.type = "date";
       });
 
+    // 3. Проект
+    const projectOptions: Record<string, string> = { "": "Без проекта" };
+    get(projects).forEach((p) => {
+      projectOptions[p.id] = `${p.icon} ${p.name}`;
+    });
+
+    new Setting(contentEl)
+      .setName("Проект")
+      .addDropdown((dropdown) => {
+        Object.entries(projectOptions).forEach(([id, label]) => {
+          dropdown.addOption(id, label);
+        });
+        dropdown.setValue(this.projectId || "");
+        dropdown.onChange((value) => {
+          this.projectId = value || null;
+          if (this.isNoteTask && !this.task) {
+            this.updateNewNotePathPreview();
+          }
+        });
+      });
+
+    // 4. Приоритет
     new Setting(contentEl)
       .setName("Приоритет")
       .addDropdown((dropdown) => {
@@ -164,36 +179,78 @@ export class TaskModal extends Modal {
         });
       });
 
+    // 5. Привязать существующую заметку
+    this.boundNoteSetting = new Setting(contentEl)
+      .setName("Заметка")
+      .setDesc("Привязать существующую заметку к задаче")
+      .addText((text) =>
+        text
+          .setPlaceholder("Путь/к/заметке.md")
+          .setValue(this.notePathInput)
+          .onChange((value) => {
+            this.notePathInput = value;
+          })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("...")
+          .setTooltip("Выбрать файл")
+          .onClick(() => {
+            new FileSuggestModal(this.app, (filePath) => {
+              this.notePathInput = filePath;
+              const input = this.boundNoteSetting.settingEl.querySelector(
+                "input"
+              ) as HTMLInputElement | null;
+              if (input) input.value = filePath;
+            }).open();
+          })
+      );
+
+    // 6. Создать как заметку
     new Setting(contentEl)
-      .setName("Ожидаемое время")
-      .setDesc("Необязательно. Часы и минуты.")
-      .addText((text) => {
-        text
-          .setPlaceholder("ч")
-          .setValue(this.estimatedTimeHours)
-          .onChange((value) => {
-            this.estimatedTimeHours = value;
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "0";
-        text.inputEl.max = "24";
-        text.inputEl.style.maxWidth = "50px";
-        text.inputEl.placeholder = "ч";
-      })
-      .addText((text) => {
-        text
-          .setPlaceholder("мин")
-          .setValue(this.estimatedTimeMinutes)
-          .onChange((value) => {
-            this.estimatedTimeMinutes = value;
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "0";
-        text.inputEl.max = "59";
-        text.inputEl.style.maxWidth = "50px";
-        text.inputEl.placeholder = "мин";
+      .setName("Создать как заметку")
+      .setDesc("Создать .md файл с названием задачи")
+      .addToggle((toggle) => {
+        toggle.setValue(this.isNoteTask);
+        toggle.onChange((value) => {
+          this.isNoteTask = value;
+          this.newNotePathSetting.settingEl.style.display = value ? "" : "none";
+        });
       });
 
+    this.newNotePathSetting = new Setting(contentEl)
+      .setName("Путь к заметке")
+      .setDesc("Путь будет создан автоматически, можно отредактировать")
+      .addText((text) =>
+        text
+          .setPlaceholder("Папка/Название.md")
+          .setValue(this.newNotePathInput)
+          .onChange((value) => {
+            this.newNotePathInput = value;
+          })
+      )
+      .addButton((btn) =>
+        btn
+          .setButtonText("...")
+          .setTooltip("Выбрать папку")
+          .onClick(() => {
+            new FolderSuggestModal(this.app, (folder) => {
+              const title = this.titleInput.trim().replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_") || "Название";
+              const path = folder ? `${folder}/${title}.md` : `${title}.md`;
+              this.newNotePathInput = path;
+              const input = this.newNotePathSetting.settingEl.querySelector(
+                "input"
+              ) as HTMLInputElement | null;
+              if (input) input.value = path;
+            }).open();
+          })
+      );
+
+    if (!this.isNoteTask) {
+      this.newNotePathSetting.settingEl.style.display = "none";
+    }
+
+    // 7. Запланировано на
     new Setting(contentEl)
       .setName("Запланировано на")
       .setDesc("Необязательно. Время выполнения задачи.")
@@ -208,6 +265,7 @@ export class TaskModal extends Modal {
         text.inputEl.style.maxWidth = "120px";
       });
 
+    // 8. Дедлайн
     new Setting(contentEl)
       .setName("Дедлайн")
       .setDesc("Необязательно. Крайний срок выполнения задачи.")
@@ -239,7 +297,122 @@ export class TaskModal extends Modal {
         text.inputEl.style.maxWidth = "120px";
       });
 
-    // Work task section
+    // 9. Ожидаемое время
+    new Setting(contentEl)
+      .setName("Ожидаемое время")
+      .setDesc("Необязательно. Часы и минуты.")
+      .addText((text) => {
+        text
+          .setPlaceholder("ч")
+          .setValue(this.estimatedTimeHours)
+          .onChange((value) => {
+            this.estimatedTimeHours = value;
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.max = "24";
+        text.inputEl.style.maxWidth = "50px";
+        text.inputEl.placeholder = "ч";
+      })
+      .addText((text) => {
+        text
+          .setPlaceholder("мин")
+          .setValue(this.estimatedTimeMinutes)
+          .onChange((value) => {
+            this.estimatedTimeMinutes = value;
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "0";
+        text.inputEl.max = "59";
+        text.inputEl.style.maxWidth = "50px";
+        text.inputEl.placeholder = "мин";
+      });
+
+    // 10. Повторение
+    new Setting(contentEl)
+      .setName("Повторение")
+      .setDesc("Настройка повторяющейся задачи")
+      .addDropdown((dropdown) => {
+        dropdown.addOption("none", "Нет");
+        dropdown.addOption("daily", "Ежедневно");
+        dropdown.addOption("weekly", "Еженедельно");
+        dropdown.addOption("monthly", "Ежемесячно");
+        dropdown.setValue(this.recurrenceType);
+        dropdown.onChange((value) => {
+          this.recurrenceType = value as "none" | "daily" | "weekly" | "monthly";
+          this.updateRecurrenceSettings();
+        });
+      });
+
+    this.recurrenceIntervalSetting = new Setting(contentEl)
+      .setName("Интервал")
+      .addText((text) => {
+        text
+          .setPlaceholder("1")
+          .setValue(String(this.recurrenceInterval))
+          .onChange((value) => {
+            this.recurrenceInterval = Math.max(1, parseInt(value) || 1);
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.style.maxWidth = "80px";
+      });
+
+    this.recurrenceDaysSetting = new Setting(contentEl)
+      .setName("Дни недели");
+
+    this.recurrenceUntilSetting = new Setting(contentEl)
+      .setName("Повторять до")
+      .setDesc("Необязательно. Дата, до которой повторять задачу (включительно).")
+      .addText((text) => {
+        text
+          .setPlaceholder("ГГГГ-ММ-ДД")
+          .setValue(this.recurrenceUntilDateValue)
+          .onChange((value) => {
+            this.recurrenceUntilDateValue = value;
+            if (value) {
+              const m = window.moment(value, "YYYY-MM-DD", true);
+              if (m.isValid()) {
+                this.recurrenceUntilDateUID = getDateUID(m, "day");
+              }
+            } else {
+              this.recurrenceUntilDateUID = "";
+            }
+          });
+        text.inputEl.type = "date";
+      });
+
+    // Visual order: Mon-Sun, but moment convention: 0=Sun,1=Mon,...,6=Sat
+    const dayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+    const dayIndices = [1, 2, 3, 4, 5, 6, 0]; // moment day-of-week indices
+    const daysContainer = this.recurrenceDaysSetting.settingEl.createDiv({
+      cls: "task-tracker-recurrence-days",
+    });
+    for (let i = 0; i < 7; i++) {
+      const momentIdx = dayIndices[i];
+      const dayBtn = daysContainer.createEl("button", {
+        text: dayLabels[i],
+        cls: "task-tracker-recurrence-day-btn",
+      });
+      if (this.recurrenceDaysOfWeek.includes(momentIdx)) {
+        dayBtn.addClass("active");
+      }
+      dayBtn.addEventListener("click", () => {
+        const idx = this.recurrenceDaysOfWeek.indexOf(momentIdx);
+        if (idx >= 0) {
+          this.recurrenceDaysOfWeek.splice(idx, 1);
+          dayBtn.removeClass("active");
+        } else {
+          this.recurrenceDaysOfWeek.push(momentIdx);
+          this.recurrenceDaysOfWeek.sort();
+          dayBtn.addClass("active");
+        }
+      });
+    }
+
+    this.updateRecurrenceSettings();
+
+    // 11. Рабочая задача
     new Setting(contentEl)
       .setName("Рабочая")
       .setDesc("Пометить задачу как рабочую для учёта заработка")
@@ -314,115 +487,6 @@ export class TaskModal extends Modal {
 
     this.updateWorkTaskSettings();
 
-    // Recurrence section
-    new Setting(contentEl)
-      .setName("Повторение")
-      .setDesc("Настройка повторяющейся задачи")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("none", "Нет");
-        dropdown.addOption("daily", "Ежедневно");
-        dropdown.addOption("weekly", "Еженедельно");
-        dropdown.addOption("monthly", "Ежемесячно");
-        dropdown.setValue(this.recurrenceType);
-        dropdown.onChange((value) => {
-          this.recurrenceType = value as "none" | "daily" | "weekly" | "monthly";
-          this.updateRecurrenceSettings();
-        });
-      });
-
-    this.recurrenceIntervalSetting = new Setting(contentEl)
-      .setName("Интервал")
-      .addText((text) => {
-        text
-          .setPlaceholder("1")
-          .setValue(String(this.recurrenceInterval))
-          .onChange((value) => {
-            this.recurrenceInterval = Math.max(1, parseInt(value) || 1);
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "1";
-        text.inputEl.style.maxWidth = "80px";
-      });
-
-    this.recurrenceDaysSetting = new Setting(contentEl)
-      .setName("Дни недели");
-
-    // Visual order: Mon-Sun, but moment convention: 0=Sun,1=Mon,...,6=Sat
-    const dayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-    const dayIndices = [1, 2, 3, 4, 5, 6, 0]; // moment day-of-week indices
-    const daysContainer = this.recurrenceDaysSetting.settingEl.createDiv({
-      cls: "task-tracker-recurrence-days",
-    });
-    for (let i = 0; i < 7; i++) {
-      const momentIdx = dayIndices[i];
-      const dayBtn = daysContainer.createEl("button", {
-        text: dayLabels[i],
-        cls: "task-tracker-recurrence-day-btn",
-      });
-      if (this.recurrenceDaysOfWeek.includes(momentIdx)) {
-        dayBtn.addClass("active");
-      }
-      dayBtn.addEventListener("click", () => {
-        const idx = this.recurrenceDaysOfWeek.indexOf(momentIdx);
-        if (idx >= 0) {
-          this.recurrenceDaysOfWeek.splice(idx, 1);
-          dayBtn.removeClass("active");
-        } else {
-          this.recurrenceDaysOfWeek.push(momentIdx);
-          this.recurrenceDaysOfWeek.sort();
-          dayBtn.addClass("active");
-        }
-      });
-    }
-
-    this.updateRecurrenceSettings();
-
-    // Note task
-    new Setting(contentEl)
-      .setName("Создать как заметку")
-      .setDesc("Создать .md файл с названием задачи")
-      .addToggle((toggle) => {
-        toggle.setValue(this.isNoteTask);
-        toggle.onChange((value) => {
-          this.isNoteTask = value;
-          this.notePathSetting.settingEl.style.display = value ? "" : "none";
-          if (value && !this.notePathInput) {
-            this.updateNotePathPreview();
-          }
-        });
-      });
-
-    const notePathSetting = new Setting(contentEl)
-      .setName("Путь к заметке")
-      .setDesc("Путь будет создан автоматически, можно отредактировать")
-      .addText((text) =>
-        text
-          .setPlaceholder("Папка/Название.md")
-          .setValue(this.notePathInput)
-          .onChange((value) => {
-            this.notePathInput = value;
-          })
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText("...")
-          .setTooltip("Выбрать папку")
-          .onClick(() => {
-            new FolderSuggestModal(this.app, (folder) => {
-              this.notePathInput = folder;
-              const input = notePathSetting.settingEl.querySelector(
-                "input"
-              ) as HTMLInputElement | null;
-              if (input) input.value = folder;
-            }).open();
-          })
-      );
-    this.notePathSetting = notePathSetting;
-
-    if (!this.isNoteTask) {
-      notePathSetting.settingEl.style.display = "none";
-    }
-
     const buttonsEl = contentEl.createDiv("task-tracker-modal-buttons");
 
     const cancelBtn = buttonsEl.createEl("button", { text: "Отмена" });
@@ -435,9 +499,11 @@ export class TaskModal extends Modal {
     submitBtn.addEventListener("click", () => this.handleSubmit());
   }
 
-  private notePathSetting: Setting;
+  private boundNoteSetting: Setting;
+  private newNotePathSetting: Setting;
   private recurrenceIntervalSetting: Setting;
   private recurrenceDaysSetting: Setting;
+  private recurrenceUntilSetting: Setting;
   private workTaskTypeSetting: Setting;
   private workTaskRateSetting: Setting;
   private workTaskOvertimeStartSetting: Setting;
@@ -446,9 +512,11 @@ export class TaskModal extends Modal {
   private updateRecurrenceSettings(): void {
     const showInterval = this.recurrenceType === "monthly";
     const showDays = this.recurrenceType === "weekly";
+    const showUntil = this.recurrenceType !== "none";
 
     this.recurrenceIntervalSetting.settingEl.style.display = showInterval ? "" : "none";
     this.recurrenceDaysSetting.settingEl.style.display = showDays ? "" : "none";
+    this.recurrenceUntilSetting.settingEl.style.display = showUntil ? "" : "none";
   }
 
   private updateWorkTaskSettings(): void {
@@ -460,19 +528,19 @@ export class TaskModal extends Modal {
     this.workTaskOvertimeMultiplierSetting.settingEl.style.display = showOvertime ? "" : "none";
   }
 
-  private updateNotePathPreview(): void {
+  private updateNewNotePathPreview(): void {
     const title = this.titleInput.trim();
     if (!title) return;
 
     const project = get(projects).find((p) => p.id === this.projectId);
     const folder = project?.folder || "";
     const filename = title.replace(/[\\/:*?"<>|]/g, "_").replace(/\s+/g, "_") + ".md";
-    this.notePathInput = folder ? `${folder}/${filename}` : filename;
+    this.newNotePathInput = folder ? `${folder}/${filename}` : filename;
 
-    if (this.notePathSetting) {
-      const input = this.notePathSetting.settingEl.querySelector("input");
+    if (this.newNotePathSetting) {
+      const input = this.newNotePathSetting.settingEl.querySelector("input");
       if (input) {
-        input.value = this.notePathInput;
+        input.value = this.newNotePathInput;
       }
     }
   }
@@ -502,6 +570,9 @@ export class TaskModal extends Modal {
       if (this.recurrenceType === "weekly" && this.recurrenceDaysOfWeek.length > 0) {
         recurrence.daysOfWeek = [...this.recurrenceDaysOfWeek];
       }
+      if (this.recurrenceUntilDateUID) {
+        recurrence.until = this.recurrenceUntilDateUID;
+      }
     }
 
     this.onSubmit({
@@ -510,7 +581,9 @@ export class TaskModal extends Modal {
       dateUID: finalDateUID,
       priority: this.priority,
       isNoteTask: this.isNoteTask,
-      notePath: this.isNoteTask ? this.notePathInput || null : null,
+      notePath: this.isNoteTask
+        ? this.newNotePathInput || null
+        : (this.notePathInput || null),
       recurrence,
       estimatedTime: (parseInt(this.estimatedTimeHours) || 0) * 60 + (parseInt(this.estimatedTimeMinutes) || 0) || undefined,
       scheduledTime: this.scheduledTime || undefined,

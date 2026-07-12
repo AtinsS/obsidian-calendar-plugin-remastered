@@ -15,8 +15,9 @@ export class HabitModal extends Modal {
   private titleInput = "";
   private iconInput = "";
   private colorInput = DEFAULT_HABIT_COLORS[0];
-  private frequencyInput: "daily" | "weekly" | "custom" = "daily";
+  private frequencyInput: "daily" | "weekly" | "monthly" = "daily";
   private customDaysInput: number[] = [];
+  private monthlyDayInput = 1;
 
   constructor(
     app: App,
@@ -31,8 +32,9 @@ export class HabitModal extends Modal {
       this.titleInput = this.habit.title;
       this.iconInput = this.habit.icon;
       this.colorInput = this.habit.color;
-      this.frequencyInput = this.habit.frequency;
+      this.frequencyInput = this.habit.frequency as "daily" | "weekly" | "monthly";
       this.customDaysInput = this.habit.customDays || [];
+      this.monthlyDayInput = this.habit.monthlyDay || 1;
     }
   }
 
@@ -92,16 +94,17 @@ export class HabitModal extends Modal {
       .setName("Частота")
       .addDropdown((dropdown) => {
         dropdown.addOption("daily", "Ежедневно");
-        dropdown.addOption("weekly", "Еженедельно");
-        dropdown.addOption("custom", "Произвольно");
+        dropdown.addOption("weekly", "Ежедневно (выбор дней)");
+        dropdown.addOption("monthly", "Ежемесячно");
         dropdown.setValue(this.frequencyInput);
         dropdown.onChange((value) => {
-          this.frequencyInput = value as "daily" | "weekly" | "custom";
-          this.updateCustomDaysVisibility();
+          this.frequencyInput = value as "daily" | "weekly" | "monthly";
+          this.updateFrequencySettingsVisibility();
         });
       });
 
-    // Custom days — visual order: Mon-Sun, moment convention: 0=Sun,1=Mon,...,6=Sat
+    // Days of week — для frequency=weekly
+    // Visual order: Mon-Sun, moment convention: 0=Sun,1=Mon,...,6=Sat
     this.customDaysSetting = new Setting(contentEl).setName("Дни недели");
     const dayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
     const dayIndices = [1, 2, 3, 4, 5, 6, 0];
@@ -130,7 +133,25 @@ export class HabitModal extends Modal {
       });
     }
 
-    this.updateCustomDaysVisibility();
+    // Monthly day picker — для frequency=monthly
+    this.monthlyDaySetting = new Setting(contentEl)
+      .setName("День месяца")
+      .setDesc("День месяца, когда выполнять привычку")
+      .addText((text) => {
+        text
+          .setPlaceholder("1-31")
+          .setValue(String(this.monthlyDayInput))
+          .onChange((value) => {
+            const v = parseInt(value) || 1;
+            this.monthlyDayInput = Math.max(1, Math.min(31, v));
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.max = "31";
+        text.inputEl.style.maxWidth = "60px";
+      });
+
+    this.updateFrequencySettingsVisibility();
 
     const buttonsEl = contentEl.createDiv("task-tracker-modal-buttons");
 
@@ -145,10 +166,13 @@ export class HabitModal extends Modal {
   }
 
   private customDaysSetting: Setting;
+  private monthlyDaySetting: Setting;
 
-  private updateCustomDaysVisibility(): void {
+  private updateFrequencySettingsVisibility(): void {
     this.customDaysSetting.settingEl.style.display =
-      this.frequencyInput === "custom" ? "" : "none";
+      this.frequencyInput === "weekly" ? "" : "none";
+    this.monthlyDaySetting.settingEl.style.display =
+      this.frequencyInput === "monthly" ? "" : "none";
   }
 
   private handleSubmit(): void {
@@ -160,8 +184,12 @@ export class HabitModal extends Modal {
       color: this.colorInput,
       frequency: this.frequencyInput,
       customDays:
-        this.frequencyInput === "custom"
+        this.frequencyInput === "weekly"
           ? [...this.customDaysInput]
+          : undefined,
+      monthlyDay:
+        this.frequencyInput === "monthly"
+          ? this.monthlyDayInput
           : undefined,
       targetCount: 1,
       archived: false,

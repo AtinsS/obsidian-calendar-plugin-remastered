@@ -324,6 +324,14 @@ export function createNextRecurringInstance(taskId: string): void {
       break;
   }
 
+  // Проверка: не выходит ли следующая дата за пределы until
+  if (task.recurrence.until) {
+    const untilMoment = moment(task.recurrence.until.replace(/^day-/, ""), "YYYY-MM-DD");
+    if (untilMoment.isValid() && nextDate.isAfter(untilMoment)) {
+      return; // повторение завершено
+    }
+  }
+
   const newDateUID = getDateUID(nextDate, "day");
 
   const existingTask = allTasks.find(
@@ -358,7 +366,7 @@ export function createNextRecurringInstance(taskId: string): void {
 }
 
 /**
- * Генерирует все экземпляры повторяющейся задачи до конца месяца.
+ * Генерирует все экземпляры повторяющейся задачи до даты until (или конца месяца если until не задан).
  * Вызывается при создании задачи с recurrence или при загрузке плагина.
  */
 export function generateMonthlyRecurringTasks(taskId: string): void {
@@ -372,14 +380,20 @@ export function generateMonthlyRecurringTasks(taskId: string): void {
   const startDate = moment(dateMatch[1], "YYYY-MM-DD");
   if (!startDate.isValid()) return;
 
-  // Конец текущего месяца
-  const endOfMonth = startDate.clone().endOf("month");
+  // Конец периода: until если задана, иначе конец текущего месяца
+  let endOfPeriod: Moment;
+  if (task.recurrence.until) {
+    const untilMoment = moment(task.recurrence.until.replace(/^day-/, ""), "YYYY-MM-DD");
+    endOfPeriod = untilMoment.isValid() ? untilMoment : startDate.clone().endOf("month");
+  } else {
+    endOfPeriod = startDate.clone().endOf("month");
+  }
 
   let currentDate = startDate.clone();
   let created = 0;
-  const maxInstances = 31; // максимум дней в месяце
+  const maxInstances = 366; // максимум — год ежедневных задач
 
-  while (currentDate.isBefore(endOfMonth) && created < maxInstances) {
+  while (currentDate.isBefore(endOfPeriod) && created < maxInstances) {
     // Вычисляем следующую дату
     let nextDate = currentDate.clone();
 
@@ -413,8 +427,8 @@ export function generateMonthlyRecurringTasks(taskId: string): void {
         break;
     }
 
-    // Если следующая дата выходит за пределы месяца — останавливаемся
-    if (nextDate.isAfter(endOfMonth)) break;
+    // Если следующая дата выходит за пределы периода — останавливаемся
+    if (nextDate.isAfter(endOfPeriod)) break;
 
     const newDateUID = getDateUID(nextDate, "day");
 
@@ -496,6 +510,46 @@ export function removeProject(id: string): void {
     current.map((t) => (t.projectId === id ? { ...t, projectId: null } : t))
   );
   debouncedSave();
+}
+
+export function reorderProjects(orderedIds: string[]): void {
+  projects.update((current) => {
+    const map = new Map(current.map((p) => [p.id, p]));
+    return orderedIds
+      .map((id, i) => {
+        const p = map.get(id);
+        if (p) return { ...p, sortOrder: i };
+        return null;
+      })
+      .filter(Boolean) as IProject[];
+  });
+  debouncedSave();
+}
+
+export function clearAllRecurringTasks(): { parentCount: number; instanceCount: number } {
+  const allTasks = get(tasks);
+  const parentIds = new Set(
+    allTasks.filter((t) => t.recurrence && !t.isRecurringInstance).map((t) => t.id)
+  );
+  const recurringInstances = allTasks.filter(
+    (t) => t.isRecurringInstance && t.parentTaskId
+  );
+  const parentRecurring = allTasks.filter(
+    (t) => t.recurrence && !t.isRecurringInstance
+  );
+
+  const parentCount = parentRecurring.length;
+  const instanceCount = recurringInstances.length;
+
+  // Remove all recurring instances and parent recurring tasks
+  const idsToRemove = new Set([
+    ...parentIds,
+    ...recurringInstances.map((t) => t.id),
+  ]);
+  tasks.update((current) => current.filter((t) => !idsToRemove.has(t.id)));
+  debouncedSave();
+
+  return { parentCount, instanceCount };
 }
 
 export function getTasksForDate(dateUID: string): ITask[] {

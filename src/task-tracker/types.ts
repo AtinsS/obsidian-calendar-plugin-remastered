@@ -2,6 +2,7 @@ export interface RecurrenceConfig {
   type: "daily" | "weekly" | "monthly";
   interval?: number;
   daysOfWeek?: number[];
+  until?: DateUID; // dateUID "day-YYYY-MM-DD" — повторение до этой даты включительно
 }
 
 export type TaskStatus = "todo" | "progress" | "done" | "paused" | "all";

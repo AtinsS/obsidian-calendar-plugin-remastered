@@ -14,6 +14,8 @@
     updateTaskStatus,
     removeTask,
     createNextRecurringInstance,
+    reorderProjects,
+    clearAllRecurringTasks,
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
   import { settings } from "../ui/stores";
@@ -147,7 +149,7 @@
           ...taskData,
           completed: false,
           status: "todo",
-          notePath: null,
+          notePath: shouldCreateNote ? null : (taskData.notePath || null),
           tags: [],
           sortOrder: allTasksForDate.length,
         } as Omit<ITask, "id" | "createdAt" | "updatedAt">);
@@ -184,7 +186,7 @@
   }
 
   async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
-    if (newStatus !== "done" || !task.notePath) return;
+    if (newStatus !== "done" || !task.notePath || !task.isNoteTask) return;
     if (!appInstance) return;
     const archivePath = $settings.archiveFolderPath || "Archive";
     const newPath = await archiveNoteTask(task.notePath, archivePath, appInstance);
@@ -243,6 +245,91 @@
   function goToToday() {
     const todayUID = getDateUID(window.moment(), "day");
     selectedDate.set(todayUID);
+  }
+
+  // Drag & Drop for project filter buttons
+  let draggedProjectId: string | null = null;
+  let dragOverProjectId: string | null = null;
+
+  function onProjectDragStart(e: DragEvent, projectId: string) {
+    draggedProjectId = projectId;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", projectId);
+    }
+  }
+
+  function onProjectDragOver(e: DragEvent, projectId: string) {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+    if (projectId !== draggedProjectId) {
+      dragOverProjectId = projectId;
+    }
+  }
+
+  function onProjectDragLeave() {
+    dragOverProjectId = null;
+  }
+
+  function onProjectDrop(e: DragEvent, targetProjectId: string) {
+    e.preventDefault();
+    dragOverProjectId = null;
+
+    if (!draggedProjectId || draggedProjectId === targetProjectId) {
+      draggedProjectId = null;
+      return;
+    }
+
+    const currentProjects = get(projects);
+    const ids = currentProjects.map((p) => p.id);
+    const fromIdx = ids.indexOf(draggedProjectId);
+    const toIdx = ids.indexOf(targetProjectId);
+
+    if (fromIdx === -1 || toIdx === -1) {
+      draggedProjectId = null;
+      return;
+    }
+
+    // Move the item
+    ids.splice(fromIdx, 1);
+    ids.splice(toIdx, 0, draggedProjectId);
+    reorderProjects(ids);
+    draggedProjectId = null;
+  }
+
+  function onProjectDragEnd() {
+    draggedProjectId = null;
+    dragOverProjectId = null;
+  }
+
+  function handleClearRecurring() {
+    const allTasksList = get(tasks);
+    const recurringParents = allTasksList.filter(
+      (t) => t.recurrence && !t.isRecurringInstance
+    );
+    const recurringInstances = allTasksList.filter(
+      (t) => t.isRecurringInstance
+    );
+    const total = recurringParents.length + recurringInstances.length;
+
+    if (total === 0) {
+      alert("Нет повторяющихся задач");
+      return;
+    }
+
+    if (
+      !confirm(
+        `Удалить ${recurringParents.length} повторяющихся задач и ${recurringInstances.length} их экземпляров?`
+      )
+    )
+      return;
+
+    const result = clearAllRecurringTasks();
+    alert(
+      `Удалено: ${result.parentCount} задач с повторением и ${result.instanceCount} экземпляров`
+    );
   }
 </script>
 
@@ -333,6 +420,13 @@
             >
               &#128465; Очистить выполненные
             </button>
+            <button
+              class="task-tracker-dropdown-item"
+              role="menuitem"
+              on:click|stopPropagation={() => { handleClearRecurring(); closeMenu(); }}
+            >
+              &#8634; Очистить повторяющиеся
+            </button>
           </div>
         {/if}
       </div>
@@ -367,9 +461,17 @@
           <button
             class="task-tracker-filter-btn project-filter"
             class:active={$taskFilter.projectId === project.id}
+            class:drag-over={dragOverProjectId === project.id}
+            class:dragging={draggedProjectId === project.id}
             style={$taskFilter.projectId === project.id
               ? `background: ${project.color}; border-color: ${project.color}; color: #fff;`
               : ''}
+            draggable="true"
+            on:dragstart={(e) => onProjectDragStart(e, project.id)}
+            on:dragover={(e) => onProjectDragOver(e, project.id)}
+            on:dragleave={onProjectDragLeave}
+            on:drop={(e) => onProjectDrop(e, project.id)}
+            on:dragend={onProjectDragEnd}
             on:click={() =>
               taskFilter.update((f) => ({
                 ...f,

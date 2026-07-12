@@ -3,8 +3,9 @@ export interface IHabit {
   title: string;
   icon: string;
   color: string;
-  frequency: "daily" | "weekly" | "custom";
+  frequency: "daily" | "weekly" | "monthly";
   customDays?: number[];
+  monthlyDay?: number; // 1-31 — день месяца для выполнения (при frequency=monthly)
   projectId?: string | null;
   targetCount: number;
   archived: boolean;

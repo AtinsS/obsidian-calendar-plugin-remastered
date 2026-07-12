@@ -22,9 +22,14 @@
   $: dateStr = extractDateStr(currentDate);
   $: activeHabits = $habits.filter((h) => {
     if (h.archived) return false;
-    if (h.frequency === "custom" && h.customDays && h.customDays.length > 0) {
-      const dayOfWeek = moment(dateStr, "YYYY-MM-DD").day(); // 0=Sun
+    const m = moment(dateStr, "YYYY-MM-DD");
+    if (h.frequency === "weekly" && h.customDays && h.customDays.length > 0) {
+      const dayOfWeek = m.day(); // 0=Sun
       return h.customDays.includes(dayOfWeek);
+    }
+    if (h.frequency === "monthly") {
+      const dayOfMonth = m.date();
+      return dayOfMonth === (h.monthlyDay || 1);
     }
     return true;
   });

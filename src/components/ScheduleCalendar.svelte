@@ -317,7 +317,12 @@
     const lines: string[] = [];
     if (task.recurrence) {
       const recMap: Record<string, string> = { daily: "Ежедневно", weekly: "Еженедельно", monthly: "Ежемесячно" };
-      lines.push(`Повторение: ${recMap[task.recurrence.type] || task.recurrence.type}`);
+      let recText = `Повторение: ${recMap[task.recurrence.type] || task.recurrence.type}`;
+      if (task.recurrence.until) {
+        const untilDate = task.recurrence.until.replace(/^day-/, "");
+        recText += ` (до ${untilDate})`;
+      }
+      lines.push(recText);
     }
     if (task.estimatedTime) {
       const h = Math.floor(task.estimatedTime / 60);
