@@ -74,13 +74,16 @@
   $: {
     $tasks;
     $financialAnalyticsData;
-    if (incomeSource === "analytics") {
+    // Only sync income from analytics after finance data has been loaded from disk
+    // (monthData.monthlyIncome is 0 only when data hasn't been loaded yet)
+    if (incomeSource === "analytics" && monthData.updatedAt) {
       const income = getWorkIncome();
-      updateMonthData(monthKey, {
-        monthlyIncome: income,
-        incomeSource: "analytics",
-      });
-      // Don't reassign monthData here — the $financeData reactive block above handles it
+      if (income !== monthData.monthlyIncome) {
+        updateMonthData(monthKey, {
+          monthlyIncome: income,
+          incomeSource: "analytics",
+        });
+      }
     }
   }
 

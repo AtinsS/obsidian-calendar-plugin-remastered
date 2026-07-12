@@ -56,6 +56,10 @@
   margin-left: 0;
 }
 
+#calendar-container .reset-button {
+  display: none;
+}
+
 table {
   margin-left: 0;
 }
@@ -2060,81 +2064,105 @@ content: attr(data-task-count);
 
   /* Panels */
   .task-tracker-panel {
-    padding: 8px 10px;
-    max-height: 38vh;
+    padding: 6px 8px;
+    max-height: 40vh;
   }
 
   .habit-tracker-panel {
-    padding: 6px 10px;
-    max-height: 32vh;
+    padding: 4px 8px;
+    max-height: 30vh;
   }
 
-  /* Header */
+  /* Header — compact row */
   .task-tracker-header,
   .habit-tracker-header {
-    padding: 6px 4px;
-    gap: 6px;
+    padding: 4px 2px;
+    gap: 4px;
+  }
+
+  .task-tracker-header-left {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
 
   .task-tracker-title,
   .habit-tracker-title {
-    font-size: 11px;
+    font-size: 10px;
+    letter-spacing: 0.5px;
   }
 
   .task-tracker-date {
-    font-size: 10px;
+    font-size: 9px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
   }
 
   .task-tracker-count {
-    font-size: 11px;
-    padding: 2px 8px;
+    font-size: 10px;
+    padding: 1px 6px;
   }
 
-  /* Buttons — touch targets */
+  /* Buttons — 44px touch targets */
   .task-tracker-btn,
   .habit-tracker-btn {
-    padding: 4px 8px;
+    padding: 4px 6px;
     font-size: 14px;
-    min-width: 32px;
-    min-height: 32px;
+    min-width: 36px;
+    min-height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  /* Search bar */
+  /* Search bar — full width */
   .task-tracker-search-bar {
-    gap: 6px;
-    padding: 8px 0;
+    gap: 4px;
+    padding: 6px 0;
   }
 
   .task-tracker-search-input {
-    padding: 8px 12px;
-    font-size: 14px;
+    padding: 10px 12px;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .task-tracker-sort-select {
-    padding: 8px 10px;
-    font-size: 12px;
+    padding: 10px 10px;
+    font-size: 14px;
   }
 
-  /* Filter bar */
+  /* Filter bar — horizontal scroll */
   .task-tracker-filter-bar {
     gap: 4px;
-    padding: 8px 0;
+    padding: 6px 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .task-tracker-filter-bar::-webkit-scrollbar {
+    display: none;
   }
 
   .task-tracker-filter-btn {
-    padding: 6px 12px;
+    padding: 5px 10px;
     font-size: 11px;
-    min-height: 32px;
+    min-height: 34px;
+    flex-shrink: 0;
   }
 
-  /* Task items — compact on mobile */
+  /* Task items — compact */
   .task-item {
-    padding: 6px 4px;
+    padding: 5px 4px;
     gap: 4px;
     min-height: 38px;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
   .task-title {
@@ -2144,23 +2172,43 @@ content: attr(data-task-count);
   }
 
   .task-recurring-icon {
-    font-size: 12px;
+    font-size: 11px;
   }
 
+  /* Task metadata — compact inline */
   .task-scheduled,
   .task-timer,
   .task-estimate,
   .task-estimate-compare {
-    font-size: 11px;
+    font-size: 10px;
+    padding: 1px 3px;
+    border-radius: 4px;
+  }
+
+  .task-deadline {
+    font-size: 10px;
+    padding: 1px 3px;
+    border-radius: 4px;
+  }
+
+  .task-status-badge {
+    font-size: 9px;
     padding: 1px 4px;
   }
 
-  .task-edit-btn,
-  .task-delete-btn {
-    padding: 4px 6px;
-    font-size: 12px;
-    min-width: 28px;
-    min-height: 28px;
+  .task-work-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+
+  .task-work-started,
+  .task-work-paused {
+    font-size: 9px;
+  }
+
+  .task-priority {
+    font-size: 10px;
+    padding: 1px 6px;
   }
 
   .checkmark {
@@ -2168,17 +2216,12 @@ content: attr(data-task-count);
     height: 20px;
   }
 
-  .task-priority {
-    font-size: 11px;
-    padding: 2px 8px;
-  }
-
   /* Edit/delete always visible on touch */
   .task-edit-btn,
   .task-delete-btn,
   .task-move-btn {
     opacity: 0.6;
-    padding: 6px 10px;
+    padding: 6px 8px;
     font-size: 14px;
     min-width: 36px;
     min-height: 36px;
@@ -2189,18 +2232,18 @@ content: attr(data-task-count);
 
   /* Habit items */
   .habit-item {
-    padding: 6px 4px;
-    gap: 6px;
-    min-height: 36px;
+    padding: 4px 4px;
+    gap: 5px;
+    min-height: 34px;
   }
 
   .habit-check-btn {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
   }
 
   .habit-icon {
-    font-size: 15px;
+    font-size: 14px;
   }
 
   .habit-title {
@@ -2208,8 +2251,8 @@ content: attr(data-task-count);
   }
 
   .habit-streak {
-    font-size: 11px;
-    padding: 1px 6px;
+    font-size: 10px;
+    padding: 1px 5px;
   }
 
   .habit-edit-btn,
@@ -2217,8 +2260,8 @@ content: attr(data-task-count);
     opacity: 0.6;
     padding: 4px 6px;
     font-size: 12px;
-    min-width: 30px;
-    min-height: 30px;
+    min-width: 32px;
+    min-height: 32px;
   }
 
   /* Modals */
@@ -2260,7 +2303,7 @@ content: attr(data-task-count);
     font-size: 11px;
   }
 
-  /* Time logs modal — adapt for keyboard */
+  /* Time logs modal */
   .time-logs-modal {
     max-height: 50vh;
   }
@@ -2271,7 +2314,7 @@ content: attr(data-task-count);
 
   /* Group headers */
   .task-group-header {
-    padding: 10px 0 4px;
+    padding: 8px 0 3px;
   }
 
   /* Project items */
@@ -2298,15 +2341,25 @@ content: attr(data-task-count);
     display: flex !important;
   }
 
-  /* Compact kanban tabs on mobile */
+  /* Kanban tabs — horizontal scroll */
   .kanban-tabs {
     gap: 2px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .kanban-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .kanban-tab {
     padding: 4px 7px;
     font-size: 10px;
     gap: 3px;
+    flex-shrink: 0;
   }
 
   .kanban-tab-icon {
@@ -2373,6 +2426,19 @@ content: attr(data-task-count);
     white-space: pre-wrap;
     word-break: break-word;
   }
+
+  /* Schedule open button */
+  .schedule-open-btn {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Month goals indicator */
+  .month-goals-single,
+  .month-goals-multi {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
 }
 
 /* ============================================
@@ -2393,29 +2459,29 @@ content: attr(data-task-count);
 
   .task-tracker-panel,
   .habit-tracker-panel {
-    padding: 8px 8px;
-    max-height: 45vh;
+    padding: 6px 6px;
+    max-height: 42vh;
   }
 
   .task-tracker-title,
   .habit-tracker-title {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .task-item {
-    padding: 8px 6px;
-    gap: 6px;
-    min-height: 40px;
+    padding: 6px 4px;
+    gap: 4px;
+    min-height: 36px;
   }
 
   .task-title {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .habit-item {
-    padding: 5px 4px;
-    gap: 4px;
-    min-height: 32px;
+    padding: 4px 3px;
+    gap: 3px;
+    min-height: 30px;
   }
 
   .habit-title {
@@ -2425,7 +2491,7 @@ content: attr(data-task-count);
   .task-tracker-filter-btn {
     padding: 4px 8px;
     font-size: 10px;
-    min-height: 28px;
+    min-height: 30px;
   }
 
   /* Hide description on smallest screens */
@@ -2435,11 +2501,11 @@ content: attr(data-task-count);
 
   /* Habit panel even more compact */
   .habit-tracker-panel {
-    max-height: 28vh;
+    max-height: 26vh;
   }
 
   .task-tracker-panel {
-    max-height: 35vh;
+    max-height: 34vh;
   }
 
   /* Modals — full width on smallest screens */
@@ -2457,6 +2523,18 @@ content: attr(data-task-count);
   .time-logs-modal {
     width: 95%;
     max-height: 60vh;
+  }
+
+  .task-tracker-btn,
+  .habit-tracker-btn {
+    min-width: 34px;
+    min-height: 34px;
+    font-size: 13px;
+  }
+
+  .kanban-tab {
+    padding: 3px 6px;
+    font-size: 9px;
   }
 }
 
@@ -2871,11 +2949,6 @@ content: attr(data-task-count);
     min-width: 40px;
     flex: 1;
     max-width: 80px;
-  }
-
-  .schedule-view-container .fc .fc-today-button {
-    min-width: 60px;
-    max-width: none;
   }
 
   .schedule-view-container .fc .fc-timegrid-axis-cushion,

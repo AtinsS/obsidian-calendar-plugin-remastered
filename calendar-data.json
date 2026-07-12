@@ -1,3185 +1,1477 @@
 {
   "taskTracker": {
-    "version": 6,
+    "tasks": [
+      {
+        "title": "Работа контур",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "dateUID": "day-2026-07-01T00:00:00+03:00",
+        "priority": "medium",
+        "isNoteTask": false,
+        "notePath": null,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "estimatedTime": 540,
+        "scheduledTime": "07:00",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "completed": true,
+        "status": "done",
+        "tags": [],
+        "sortOrder": 0,
+        "id": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "createdAt": 1783858026375,
+        "updatedAt": 1783858030378
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-02T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "37759476-0d62-46f0-9a37-ce32a6315aa2",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858031934
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-03T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "3d34036d-4fc4-415d-bcb9-a75211f33e59",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858033390
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-06T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "1a277d6e-d83a-4a85-ae7e-38434b643aea",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858036502
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-07T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "d3e24963-8d59-4767-8f5b-97b72971d4aa",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858040172
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-08T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "2ad5ad43-edc9-4d39-a531-838a143e3def",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858042263
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-09T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "de1bf262-71e1-4a64-bd7e-9a2704ad5a29",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858044877
+      },
+      {
+        "title": "Работа контур",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-10T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "4a009e66-d89f-4977-abd4-6d2b311a9eb5",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858046215
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-13T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "9afc274c-7100-42b6-bfbf-bc2edc3748cb",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858026428
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-14T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "e4f994e8-1771-4dfc-8315-21802a339d0a",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858026428
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-15T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "be3e6c10-9bc7-4a58-bf52-66ba9c987263",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858026428
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-16T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "934b4020-cfa4-488d-8c2b-ddafcaa78b78",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858026428
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-17T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "16b0937a-b281-4786-b526-f7424a2cc650",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858026428
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-20T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "4a6fa1b0-2c5a-4c42-840d-284567595b58",
+        "createdAt": 1783858026428,
+        "updatedAt": 1783858026428
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-21T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "cec8297b-4630-4a7b-bb89-6d20a63cf3f6",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-22T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "9531d904-4f55-49f1-9657-103b477e4a0f",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-23T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "20ddeba7-7680-440f-aa10-6219569d9bbf",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-24T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "b7403157-8492-4810-84da-10d49a7e16d6",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-27T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "e02e667a-9e33-4350-b31a-6a854c3101f6",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-28T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "91839782-a8b6-4c47-81be-fadb34e4b77a",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-29T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "11244bb0-9f0f-4ea5-b689-4cc31226ed68",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-30T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "6b919fd6-f829-480f-bb2e-bc83a279d9ff",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Работа контур",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-31T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "weekly",
+          "interval": 1,
+          "daysOfWeek": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "until": "day-2026-07-31T00:00:00+03:00"
+        },
+        "scheduledTime": "07:00",
+        "estimatedTime": 540,
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "4ab58f62-3fbd-489d-b323-db6656c376b2",
+        "isWorkTask": true,
+        "paymentType": "day",
+        "rate": 2428,
+        "id": "274ea6b4-306b-45ff-a204-65a0bd0158a7",
+        "createdAt": 1783858026429,
+        "updatedAt": 1783858026429
+      },
+      {
+        "title": "Инфра + поднять репо",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "dateUID": "day-2026-07-13T00:00:00+03:00",
+        "priority": "high",
+        "isNoteTask": false,
+        "notePath": "👨‍💻 Мои проекты/📙 Проекты/🔓 Открытые/Barbershop CRM/План по созданию проекта.md",
+        "estimatedTime": 300,
+        "scheduledTime": "18:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 1,
+        "id": "fd037baf-93ff-4ae1-85a4-69783caf39a0",
+        "createdAt": 1783858134611,
+        "updatedAt": 1783858913813
+      },
+      {
+        "title": "Приложение",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "dateUID": "day-2026-07-14T00:00:00+03:00",
+        "priority": "high",
+        "isNoteTask": false,
+        "notePath": "👨‍💻 Мои проекты/📙 Проекты/🔓 Открытые/Barbershop CRM/План по созданию проекта.md",
+        "estimatedTime": 300,
+        "scheduledTime": "18:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 1,
+        "id": "2ffe6507-eea2-46ba-a115-3d4ecdf2f9b7",
+        "createdAt": 1783858225644,
+        "updatedAt": 1783858911268
+      },
+      {
+        "title": "Спорт",
+        "projectId": "6c23bbec-963a-40eb-ae81-790e34eaa407",
+        "dateUID": "day-2026-07-15T00:00:00+03:00",
+        "priority": "high",
+        "isNoteTask": false,
+        "notePath": null,
+        "estimatedTime": 120,
+        "scheduledTime": "17:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 1,
+        "id": "50502c49-a15f-47e6-a6af-60f5a6898f94",
+        "createdAt": 1783858312161,
+        "updatedAt": 1783858908646
+      },
+      {
+        "title": "Авторизация",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "dateUID": "day-2026-07-16T00:00:00+03:00",
+        "priority": "high",
+        "isNoteTask": false,
+        "notePath": "👨‍💻 Мои проекты/📙 Проекты/🔓 Открытые/Barbershop CRM/План по созданию проекта.md",
+        "estimatedTime": 240,
+        "scheduledTime": "18:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 1,
+        "id": "c8f91bba-9372-4536-94ee-6dfae25920e0",
+        "createdAt": 1783858382030,
+        "updatedAt": 1783858904844
+      },
+      {
+        "title": "Деплой",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "dateUID": "day-2026-07-17T00:00:00+03:00",
+        "priority": "high",
+        "isNoteTask": false,
+        "notePath": "👨‍💻 Мои проекты/📙 Проекты/🔓 Открытые/Barbershop CRM/План по созданию проекта.md",
+        "estimatedTime": 240,
+        "scheduledTime": "18:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 2,
+        "id": "d8f231f9-b28a-45d7-b0f2-72ac6682a8a9",
+        "createdAt": 1783858572847,
+        "updatedAt": 1783858901813
+      },
+      {
+        "title": "Проверка реузльтата запуска фундамента",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "dateUID": "day-2026-07-18T00:00:00+03:00",
+        "priority": "high",
+        "isNoteTask": false,
+        "notePath": "👨‍💻 Мои проекты/📙 Проекты/🔓 Открытые/Barbershop CRM/План по созданию проекта.md",
+        "estimatedTime": 120,
+        "scheduledTime": "08:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 0,
+        "id": "75ff938a-93af-423c-9cc8-678fbba09b8f",
+        "createdAt": 1783858633526,
+        "updatedAt": 1783858898612
+      },
+      {
+        "title": "Занятие спортом",
+        "projectId": "6c23bbec-963a-40eb-ae81-790e34eaa407",
+        "dateUID": "day-2026-07-18T00:00:00+03:00",
+        "priority": "medium",
+        "isNoteTask": false,
+        "notePath": null,
+        "estimatedTime": 120,
+        "scheduledTime": "12:00",
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 1,
+        "id": "71307074-3b7d-46dd-9fdd-407eeb277872",
+        "createdAt": 1783858684320,
+        "updatedAt": 1783858684320
+      },
+      {
+        "title": "Сквозные компоненты",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-19T00:00:00+03:00",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "notePath": "👨‍💻 Мои проекты/📙 Проекты/🔓 Открытые/Barbershop CRM/План по созданию проекта.md",
+        "priority": "high",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 240,
+        "scheduledTime": "08:00",
+        "id": "bd8da8ef-b5b7-4fdc-84cb-b12a30fefa50",
+        "createdAt": 1783858885542,
+        "updatedAt": 1783858885542
+      },
+      {
+        "title": "Брейншторм по ситуации",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-11T00:00:00+03:00",
+        "projectId": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "notePath": null,
+        "priority": "high",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 120,
+        "scheduledTime": "09:30",
+        "id": "d7ad25cc-4139-4f1a-9ab3-bac026f81d0e",
+        "createdAt": 1783859012660,
+        "updatedAt": 1783859218251,
+        "isNoteTask": false
+      },
+      {
+        "title": "Финансовая аналитка",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-11T00:00:00+03:00",
+        "projectId": "bc53b137-8b67-4355-a171-907ddcf92786",
+        "notePath": null,
+        "priority": "high",
+        "tags": [],
+        "sortOrder": 0,
+        "scheduledTime": "12:00",
+        "id": "a5104997-6886-41d3-8484-8ec255ab01fb",
+        "createdAt": 1783859148867,
+        "updatedAt": 1783859298654,
+        "isNoteTask": false,
+        "estimatedTime": 210
+      },
+      {
+        "title": "Доработка минимальных фич проекта",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-12T00:00:00+03:00",
+        "projectId": "bc53b137-8b67-4355-a171-907ddcf92786",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 210,
+        "scheduledTime": "07:30",
+        "id": "2274142d-78f7-4caf-81ab-5e44f8f3e765",
+        "createdAt": 1783859349340,
+        "updatedAt": 1783859504368
+      },
+      {
+        "title": "Выпуск В прод",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-12T00:00:00+03:00",
+        "projectId": "bc53b137-8b67-4355-a171-907ddcf92786",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 150,
+        "scheduledTime": "17:00",
+        "id": "e42d308a-7d70-4695-b734-4dd70adeaaa8",
+        "createdAt": 1783859383102,
+        "updatedAt": 1783869360051,
+        "isNoteTask": false,
+        "totalWorkTime": 74053
+      },
+      {
+        "title": "Дорабтка Распиания",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-12T00:00:00+03:00",
+        "projectId": "bc53b137-8b67-4355-a171-907ddcf92786",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 120,
+        "scheduledTime": "15:00",
+        "id": "38816b06-b896-4cb6-b606-8064e63e46b0",
+        "createdAt": 1783859950801,
+        "updatedAt": 1783869358574,
+        "totalWorkTime": 406704,
+        "pausedAt": 1783862640715,
+        "pausedWorkTime": 406704
+      },
+      {
+        "title": "Фикс Фичи",
+        "completed": true,
+        "status": "done",
+        "dateUID": "day-2026-07-12T00:00:00+03:00",
+        "projectId": "bc53b137-8b67-4355-a171-907ddcf92786",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "scheduledTime": "14:00",
+        "id": "5a27dd3b-d56a-40d2-8819-44fe42239554",
+        "createdAt": 1783860183306,
+        "updatedAt": 1783868957750,
+        "isNoteTask": false,
+        "estimatedTime": 60,
+        "totalWorkTime": 5190,
+        "pausedWorkTime": 5190,
+        "pausedAt": 1783860207798
+      },
+      {
+        "title": "Зарплата",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "dateUID": "day-2026-07-10T00:00:00+03:00",
+        "priority": "medium",
+        "isNoteTask": false,
+        "notePath": null,
+        "recurrence": {
+          "type": "monthly",
+          "interval": 1,
+          "until": "day-2026-09-30T00:00:00+03:00"
+        },
+        "completed": true,
+        "status": "done",
+        "tags": [],
+        "sortOrder": 4,
+        "id": "e4d5d210-8528-4c1d-a3c2-0a393c9ca1f4",
+        "createdAt": 1783867105659,
+        "updatedAt": 1783867110725
+      },
+      {
+        "title": "Зарплата",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-08-10T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "monthly",
+          "interval": 1,
+          "until": "day-2026-09-30T00:00:00+03:00"
+        },
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "e4d5d210-8528-4c1d-a3c2-0a393c9ca1f4",
+        "id": "04c71be1-e598-46d4-8309-a4cb53471944",
+        "createdAt": 1783867105717,
+        "updatedAt": 1783867105717
+      },
+      {
+        "title": "Зарплата",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-09-10T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "monthly",
+          "interval": 1,
+          "until": "day-2026-09-30T00:00:00+03:00"
+        },
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "e4d5d210-8528-4c1d-a3c2-0a393c9ca1f4",
+        "id": "d9bed281-b1ff-40a5-b539-fade2712974c",
+        "createdAt": 1783867105717,
+        "updatedAt": 1783867105717
+      },
+      {
+        "title": "Аванс",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "dateUID": "day-2026-07-25T00:00:00+03:00",
+        "priority": "medium",
+        "isNoteTask": false,
+        "notePath": null,
+        "recurrence": {
+          "type": "monthly",
+          "interval": 1,
+          "until": "day-2026-09-30T00:00:00+03:00"
+        },
+        "completed": false,
+        "status": "todo",
+        "tags": [],
+        "sortOrder": 1,
+        "id": "6a36c9b3-ee62-4faf-a813-d60d1c2090c9",
+        "createdAt": 1783867528467,
+        "updatedAt": 1783867528467
+      },
+      {
+        "title": "Аванс",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-08-25T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "monthly",
+          "interval": 1,
+          "until": "day-2026-09-30T00:00:00+03:00"
+        },
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "6a36c9b3-ee62-4faf-a813-d60d1c2090c9",
+        "id": "ac5e5fdd-4272-4c83-b89c-314cc940d49f",
+        "createdAt": 1783867528523,
+        "updatedAt": 1783867528523
+      },
+      {
+        "title": "Аванс",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-09-25T00:00:00+03:00",
+        "projectId": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "recurrence": {
+          "type": "monthly",
+          "interval": 1,
+          "until": "day-2026-09-30T00:00:00+03:00"
+        },
+        "totalWorkTime": 0,
+        "isRecurringInstance": true,
+        "parentTaskId": "6a36c9b3-ee62-4faf-a813-d60d1c2090c9",
+        "id": "5274f171-a5be-478e-9ae8-2fd21f97650e",
+        "createdAt": 1783867528523,
+        "updatedAt": 1783867528523
+      },
+      {
+        "title": "Поиск работы",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-15T00:00:00+03:00",
+        "projectId": "ed154a3c-4a56-4608-993e-40714a548be6",
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 60,
+        "scheduledTime": "20:00",
+        "id": "5d702bd2-cc36-4e5a-9af2-512d9fe6c141",
+        "createdAt": 1783867831415,
+        "updatedAt": 1783867831415
+      },
+      {
+        "title": "Изучение Obsidian PeopleGraph",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-19T00:00:00+03:00",
+        "projectId": "ed154a3c-4a56-4608-993e-40714a548be6",
+        "isNoteTask": false,
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "scheduledTime": "12:30",
+        "id": "d1ac0842-4360-431a-a85d-2afcb83fe8e6",
+        "createdAt": 1783868760503,
+        "updatedAt": 1783868770655,
+        "estimatedTime": 120
+      },
+      {
+        "title": "Почитать про загран",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-15T00:00:00+03:00",
+        "projectId": "ed154a3c-4a56-4608-993e-40714a548be6",
+        "isNoteTask": false,
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 60,
+        "scheduledTime": "21:30",
+        "id": "3c147ffc-831f-4ab0-8942-18b8e1285340",
+        "createdAt": 1783868974792,
+        "updatedAt": 1783869467925
+      },
+      {
+        "title": "Поиск работы",
+        "completed": false,
+        "status": "todo",
+        "dateUID": "day-2026-07-13T00:00:00+03:00",
+        "projectId": "ed154a3c-4a56-4608-993e-40714a548be6",
+        "isNoteTask": false,
+        "notePath": null,
+        "priority": "medium",
+        "tags": [],
+        "sortOrder": 0,
+        "estimatedTime": 180,
+        "id": "f77aac6d-3f4e-4b97-8543-0dd2070e09fa",
+        "createdAt": 1783869449119,
+        "updatedAt": 1783882688895
+      }
+    ],
     "projects": [
       {
-        "id": "proj-001",
-        "name": "Разработка плагина",
-        "color": "#4d96ff",
-        "icon": "💻",
-        "folder": "Projects/CalendarPlugin",
+        "name": "Работа",
+        "color": "#1f618d",
+        "icon": "💼",
+        "folder": null,
         "archived": false,
         "sortOrder": 0,
-        "createdAt": 1719792000000
+        "id": "f52f84cf-44d2-40ed-a286-dffb2689a37c",
+        "createdAt": 1783857437679
       },
       {
-        "id": "proj-002",
-        "name": "Учеба",
-        "color": "#ff6b6b",
-        "icon": "📚",
-        "folder": "Projects/Study",
+        "name": "Barbershop CRM",
+        "color": "#882e25",
+        "icon": "💈",
+        "folder": null,
         "archived": false,
         "sortOrder": 1,
-        "createdAt": 1719792000000
+        "id": "9e3942cd-58e3-4552-980d-8d9c714ba36a",
+        "createdAt": 1783857455915
       },
       {
-        "id": "proj-003",
-        "name": "Личное",
-        "color": "#51cf66",
-        "icon": "🏠",
+        "name": "Calendar-Remastered",
+        "color": "#a84402",
+        "icon": "🗓️",
         "folder": null,
         "archived": false,
         "sortOrder": 2,
-        "createdAt": 1719792000000
+        "id": "bc53b137-8b67-4355-a171-907ddcf92786",
+        "createdAt": 1783859179250
       },
       {
-        "id": "proj-004",
-        "name": "Фриланс",
-        "color": "#ffd43b",
-        "icon": "💼",
-        "folder": "Projects/Freelance",
+        "name": "Спорт",
+        "color": "#ac6a01",
+        "icon": "💪",
+        "folder": null,
         "archived": false,
         "sortOrder": 3,
-        "createdAt": 1719792000000
+        "id": "6c23bbec-963a-40eb-ae81-790e34eaa407",
+        "createdAt": 1783857554858
       },
       {
-        "id": "proj-005",
-        "name": "Завершенный проект",
-        "color": "#868e96",
-        "icon": "📦",
-        "folder": "Projects/Archived",
-        "archived": true,
+        "name": "Встречи",
+        "color": "#65337a",
+        "icon": "🤝",
+        "folder": null,
+        "archived": false,
         "sortOrder": 4,
-        "createdAt": 1717027200000
-      }
-    ],
-    "tasks": [
-      {
-        "id": "task-001",
-        "title": "Исправить баг с датами",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-01T00:00:00",
-        "projectId": "proj-001",
-        "notePath": "Projects/CalendarPlugin/fix-date-bug.md",
-        "priority": "high",
-        "tags": [
-          "bugfix",
-          "urgent"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1719792000000,
-        "updatedAt": 1719878400000,
-        "totalWorkTime": 5400000,
-        "estimatedTime": 120,
-        "isWorkTask": true,
-        "paymentType": "hour",
-        "rate": 2000,
-        "overtimeStart": 8,
-        "overtimeMultiplier": 1.5
+        "id": "3c8b03e5-7f3f-4e8b-8ace-04b64a063f64",
+        "createdAt": 1783857631645
       },
       {
-        "id": "task-002",
-        "title": "Написать тесты для хранилища",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-02T00:00:00",
-        "projectId": "proj-001",
-        "notePath": "Projects/CalendarPlugin/storage-tests.md",
-        "priority": "medium",
-        "tags": [
-          "testing"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1719878400000,
-        "updatedAt": 1719964800000,
-        "totalWorkTime": 7200000,
-        "estimatedTime": 180
-      },
-      {
-        "id": "task-003",
-        "title": "Прочитать главу 5 по алгоритмам",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-03T00:00:00",
-        "projectId": "proj-002",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "reading"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1719964800000,
-        "updatedAt": 1720051200000,
-        "totalWorkTime": 3600000
-      },
-      {
-        "id": "task-004",
-        "title": "Пробежка утром",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-04T00:00:00",
-        "projectId": "proj-003",
-        "notePath": null,
-        "priority": "low",
-        "tags": [
-          "health",
-          "sport"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720051200000,
-        "updatedAt": 1720094400000,
-        "totalWorkTime": 2700000
-      },
-      {
-        "id": "task-005",
-        "title": "Рефакторинг UI компонентов",
-        "completed": false,
-        "status": "progress",
-        "dateUID": "day-2026-07-05T00:00:00",
-        "projectId": "proj-001",
-        "notePath": "Projects/CalendarPlugin/refactor-ui.md",
-        "priority": "high",
-        "tags": [
-          "refactor",
-          "ui"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720137600000,
-        "updatedAt": 1720137600000,
-        "timerStartedAt": 1720166400000,
-        "totalWorkTime": 1800000,
-        "estimatedTime": 240
-      },
-      {
-        "id": "task-006",
-        "title": "Код ревью PR #42",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-05T00:00:00",
-        "projectId": "proj-001",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "review"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1720137600000,
-        "updatedAt": 1720137600000,
-        "estimatedTime": 60,
-        "scheduledTime": "14:00",
-        "isWorkTask": true,
-        "paymentType": "hour",
-        "rate": 2000
-      },
-      {
-        "id": "task-007",
-        "title": "Подготовить презентацию",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-07T00:00:00",
-        "projectId": "proj-004",
-        "notePath": "Projects/Freelance/presentation.md",
-        "priority": "high",
-        "tags": [
-          "presentation",
-          "client"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720224000000,
-        "updatedAt": 1720224000000,
-        "estimatedTime": 180,
-        "scheduledTime": "10:00",
-        "deadline": "day-2026-07-10T00:00:00",
-        "deadlineTime": "18:00",
-        "isWorkTask": true,
-        "paymentType": "day",
-        "rate": 5000
-      },
-      {
-        "id": "task-008",
-        "title": "Убрать квартиру",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-06T00:00:00",
-        "projectId": "proj-003",
-        "notePath": null,
-        "priority": "low",
-        "tags": [
-          "home"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720224000000,
-        "updatedAt": 1720224000000,
-        "recurrence": {
-          "type": "weekly",
-          "daysOfWeek": [
-            0
-          ]
-        }
-      },
-      {
-        "id": "task-009",
-        "title": "Дедлайн: отчет за июнь",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-03T00:00:00",
-        "projectId": "proj-004",
-        "notePath": null,
-        "priority": "high",
-        "tags": [
-          "deadline",
-          "report"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1719964800000,
-        "updatedAt": 1719964800000,
-        "deadline": "day-2026-07-05T00:00:00",
-        "deadlineTime": "23:59"
-      },
-      {
-        "id": "task-010",
-        "title": "Заметки по лекции",
-        "completed": false,
-        "status": "paused",
-        "dateUID": "day-2026-07-04T00:00:00",
-        "projectId": "proj-002",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "notes",
-          "lecture"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720051200000,
-        "updatedAt": 1720137600000,
-        "pausedAt": 1720137600000,
-        "pausedWorkTime": 1200000,
-        "totalWorkTime": 1200000
-      },
-      {
-        "id": "task-011",
-        "title": "Ежедневная медитация",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-05T00:00:00",
-        "projectId": null,
-        "notePath": null,
-        "priority": "low",
-        "tags": [
-          "health",
-          "mindfulness"
-        ],
-        "sortOrder": 2,
-        "createdAt": 1720137600000,
-        "updatedAt": 1720137600000,
-        "recurrence": {
-          "type": "daily"
-        }
-      },
-      {
-        "id": "task-012",
-        "title": "Оплатить счета",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-01T00:00:00",
-        "projectId": "proj-003",
-        "notePath": null,
-        "priority": "high",
-        "tags": [
-          "finance",
-          "bills"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1719792000000,
-        "updatedAt": 1719835200000
-      },
-      {
-        "id": "task-013",
-        "title": "Дизайн макет дашборда",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-08T00:00:00",
-        "projectId": "proj-004",
-        "notePath": "Projects/Freelance/dashboard-design.md",
-        "priority": "high",
-        "tags": [
-          "design",
-          "ui"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720310400000,
-        "updatedAt": 1720310400000,
-        "estimatedTime": 480,
-        "scheduledTime": "09:00",
-        "deadline": "day-2026-07-12T00:00:00",
-        "deadlineTime": "17:00",
-        "isWorkTask": true,
-        "paymentType": "day",
-        "rate": 6000
-      },
-      {
-        "id": "task-014",
-        "title": "Тренировка в зале",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-05T00:00:00",
-        "projectId": "proj-003",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "health",
-          "sport"
-        ],
-        "sortOrder": 3,
-        "createdAt": 1720137600000,
-        "updatedAt": 1720180800000,
-        "totalWorkTime": 5400000,
-        "recurrence": {
-          "type": "weekly",
-          "interval": 2,
-          "daysOfWeek": [
-            3,
-            5
-          ]
-        }
-      },
-      {
-        "id": "task-015",
-        "title": "Интеграция с API",
-        "completed": false,
-        "status": "progress",
-        "dateUID": "day-2026-07-06T00:00:00",
-        "projectId": "proj-001",
-        "notePath": "Projects/CalendarPlugin/api-integration.md",
-        "priority": "high",
-        "tags": [
-          "api",
-          "backend"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720224000000,
-        "updatedAt": 1720252800000,
-        "timerStartedAt": 1720252800000,
-        "totalWorkTime": 900000,
-        "estimatedTime": 360,
-        "parentTaskId": "task-005"
-      },
-      {
-        "id": "task-016",
-        "title": "Написать документацию API",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-09T00:00:00",
-        "projectId": "proj-001",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "docs"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720396800000,
-        "updatedAt": 1720396800000,
-        "estimatedTime": 180,
-        "isWorkTask": true,
-        "paymentType": "hour",
-        "rate": 2000,
-        "overtimeStart": 8,
-        "overtimeMultiplier": 2
-      },
-      {
-        "id": "task-017",
-        "title": "Деплой на продакшн",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-12T00:00:00",
-        "projectId": "proj-001",
-        "notePath": null,
-        "priority": "high",
-        "tags": [
-          "deploy",
-          "devops"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720656000000,
-        "updatedAt": 1720656000000,
-        "estimatedTime": 120,
-        "scheduledTime": "11:00"
-      },
-      {
-        "id": "task-018",
-        "title": "Созвон с клиентом",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-07T00:00:00",
-        "projectId": "proj-004",
-        "notePath": null,
-        "priority": "high",
-        "tags": [
-          "meeting",
-          "client"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1720224000000,
-        "updatedAt": 1720224000000,
-        "scheduledTime": "15:00",
-        "estimatedTime": 60
-      },
-      {
-        "id": "task-019",
-        "title": "Ревью кода стажера",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-08T00:00:00",
-        "projectId": "proj-001",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "review",
-          "mentorship"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1720310400000,
-        "updatedAt": 1720310400000,
-        "estimatedTime": 90,
-        "scheduledTime": "16:00"
-      },
-      {
-        "id": "task-020",
-        "title": "Отправить инвойс",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-06T00:00:00",
-        "projectId": "proj-004",
-        "notePath": null,
-        "priority": "high",
-        "tags": [
-          "finance",
-          "invoice"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1720224000000,
-        "updatedAt": 1720267200000,
-        "isWorkTask": true,
-        "paymentType": "day",
-        "rate": 5000,
-        "totalWorkTime": 600000
-      },
-      {
-        "id": "task-021",
-        "title": "Задача без проекта",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-10T00:00:00",
-        "projectId": null,
-        "notePath": null,
-        "priority": "low",
-        "tags": [],
-        "sortOrder": 0,
-        "createdAt": 1720483200000,
-        "updatedAt": 1720483200000
-      },
-      {
-        "id": "task-022",
-        "title": "Месячный отчет",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-31T00:00:00",
-        "projectId": "proj-004",
-        "notePath": null,
-        "priority": "high",
-        "tags": [
-          "report",
-          "monthly"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720483200000,
-        "updatedAt": 1720483200000,
-        "deadline": "day-2026-08-03T00:00:00",
-        "deadlineTime": "10:00",
-        "isWorkTask": true,
-        "paymentType": "day",
-        "rate": 5000
-      },
-      {
-        "id": "task-023",
-        "title": "Еженедельный обзор",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-11T00:00:00",
-        "projectId": null,
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "review",
-          "weekly"
-        ],
-        "sortOrder": 0,
-        "createdAt": 1720569600000,
-        "updatedAt": 1720569600000,
-        "recurrence": {
-          "type": "weekly",
-          "daysOfWeek": [
-            5
-          ]
-        }
-      },
-      {
-        "id": "task-024",
-        "title": "Обновить зависимости",
-        "completed": true,
-        "status": "done",
-        "dateUID": "day-2026-07-07T00:00:00",
-        "projectId": "proj-001",
-        "notePath": null,
-        "priority": "low",
-        "tags": [
-          "maintenance"
-        ],
-        "sortOrder": 2,
-        "createdAt": 1720224000000,
-        "updatedAt": 1720252800000,
-        "totalWorkTime": 1200000
-      },
-      {
-        "id": "task-025",
-        "title": "Тест производительности",
-        "completed": false,
-        "status": "todo",
-        "dateUID": "day-2026-07-09T00:00:00",
-        "projectId": "proj-001",
-        "notePath": null,
-        "priority": "medium",
-        "tags": [
-          "testing",
-          "performance"
-        ],
-        "sortOrder": 1,
-        "createdAt": 1720396800000,
-        "updatedAt": 1720396800000,
-        "estimatedTime": 120,
-        "isWorkTask": true,
-        "paymentType": "hour",
-        "rate": 2500
+        "name": "Остальное",
+        "color": "#851339",
+        "icon": "♥️",
+        "folder": null,
+        "archived": false,
+        "sortOrder": 5,
+        "id": "ed154a3c-4a56-4608-993e-40714a548be6",
+        "createdAt": 1783857749406
       }
     ],
     "timeLogs": [
       {
-        "id": "tl-001",
-        "taskId": "task-001",
-        "taskTitle": "Исправить баг с датами",
-        "startTime": 1719820800000,
-        "endTime": 1719826200000,
-        "duration": 5400000,
-        "date": "2026-07-01"
+        "id": "1783869360051-nwx6jvql6ed",
+        "taskId": "e42d308a-7d70-4695-b734-4dd70adeaaa8",
+        "taskTitle": "Выпуск В прод",
+        "startTime": 1783869285998,
+        "endTime": 1783869360051,
+        "duration": 74053,
+        "date": "2026-07-12"
       },
       {
-        "id": "tl-002",
-        "taskId": "task-002",
-        "taskTitle": "Написать тесты для хранилища",
-        "startTime": 1719907200000,
-        "endTime": 1719914400000,
-        "duration": 7200000,
-        "date": "2026-07-02"
+        "id": "1783861314351-qyo58rjwi2e",
+        "taskId": "d55637d0-e190-4f38-b8a0-84bacc1bb3fa",
+        "taskTitle": "фывфыв",
+        "startTime": 1783861312156,
+        "endTime": 1783861314351,
+        "duration": 2195,
+        "date": "2026-07-12"
       },
       {
-        "id": "tl-003",
-        "taskId": "task-003",
-        "taskTitle": "Прочитать главу 5 по алгоритмам",
-        "startTime": 1719993600000,
-        "endTime": 1719997200000,
-        "duration": 3600000,
-        "date": "2026-07-03"
+        "id": "1783861264659-k6l2f2c36dq",
+        "taskId": "38816b06-b896-4cb6-b606-8064e63e46b0",
+        "taskTitle": "Дорабтка Распиания",
+        "startTime": 1783861261845,
+        "endTime": 1783861264659,
+        "duration": 2814,
+        "date": "2026-07-12"
       },
       {
-        "id": "tl-004",
-        "taskId": "task-004",
-        "taskTitle": "Пробежка утром",
-        "startTime": 1720087200000,
-        "endTime": 1720089900000,
-        "duration": 2700000,
-        "date": "2026-07-04"
+        "id": "1783860636240-s5or53ob9p",
+        "taskId": "38816b06-b896-4cb6-b606-8064e63e46b0",
+        "taskTitle": "Дорабтка Распиания",
+        "startTime": 1783860632527,
+        "endTime": 1783860636240,
+        "duration": 3713,
+        "date": "2026-07-12"
       },
       {
-        "id": "tl-005",
-        "taskId": "task-005",
-        "taskTitle": "Рефакторинг UI компонентов",
-        "startTime": 1720166400000,
-        "endTime": 1720168200000,
-        "duration": 1800000,
-        "date": "2026-07-05"
+        "id": "1783860549801-uyy41snx6m",
+        "taskId": "38816b06-b896-4cb6-b606-8064e63e46b0",
+        "taskTitle": "Дорабтка Распиания",
+        "startTime": 1783860149624,
+        "endTime": 1783860549801,
+        "duration": 400177,
+        "date": "2026-07-12"
       },
       {
-        "id": "tl-006",
-        "taskId": "task-010",
-        "taskTitle": "Заметки по лекции",
-        "startTime": 1720098000000,
-        "endTime": 1720099200000,
-        "duration": 1200000,
-        "date": "2026-07-04"
-      },
-      {
-        "id": "tl-007",
-        "taskId": "task-014",
-        "taskTitle": "Тренировка в зале",
-        "startTime": 1720180800000,
-        "endTime": 1720186200000,
-        "duration": 5400000,
-        "date": "2026-07-05"
-      },
-      {
-        "id": "tl-008",
-        "taskId": "task-020",
-        "taskTitle": "Отправить инвойс",
-        "startTime": 1720252800000,
-        "endTime": 1720253400000,
-        "duration": 600000,
-        "date": "2026-07-06"
-      },
-      {
-        "id": "tl-009",
-        "taskId": "task-024",
-        "taskTitle": "Обновить зависимости",
-        "startTime": 1720242000000,
-        "endTime": 1720243200000,
-        "duration": 1200000,
-        "date": "2026-07-07"
-      },
-      {
-        "id": "tl-010",
-        "taskId": "task-015",
-        "taskTitle": "Интеграция с API",
-        "startTime": 1720252800000,
-        "endTime": 1720253700000,
-        "duration": 900000,
-        "date": "2026-07-06"
-      }
-    ]
-  },
-  "habitTracker": {
-    "version": 1,
-    "habits": [
-      {
-        "id": "habit-001",
-        "title": "Медитация",
-        "icon": "🧘",
-        "color": "#9775fa",
-        "frequency": "daily",
-        "targetCount": 1,
-        "archived": false,
-        "createdAt": 1719792000000,
-        "sortOrder": 0
-      },
-      {
-        "id": "habit-002",
-        "title": "Чтение",
-        "icon": "📖",
-        "color": "#20c997",
-        "frequency": "daily",
-        "targetCount": 1,
-        "archived": false,
-        "createdAt": 1719792000000,
-        "sortOrder": 1
-      },
-      {
-        "id": "habit-003",
-        "title": "Спортзал",
-        "icon": "💪",
-        "color": "#ff6b6b",
-        "frequency": "custom",
-        "customDays": [
-          1,
-          3,
-          5
-        ],
-        "targetCount": 1,
-        "archived": false,
-        "createdAt": 1719792000000,
-        "sortOrder": 2
-      },
-      {
-        "id": "habit-004",
-        "title": "Пить воду",
-        "icon": "💧",
-        "color": "#339af0",
-        "frequency": "daily",
-        "targetCount": 8,
-        "archived": false,
-        "createdAt": 1719792000000,
-        "sortOrder": 3
+        "id": "1783860207798-n6h2fopoxe",
+        "taskId": "5a27dd3b-d56a-40d2-8819-44fe42239554",
+        "taskTitle": "Фикс Фичи",
+        "startTime": 1783860202608,
+        "endTime": 1783860207798,
+        "duration": 5190,
+        "date": "2026-07-12"
       }
     ],
-    "habitLogs": [
-      {
-        "id": "hl-001",
-        "habitId": "habit-001",
-        "date": "2026-04-20",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776663840000
-      },
-      {
-        "id": "hl-002",
-        "habitId": "habit-002",
-        "date": "2026-04-20",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776708660000
-      },
-      {
-        "id": "hl-003",
-        "habitId": "habit-003",
-        "date": "2026-04-20",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-004",
-        "habitId": "habit-004",
-        "date": "2026-04-20",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-005",
-        "habitId": "habit-001",
-        "date": "2026-04-21",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776744360000
-      },
-      {
-        "id": "hl-006",
-        "habitId": "habit-002",
-        "date": "2026-04-21",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-007",
-        "habitId": "habit-004",
-        "date": "2026-04-21",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1776796020000
-      },
-      {
-        "id": "hl-008",
-        "habitId": "habit-001",
-        "date": "2026-04-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776831060000
-      },
-      {
-        "id": "hl-009",
-        "habitId": "habit-002",
-        "date": "2026-04-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776880080000
-      },
-      {
-        "id": "hl-010",
-        "habitId": "habit-003",
-        "date": "2026-04-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776872640000
-      },
-      {
-        "id": "hl-011",
-        "habitId": "habit-004",
-        "date": "2026-04-22",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-012",
-        "habitId": "habit-001",
-        "date": "2026-04-23",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776919860000
-      },
-      {
-        "id": "hl-013",
-        "habitId": "habit-002",
-        "date": "2026-04-23",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1776968820000
-      },
-      {
-        "id": "hl-014",
-        "habitId": "habit-004",
-        "date": "2026-04-23",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-015",
-        "habitId": "habit-001",
-        "date": "2026-04-24",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777006740000
-      },
-      {
-        "id": "hl-016",
-        "habitId": "habit-002",
-        "date": "2026-04-24",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-017",
-        "habitId": "habit-003",
-        "date": "2026-04-24",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777045560000
-      },
-      {
-        "id": "hl-018",
-        "habitId": "habit-004",
-        "date": "2026-04-24",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-019",
-        "habitId": "habit-001",
-        "date": "2026-04-25",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777090560000
-      },
-      {
-        "id": "hl-020",
-        "habitId": "habit-002",
-        "date": "2026-04-25",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777141260000
-      },
-      {
-        "id": "hl-021",
-        "habitId": "habit-004",
-        "date": "2026-04-25",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-022",
-        "habitId": "habit-001",
-        "date": "2026-04-26",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777177620000
-      },
-      {
-        "id": "hl-023",
-        "habitId": "habit-002",
-        "date": "2026-04-26",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777222980000
-      },
-      {
-        "id": "hl-024",
-        "habitId": "habit-004",
-        "date": "2026-04-26",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1777228320000
-      },
-      {
-        "id": "hl-025",
-        "habitId": "habit-001",
-        "date": "2026-04-27",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777267560000
-      },
-      {
-        "id": "hl-026",
-        "habitId": "habit-002",
-        "date": "2026-04-27",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-027",
-        "habitId": "habit-003",
-        "date": "2026-04-27",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777305540000
-      },
-      {
-        "id": "hl-028",
-        "habitId": "habit-004",
-        "date": "2026-04-27",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-029",
-        "habitId": "habit-001",
-        "date": "2026-04-28",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777350360000
-      },
-      {
-        "id": "hl-030",
-        "habitId": "habit-002",
-        "date": "2026-04-28",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-031",
-        "habitId": "habit-004",
-        "date": "2026-04-28",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-032",
-        "habitId": "habit-001",
-        "date": "2026-04-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777439100000
-      },
-      {
-        "id": "hl-033",
-        "habitId": "habit-002",
-        "date": "2026-04-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777484280000
-      },
-      {
-        "id": "hl-034",
-        "habitId": "habit-003",
-        "date": "2026-04-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777473000000
-      },
-      {
-        "id": "hl-035",
-        "habitId": "habit-004",
-        "date": "2026-04-29",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-036",
-        "habitId": "habit-001",
-        "date": "2026-04-30",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777526400000
-      },
-      {
-        "id": "hl-037",
-        "habitId": "habit-002",
-        "date": "2026-04-30",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-038",
-        "habitId": "habit-004",
-        "date": "2026-04-30",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-039",
-        "habitId": "habit-001",
-        "date": "2026-05-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777613220000
-      },
-      {
-        "id": "hl-040",
-        "habitId": "habit-002",
-        "date": "2026-05-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777663680000
-      },
-      {
-        "id": "hl-041",
-        "habitId": "habit-003",
-        "date": "2026-05-01",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-042",
-        "habitId": "habit-004",
-        "date": "2026-05-01",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-043",
-        "habitId": "habit-001",
-        "date": "2026-05-02",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777700640000
-      },
-      {
-        "id": "hl-044",
-        "habitId": "habit-002",
-        "date": "2026-05-02",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777750260000
-      },
-      {
-        "id": "hl-045",
-        "habitId": "habit-004",
-        "date": "2026-05-02",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-046",
-        "habitId": "habit-001",
-        "date": "2026-05-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777782360000
-      },
-      {
-        "id": "hl-047",
-        "habitId": "habit-002",
-        "date": "2026-05-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777831380000
-      },
-      {
-        "id": "hl-048",
-        "habitId": "habit-004",
-        "date": "2026-05-03",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-049",
-        "habitId": "habit-001",
-        "date": "2026-05-04",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777869720000
-      },
-      {
-        "id": "hl-050",
-        "habitId": "habit-002",
-        "date": "2026-05-04",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777920960000
-      },
-      {
-        "id": "hl-051",
-        "habitId": "habit-003",
-        "date": "2026-05-04",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777904220000
-      },
-      {
-        "id": "hl-052",
-        "habitId": "habit-004",
-        "date": "2026-05-04",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-053",
-        "habitId": "habit-001",
-        "date": "2026-05-05",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1777956120000
-      },
-      {
-        "id": "hl-054",
-        "habitId": "habit-002",
-        "date": "2026-05-05",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-055",
-        "habitId": "habit-004",
-        "date": "2026-05-05",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-056",
-        "habitId": "habit-001",
-        "date": "2026-05-06",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778045460000
-      },
-      {
-        "id": "hl-057",
-        "habitId": "habit-002",
-        "date": "2026-05-06",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778090820000
-      },
-      {
-        "id": "hl-058",
-        "habitId": "habit-003",
-        "date": "2026-05-06",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778076240000
-      },
-      {
-        "id": "hl-059",
-        "habitId": "habit-004",
-        "date": "2026-05-06",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-060",
-        "habitId": "habit-001",
-        "date": "2026-05-07",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778127780000
-      },
-      {
-        "id": "hl-061",
-        "habitId": "habit-002",
-        "date": "2026-05-07",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778177520000
-      },
-      {
-        "id": "hl-062",
-        "habitId": "habit-004",
-        "date": "2026-05-07",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-063",
-        "habitId": "habit-001",
-        "date": "2026-05-08",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-064",
-        "habitId": "habit-002",
-        "date": "2026-05-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778265000000
-      },
-      {
-        "id": "hl-065",
-        "habitId": "habit-003",
-        "date": "2026-05-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778250060000
-      },
-      {
-        "id": "hl-066",
-        "habitId": "habit-004",
-        "date": "2026-05-08",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-067",
-        "habitId": "habit-001",
-        "date": "2026-05-09",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778302620000
-      },
-      {
-        "id": "hl-068",
-        "habitId": "habit-002",
-        "date": "2026-05-09",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-069",
-        "habitId": "habit-004",
-        "date": "2026-05-09",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-070",
-        "habitId": "habit-001",
-        "date": "2026-05-10",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778386860000
-      },
-      {
-        "id": "hl-071",
-        "habitId": "habit-002",
-        "date": "2026-05-10",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778437440000
-      },
-      {
-        "id": "hl-072",
-        "habitId": "habit-004",
-        "date": "2026-05-10",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-073",
-        "habitId": "habit-001",
-        "date": "2026-05-11",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778472360000
-      },
-      {
-        "id": "hl-074",
-        "habitId": "habit-002",
-        "date": "2026-05-11",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-075",
-        "habitId": "habit-003",
-        "date": "2026-05-11",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778509260000
-      },
-      {
-        "id": "hl-076",
-        "habitId": "habit-004",
-        "date": "2026-05-11",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-077",
-        "habitId": "habit-001",
-        "date": "2026-05-12",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778565240000
-      },
-      {
-        "id": "hl-078",
-        "habitId": "habit-002",
-        "date": "2026-05-12",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-079",
-        "habitId": "habit-004",
-        "date": "2026-05-12",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1778609580000
-      },
-      {
-        "id": "hl-080",
-        "habitId": "habit-001",
-        "date": "2026-05-13",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778647920000
-      },
-      {
-        "id": "hl-081",
-        "habitId": "habit-002",
-        "date": "2026-05-13",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-082",
-        "habitId": "habit-003",
-        "date": "2026-05-13",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-083",
-        "habitId": "habit-004",
-        "date": "2026-05-13",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-084",
-        "habitId": "habit-001",
-        "date": "2026-05-14",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778737980000
-      },
-      {
-        "id": "hl-085",
-        "habitId": "habit-002",
-        "date": "2026-05-14",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778788740000
-      },
-      {
-        "id": "hl-086",
-        "habitId": "habit-004",
-        "date": "2026-05-14",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1778782020000
-      },
-      {
-        "id": "hl-087",
-        "habitId": "habit-001",
-        "date": "2026-05-15",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778819520000
-      },
-      {
-        "id": "hl-088",
-        "habitId": "habit-002",
-        "date": "2026-05-15",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778868540000
-      },
-      {
-        "id": "hl-089",
-        "habitId": "habit-003",
-        "date": "2026-05-15",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778854320000
-      },
-      {
-        "id": "hl-090",
-        "habitId": "habit-004",
-        "date": "2026-05-15",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-091",
-        "habitId": "habit-001",
-        "date": "2026-05-16",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778907420000
-      },
-      {
-        "id": "hl-092",
-        "habitId": "habit-002",
-        "date": "2026-05-16",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778956680000
-      },
-      {
-        "id": "hl-093",
-        "habitId": "habit-004",
-        "date": "2026-05-16",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1778956140000
-      },
-      {
-        "id": "hl-094",
-        "habitId": "habit-001",
-        "date": "2026-05-17",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1778993100000
-      },
-      {
-        "id": "hl-095",
-        "habitId": "habit-002",
-        "date": "2026-05-17",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779042960000
-      },
-      {
-        "id": "hl-096",
-        "habitId": "habit-004",
-        "date": "2026-05-17",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-097",
-        "habitId": "habit-001",
-        "date": "2026-05-18",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779079680000
-      },
-      {
-        "id": "hl-098",
-        "habitId": "habit-002",
-        "date": "2026-05-18",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779129000000
-      },
-      {
-        "id": "hl-099",
-        "habitId": "habit-003",
-        "date": "2026-05-18",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779118800000
-      },
-      {
-        "id": "hl-100",
-        "habitId": "habit-004",
-        "date": "2026-05-18",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-101",
-        "habitId": "habit-001",
-        "date": "2026-05-19",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779163320000
-      },
-      {
-        "id": "hl-102",
-        "habitId": "habit-002",
-        "date": "2026-05-19",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779220620000
-      },
-      {
-        "id": "hl-103",
-        "habitId": "habit-004",
-        "date": "2026-05-19",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-104",
-        "habitId": "habit-001",
-        "date": "2026-05-20",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779254520000
-      },
-      {
-        "id": "hl-105",
-        "habitId": "habit-002",
-        "date": "2026-05-20",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779301320000
-      },
-      {
-        "id": "hl-106",
-        "habitId": "habit-003",
-        "date": "2026-05-20",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779292440000
-      },
-      {
-        "id": "hl-107",
-        "habitId": "habit-004",
-        "date": "2026-05-20",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-108",
-        "habitId": "habit-001",
-        "date": "2026-05-21",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779340500000
-      },
-      {
-        "id": "hl-109",
-        "habitId": "habit-002",
-        "date": "2026-05-21",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779384480000
-      },
-      {
-        "id": "hl-110",
-        "habitId": "habit-004",
-        "date": "2026-05-21",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-111",
-        "habitId": "habit-001",
-        "date": "2026-05-22",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-112",
-        "habitId": "habit-002",
-        "date": "2026-05-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779479820000
-      },
-      {
-        "id": "hl-113",
-        "habitId": "habit-003",
-        "date": "2026-05-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779461580000
-      },
-      {
-        "id": "hl-114",
-        "habitId": "habit-004",
-        "date": "2026-05-22",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-115",
-        "habitId": "habit-001",
-        "date": "2026-05-23",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779510720000
-      },
-      {
-        "id": "hl-116",
-        "habitId": "habit-002",
-        "date": "2026-05-23",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779561540000
-      },
-      {
-        "id": "hl-117",
-        "habitId": "habit-004",
-        "date": "2026-05-23",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-118",
-        "habitId": "habit-001",
-        "date": "2026-05-24",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779597960000
-      },
-      {
-        "id": "hl-119",
-        "habitId": "habit-002",
-        "date": "2026-05-24",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-120",
-        "habitId": "habit-004",
-        "date": "2026-05-24",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1779647100000
-      },
-      {
-        "id": "hl-121",
-        "habitId": "habit-001",
-        "date": "2026-05-25",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779685080000
-      },
-      {
-        "id": "hl-122",
-        "habitId": "habit-002",
-        "date": "2026-05-25",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-123",
-        "habitId": "habit-003",
-        "date": "2026-05-25",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779721140000
-      },
-      {
-        "id": "hl-124",
-        "habitId": "habit-004",
-        "date": "2026-05-25",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1779733320000
-      },
-      {
-        "id": "hl-125",
-        "habitId": "habit-001",
-        "date": "2026-05-26",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779771300000
-      },
-      {
-        "id": "hl-126",
-        "habitId": "habit-002",
-        "date": "2026-05-26",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779824640000
-      },
-      {
-        "id": "hl-127",
-        "habitId": "habit-004",
-        "date": "2026-05-26",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1779818880000
-      },
-      {
-        "id": "hl-128",
-        "habitId": "habit-001",
-        "date": "2026-05-27",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779855420000
-      },
-      {
-        "id": "hl-129",
-        "habitId": "habit-002",
-        "date": "2026-05-27",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779907380000
-      },
-      {
-        "id": "hl-130",
-        "habitId": "habit-003",
-        "date": "2026-05-27",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779891900000
-      },
-      {
-        "id": "hl-131",
-        "habitId": "habit-004",
-        "date": "2026-05-27",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1779907020000
-      },
-      {
-        "id": "hl-132",
-        "habitId": "habit-001",
-        "date": "2026-05-28",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779947280000
-      },
-      {
-        "id": "hl-133",
-        "habitId": "habit-002",
-        "date": "2026-05-28",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1779989940000
-      },
-      {
-        "id": "hl-134",
-        "habitId": "habit-004",
-        "date": "2026-05-28",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-135",
-        "habitId": "habit-001",
-        "date": "2026-05-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780029420000
-      },
-      {
-        "id": "hl-136",
-        "habitId": "habit-002",
-        "date": "2026-05-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780078920000
-      },
-      {
-        "id": "hl-137",
-        "habitId": "habit-003",
-        "date": "2026-05-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780068180000
-      },
-      {
-        "id": "hl-138",
-        "habitId": "habit-004",
-        "date": "2026-05-29",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-139",
-        "habitId": "habit-001",
-        "date": "2026-05-30",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-140",
-        "habitId": "habit-002",
-        "date": "2026-05-30",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780161300000
-      },
-      {
-        "id": "hl-141",
-        "habitId": "habit-004",
-        "date": "2026-05-30",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-142",
-        "habitId": "habit-001",
-        "date": "2026-05-31",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780203600000
-      },
-      {
-        "id": "hl-143",
-        "habitId": "habit-002",
-        "date": "2026-05-31",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-144",
-        "habitId": "habit-004",
-        "date": "2026-05-31",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-145",
-        "habitId": "habit-001",
-        "date": "2026-06-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780287780000
-      },
-      {
-        "id": "hl-146",
-        "habitId": "habit-002",
-        "date": "2026-06-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780335660000
-      },
-      {
-        "id": "hl-147",
-        "habitId": "habit-003",
-        "date": "2026-06-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780324920000
-      },
-      {
-        "id": "hl-148",
-        "habitId": "habit-004",
-        "date": "2026-06-01",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1780337100000
-      },
-      {
-        "id": "hl-149",
-        "habitId": "habit-001",
-        "date": "2026-06-02",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-150",
-        "habitId": "habit-002",
-        "date": "2026-06-02",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780425960000
-      },
-      {
-        "id": "hl-151",
-        "habitId": "habit-004",
-        "date": "2026-06-02",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1780424220000
-      },
-      {
-        "id": "hl-152",
-        "habitId": "habit-001",
-        "date": "2026-06-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780461060000
-      },
-      {
-        "id": "hl-153",
-        "habitId": "habit-002",
-        "date": "2026-06-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780507440000
-      },
-      {
-        "id": "hl-154",
-        "habitId": "habit-003",
-        "date": "2026-06-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780499760000
-      },
-      {
-        "id": "hl-155",
-        "habitId": "habit-004",
-        "date": "2026-06-03",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-156",
-        "habitId": "habit-001",
-        "date": "2026-06-04",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780547400000
-      },
-      {
-        "id": "hl-157",
-        "habitId": "habit-002",
-        "date": "2026-06-04",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780602360000
-      },
-      {
-        "id": "hl-158",
-        "habitId": "habit-004",
-        "date": "2026-06-04",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1780597560000
-      },
-      {
-        "id": "hl-159",
-        "habitId": "habit-001",
-        "date": "2026-06-05",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780632480000
-      },
-      {
-        "id": "hl-160",
-        "habitId": "habit-002",
-        "date": "2026-06-05",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780689420000
-      },
-      {
-        "id": "hl-161",
-        "habitId": "habit-003",
-        "date": "2026-06-05",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780673460000
-      },
-      {
-        "id": "hl-162",
-        "habitId": "habit-004",
-        "date": "2026-06-05",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-163",
-        "habitId": "habit-001",
-        "date": "2026-06-06",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-164",
-        "habitId": "habit-002",
-        "date": "2026-06-06",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780767840000
-      },
-      {
-        "id": "hl-165",
-        "habitId": "habit-004",
-        "date": "2026-06-06",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-166",
-        "habitId": "habit-001",
-        "date": "2026-06-07",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780805280000
-      },
-      {
-        "id": "hl-167",
-        "habitId": "habit-002",
-        "date": "2026-06-07",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780861500000
-      },
-      {
-        "id": "hl-168",
-        "habitId": "habit-004",
-        "date": "2026-06-07",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-169",
-        "habitId": "habit-001",
-        "date": "2026-06-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780892820000
-      },
-      {
-        "id": "hl-170",
-        "habitId": "habit-002",
-        "date": "2026-06-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780942380000
-      },
-      {
-        "id": "hl-171",
-        "habitId": "habit-003",
-        "date": "2026-06-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780931460000
-      },
-      {
-        "id": "hl-172",
-        "habitId": "habit-004",
-        "date": "2026-06-08",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-173",
-        "habitId": "habit-001",
-        "date": "2026-06-09",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1780980600000
-      },
-      {
-        "id": "hl-174",
-        "habitId": "habit-002",
-        "date": "2026-06-09",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-175",
-        "habitId": "habit-004",
-        "date": "2026-06-09",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1781029260000
-      },
-      {
-        "id": "hl-176",
-        "habitId": "habit-001",
-        "date": "2026-06-10",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781065980000
-      },
-      {
-        "id": "hl-177",
-        "habitId": "habit-002",
-        "date": "2026-06-10",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-178",
-        "habitId": "habit-003",
-        "date": "2026-06-10",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781104920000
-      },
-      {
-        "id": "hl-179",
-        "habitId": "habit-004",
-        "date": "2026-06-10",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-180",
-        "habitId": "habit-001",
-        "date": "2026-06-11",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781152800000
-      },
-      {
-        "id": "hl-181",
-        "habitId": "habit-002",
-        "date": "2026-06-11",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-182",
-        "habitId": "habit-004",
-        "date": "2026-06-11",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-183",
-        "habitId": "habit-001",
-        "date": "2026-06-12",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781239020000
-      },
-      {
-        "id": "hl-184",
-        "habitId": "habit-002",
-        "date": "2026-06-12",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-185",
-        "habitId": "habit-003",
-        "date": "2026-06-12",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781274060000
-      },
-      {
-        "id": "hl-186",
-        "habitId": "habit-004",
-        "date": "2026-06-12",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1781289300000
-      },
-      {
-        "id": "hl-187",
-        "habitId": "habit-001",
-        "date": "2026-06-13",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781326620000
-      },
-      {
-        "id": "hl-188",
-        "habitId": "habit-002",
-        "date": "2026-06-13",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-189",
-        "habitId": "habit-004",
-        "date": "2026-06-13",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-190",
-        "habitId": "habit-001",
-        "date": "2026-06-14",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781409840000
-      },
-      {
-        "id": "hl-191",
-        "habitId": "habit-002",
-        "date": "2026-06-14",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781466300000
-      },
-      {
-        "id": "hl-192",
-        "habitId": "habit-004",
-        "date": "2026-06-14",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-193",
-        "habitId": "habit-001",
-        "date": "2026-06-15",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781496780000
-      },
-      {
-        "id": "hl-194",
-        "habitId": "habit-002",
-        "date": "2026-06-15",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781549640000
-      },
-      {
-        "id": "hl-195",
-        "habitId": "habit-003",
-        "date": "2026-06-15",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781534760000
-      },
-      {
-        "id": "hl-196",
-        "habitId": "habit-004",
-        "date": "2026-06-15",
-        "completed": false,
-        "count": 3
-      },
-      {
-        "id": "hl-197",
-        "habitId": "habit-001",
-        "date": "2026-06-16",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-198",
-        "habitId": "habit-002",
-        "date": "2026-06-16",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781638380000
-      },
-      {
-        "id": "hl-199",
-        "habitId": "habit-004",
-        "date": "2026-06-16",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-200",
-        "habitId": "habit-001",
-        "date": "2026-06-17",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781674260000
-      },
-      {
-        "id": "hl-201",
-        "habitId": "habit-002",
-        "date": "2026-06-17",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781718720000
-      },
-      {
-        "id": "hl-202",
-        "habitId": "habit-003",
-        "date": "2026-06-17",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-203",
-        "habitId": "habit-004",
-        "date": "2026-06-17",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1781722020000
-      },
-      {
-        "id": "hl-204",
-        "habitId": "habit-001",
-        "date": "2026-06-18",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781755980000
-      },
-      {
-        "id": "hl-205",
-        "habitId": "habit-002",
-        "date": "2026-06-18",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781809920000
-      },
-      {
-        "id": "hl-206",
-        "habitId": "habit-004",
-        "date": "2026-06-18",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1781808720000
-      },
-      {
-        "id": "hl-207",
-        "habitId": "habit-001",
-        "date": "2026-06-19",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781845680000
-      },
-      {
-        "id": "hl-208",
-        "habitId": "habit-002",
-        "date": "2026-06-19",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-209",
-        "habitId": "habit-003",
-        "date": "2026-06-19",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1781881860000
-      },
-      {
-        "id": "hl-210",
-        "habitId": "habit-004",
-        "date": "2026-06-19",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1781892240000
-      },
-      {
-        "id": "hl-211",
-        "habitId": "habit-001",
-        "date": "2026-06-20",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-212",
-        "habitId": "habit-002",
-        "date": "2026-06-20",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-213",
-        "habitId": "habit-004",
-        "date": "2026-06-20",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1781981160000
-      },
-      {
-        "id": "hl-214",
-        "habitId": "habit-001",
-        "date": "2026-06-21",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-215",
-        "habitId": "habit-002",
-        "date": "2026-06-21",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782065400000
-      },
-      {
-        "id": "hl-216",
-        "habitId": "habit-004",
-        "date": "2026-06-21",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-217",
-        "habitId": "habit-001",
-        "date": "2026-06-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782107100000
-      },
-      {
-        "id": "hl-218",
-        "habitId": "habit-002",
-        "date": "2026-06-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782150720000
-      },
-      {
-        "id": "hl-219",
-        "habitId": "habit-003",
-        "date": "2026-06-22",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782139500000
-      },
-      {
-        "id": "hl-220",
-        "habitId": "habit-004",
-        "date": "2026-06-22",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-221",
-        "habitId": "habit-001",
-        "date": "2026-06-23",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782191160000
-      },
-      {
-        "id": "hl-222",
-        "habitId": "habit-002",
-        "date": "2026-06-23",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782242880000
-      },
-      {
-        "id": "hl-223",
-        "habitId": "habit-004",
-        "date": "2026-06-23",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-224",
-        "habitId": "habit-001",
-        "date": "2026-06-24",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782279060000
-      },
-      {
-        "id": "hl-225",
-        "habitId": "habit-002",
-        "date": "2026-06-24",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782322620000
-      },
-      {
-        "id": "hl-226",
-        "habitId": "habit-003",
-        "date": "2026-06-24",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782315360000
-      },
-      {
-        "id": "hl-227",
-        "habitId": "habit-004",
-        "date": "2026-06-24",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-228",
-        "habitId": "habit-001",
-        "date": "2026-06-25",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782363480000
-      },
-      {
-        "id": "hl-229",
-        "habitId": "habit-002",
-        "date": "2026-06-25",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782414000000
-      },
-      {
-        "id": "hl-230",
-        "habitId": "habit-004",
-        "date": "2026-06-25",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1782411240000
-      },
-      {
-        "id": "hl-231",
-        "habitId": "habit-001",
-        "date": "2026-06-26",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-232",
-        "habitId": "habit-002",
-        "date": "2026-06-26",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782494580000
-      },
-      {
-        "id": "hl-233",
-        "habitId": "habit-003",
-        "date": "2026-06-26",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782487140000
-      },
-      {
-        "id": "hl-234",
-        "habitId": "habit-004",
-        "date": "2026-06-26",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1782497700000
-      },
-      {
-        "id": "hl-235",
-        "habitId": "habit-001",
-        "date": "2026-06-27",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782537900000
-      },
-      {
-        "id": "hl-236",
-        "habitId": "habit-002",
-        "date": "2026-06-27",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-237",
-        "habitId": "habit-004",
-        "date": "2026-06-27",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-238",
-        "habitId": "habit-001",
-        "date": "2026-06-28",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782625740000
-      },
-      {
-        "id": "hl-239",
-        "habitId": "habit-002",
-        "date": "2026-06-28",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-240",
-        "habitId": "habit-004",
-        "date": "2026-06-28",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-241",
-        "habitId": "habit-001",
-        "date": "2026-06-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782707880000
-      },
-      {
-        "id": "hl-242",
-        "habitId": "habit-002",
-        "date": "2026-06-29",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782758520000
-      },
-      {
-        "id": "hl-243",
-        "habitId": "habit-003",
-        "date": "2026-06-29",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-244",
-        "habitId": "habit-004",
-        "date": "2026-06-29",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-245",
-        "habitId": "habit-001",
-        "date": "2026-06-30",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782798240000
-      },
-      {
-        "id": "hl-246",
-        "habitId": "habit-002",
-        "date": "2026-06-30",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782844080000
-      },
-      {
-        "id": "hl-247",
-        "habitId": "habit-004",
-        "date": "2026-06-30",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1782845040000
-      },
-      {
-        "id": "hl-248",
-        "habitId": "habit-001",
-        "date": "2026-07-01",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-249",
-        "habitId": "habit-002",
-        "date": "2026-07-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782931800000
-      },
-      {
-        "id": "hl-250",
-        "habitId": "habit-003",
-        "date": "2026-07-01",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782915600000
-      },
-      {
-        "id": "hl-251",
-        "habitId": "habit-004",
-        "date": "2026-07-01",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-252",
-        "habitId": "habit-001",
-        "date": "2026-07-02",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1782967140000
-      },
-      {
-        "id": "hl-253",
-        "habitId": "habit-002",
-        "date": "2026-07-02",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783019100000
-      },
-      {
-        "id": "hl-254",
-        "habitId": "habit-004",
-        "date": "2026-07-02",
-        "completed": false,
-        "count": 6
-      },
-      {
-        "id": "hl-255",
-        "habitId": "habit-001",
-        "date": "2026-07-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783055400000
-      },
-      {
-        "id": "hl-256",
-        "habitId": "habit-002",
-        "date": "2026-07-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783100460000
-      },
-      {
-        "id": "hl-257",
-        "habitId": "habit-003",
-        "date": "2026-07-03",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783088160000
-      },
-      {
-        "id": "hl-258",
-        "habitId": "habit-004",
-        "date": "2026-07-03",
-        "completed": false,
-        "count": 4
-      },
-      {
-        "id": "hl-259",
-        "habitId": "habit-001",
-        "date": "2026-07-04",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-260",
-        "habitId": "habit-002",
-        "date": "2026-07-04",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783185840000
-      },
-      {
-        "id": "hl-261",
-        "habitId": "habit-004",
-        "date": "2026-07-04",
-        "completed": false,
-        "count": 5
-      },
-      {
-        "id": "hl-262",
-        "habitId": "habit-001",
-        "date": "2026-07-05",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783226280000
-      },
-      {
-        "id": "hl-263",
-        "habitId": "habit-002",
-        "date": "2026-07-05",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783274100000
-      },
-      {
-        "id": "hl-264",
-        "habitId": "habit-004",
-        "date": "2026-07-05",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1783277400000
-      },
-      {
-        "id": "hl-265",
-        "habitId": "habit-001",
-        "date": "2026-07-06",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783315500000
-      },
-      {
-        "id": "hl-266",
-        "habitId": "habit-002",
-        "date": "2026-07-06",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-267",
-        "habitId": "habit-003",
-        "date": "2026-07-06",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783348800000
-      },
-      {
-        "id": "hl-268",
-        "habitId": "habit-004",
-        "date": "2026-07-06",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-269",
-        "habitId": "habit-001",
-        "date": "2026-07-07",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783399260000
-      },
-      {
-        "id": "hl-270",
-        "habitId": "habit-002",
-        "date": "2026-07-07",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783450200000
-      },
-      {
-        "id": "hl-271",
-        "habitId": "habit-004",
-        "date": "2026-07-07",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-272",
-        "habitId": "habit-001",
-        "date": "2026-07-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783489440000
-      },
-      {
-        "id": "hl-273",
-        "habitId": "habit-002",
-        "date": "2026-07-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783532100000
-      },
-      {
-        "id": "hl-274",
-        "habitId": "habit-003",
-        "date": "2026-07-08",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783520100000
-      },
-      {
-        "id": "hl-275",
-        "habitId": "habit-004",
-        "date": "2026-07-08",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-276",
-        "habitId": "habit-001",
-        "date": "2026-07-09",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783572000000
-      },
-      {
-        "id": "hl-277",
-        "habitId": "habit-002",
-        "date": "2026-07-09",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-278",
-        "habitId": "habit-004",
-        "date": "2026-07-09",
-        "completed": true,
-        "count": 9,
-        "completedAt": 1783623180000
-      },
-      {
-        "id": "hl-279",
-        "habitId": "habit-001",
-        "date": "2026-07-10",
-        "completed": false,
-        "count": 0
-      },
-      {
-        "id": "hl-280",
-        "habitId": "habit-002",
-        "date": "2026-07-10",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783711080000
-      },
-      {
-        "id": "hl-281",
-        "habitId": "habit-003",
-        "date": "2026-07-10",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783692120000
-      },
-      {
-        "id": "hl-282",
-        "habitId": "habit-004",
-        "date": "2026-07-10",
-        "completed": false,
-        "count": 7
-      },
-      {
-        "id": "hl-283",
-        "habitId": "habit-001",
-        "date": "2026-07-11",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783747140000
-      },
-      {
-        "id": "hl-284",
-        "habitId": "habit-002",
-        "date": "2026-07-11",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783798380000
-      },
-      {
-        "id": "hl-285",
-        "habitId": "habit-004",
-        "date": "2026-07-11",
-        "completed": true,
-        "count": 8,
-        "completedAt": 1783795440000
-      },
-      {
-        "id": "hl-286",
-        "habitId": "habit-001",
-        "date": "2026-07-12",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783832220000
-      },
-      {
-        "id": "hl-287",
-        "habitId": "habit-002",
-        "date": "2026-07-12",
-        "completed": true,
-        "count": 1,
-        "completedAt": 1783881780000
-      },
-      {
-        "id": "hl-288",
-        "habitId": "habit-004",
-        "date": "2026-07-12",
-        "completed": false,
-        "count": 6
+    "version": 6
+  },
+  "habitTracker": {
+    "habits": [
+      {
+        "title": "Работа с кодом",
+        "icon": "🧑‍💻",
+        "color": "#4d96ff",
+        "frequency": "daily",
+        "targetCount": 1,
+        "archived": false,
+        "sortOrder": 0,
+        "id": "5e8c6fe5-a8a9-4221-a447-085b3895ee67",
+        "createdAt": 1783862259237
+      },
+      {
+        "title": "Утрення зарядлка",
+        "icon": "🔅",
+        "color": "#ffd93d",
+        "frequency": "daily",
+        "targetCount": 1,
+        "archived": false,
+        "sortOrder": 1,
+        "id": "3aa49b55-1912-4984-84d9-2a1c7fea4574",
+        "createdAt": 1783862275081
+      },
+      {
+        "title": "Изучение английского языка 1 час в день",
+        "icon": "👅",
+        "color": "#6bcb77",
+        "frequency": "daily",
+        "targetCount": 1,
+        "archived": false,
+        "sortOrder": 2,
+        "id": "266cbe57-0a4b-480b-969d-a3b56f229c45",
+        "createdAt": 1783868894221
       }
-    ]
+    ],
+    "habitLogs": [],
+    "version": 1
   },
   "finance": {
-    "2026-06": {
-      "monthlyIncome": 120000,
-      "lastMonthExpense": 78000,
-      "mainAccountCategories": [
-        {
-          "id": "fc-001",
-          "name": "Аренда",
-          "icon": "🏠",
-          "amount": 35000,
-          "order": 0
-        },
-        {
-          "id": "fc-002",
-          "name": "Продукты",
-          "icon": "🛒",
-          "amount": 18000,
-          "order": 1
-        },
-        {
-          "id": "fc-003",
-          "name": "Транспорт",
-          "icon": "🚌",
-          "amount": 5000,
-          "order": 2
-        },
-        {
-          "id": "fc-004",
-          "name": "Развлечения",
-          "icon": "🎮",
-          "amount": 8000,
-          "order": 3
-        },
-        {
-          "id": "fc-005",
-          "name": "Одежда",
-          "icon": "👕",
-          "amount": 6000,
-          "order": 4
-        },
-        {
-          "id": "fc-006",
-          "name": "Связь",
-          "icon": "📱",
-          "amount": 2000,
-          "order": 5
-        },
-        {
-          "id": "fc-007",
-          "name": "Здоровье",
-          "icon": "🏥",
-          "amount": 4000,
-          "order": 6
-        }
-      ],
-      "monthGoals": [
-        {
-          "id": "mg-001",
-          "icon": "💰",
-          "name": "Накопить на отпуск",
-          "currentAmount": 25000,
-          "targetAmount": 80000
-        },
-        {
-          "id": "mg-002",
-          "icon": "📚",
-          "name": "Курс по React",
-          "currentAmount": 12000,
-          "targetAmount": 15000
-        }
-      ],
-      "savingsCategories": [
-        {
-          "id": "sc-001",
-          "name": "Подушка безопасности",
-          "icon": "🛡️",
-          "amount": 200000,
-          "percent": 67,
-          "order": 0,
-          "completed": false
-        },
-        {
-          "id": "sc-002",
-          "name": "Инвестиции",
-          "icon": "📈",
-          "amount": 50000,
-          "percent": 33,
-          "order": 1,
-          "completed": false
-        }
-      ],
-      "distributionRules": [
-        "50% на обязательные расходы",
-        "30% на накопления и инвестиции",
-        "20% на личные расходы"
-      ],
-      "updatedAt": "2026-06-30T23:59:00"
-    },
     "2026-07": {
-      "monthlyIncome": 135000,
-      "lastMonthExpense": 78000,
+      "monthlyIncome": 19424,
+      "lastMonthExpense": 0,
       "mainAccountCategories": [
         {
-          "id": "fc-101",
-          "name": "Аренда",
+          "id": "fc-1783880578279-bkacsv",
+          "name": "Квартира + Комуналка",
           "icon": "🏠",
-          "amount": 35000,
+          "amount": 20000,
           "order": 0
         },
         {
-          "id": "fc-102",
+          "id": "fc-1783880610631-y8nodh",
           "name": "Продукты",
-          "icon": "🛒",
-          "amount": 12000,
+          "icon": "🥔",
+          "amount": 10000,
           "order": 1
         },
         {
-          "id": "fc-103",
-          "name": "Транспорт",
-          "icon": "🚌",
-          "amount": 3500,
+          "id": "fc-1783880667699-caf6w5",
+          "name": "Долг",
+          "icon": "🪙",
+          "amount": 5310,
           "order": 2
         },
         {
-          "id": "fc-104",
-          "name": "Развлечения",
-          "icon": "🎮",
-          "amount": 5000,
+          "id": "fc-1783880693287-o0deae",
+          "name": "Связь",
+          "icon": "📶",
+          "amount": 590,
           "order": 3
         },
         {
-          "id": "fc-105",
-          "name": "Подписки",
-          "icon": "📺",
-          "amount": 3500,
+          "id": "fc-1783880735419-dr3ora",
+          "name": "Интернет",
+          "icon": "🛜",
+          "amount": 660,
           "order": 4
         },
         {
-          "id": "fc-106",
-          "name": "Спортзал",
-          "icon": "🏋️",
-          "amount": 4000,
+          "id": "fc-1783880765244-slqf0n",
+          "name": "Непредвиденные расходы",
+          "icon": "👛",
+          "amount": 5000,
           "order": 5
-        },
-        {
-          "id": "fc-107",
-          "name": "Образование",
-          "icon": "📖",
-          "amount": 2500,
-          "order": 6
-        },
-        {
-          "id": "fc-108",
-          "name": "Кафе",
-          "icon": "☕",
-          "amount": 4500,
-          "order": 7
         }
       ],
       "monthGoals": [
         {
-          "id": "mg-101",
-          "icon": "💰",
-          "name": "Накопить на отпуск",
-          "currentAmount": 40000,
-          "targetAmount": 80000
-        },
-        {
-          "id": "mg-102",
-          "icon": "💻",
-          "name": "Новый ноутбук",
-          "currentAmount": 45000,
-          "targetAmount": 120000
-        },
-        {
-          "id": "mg-103",
-          "icon": "📚",
-          "name": "Курс по React",
-          "currentAmount": 15000,
-          "targetAmount": 15000
+          "id": "fg-1783883515391-funf32",
+          "icon": "🎯",
+          "name": "смартфон",
+          "currentAmount": 10000,
+          "targetAmount": 50000
         }
       ],
       "savingsCategories": [
         {
-          "id": "sc-101",
+          "id": "fc-1783880804627-enzpdz",
           "name": "Подушка безопасности",
-          "icon": "🛡️",
-          "amount": 215000,
-          "percent": 72,
+          "icon": "🛡",
+          "amount": 11654,
           "order": 0,
+          "percent": 60,
           "completed": false
         },
         {
-          "id": "sc-102",
-          "name": "Инвестиции",
-          "icon": "📈",
-          "amount": 65000,
-          "percent": 43,
+          "id": "fc-1783880851264-1z349o",
+          "name": "Развлечения",
+          "icon": "🕹",
+          "amount": 7770,
           "order": 1,
+          "percent": 40,
           "completed": false
-        },
-        {
-          "id": "sc-103",
-          "name": "Экстренный фонд",
-          "icon": "🚨",
-          "amount": 30000,
-          "percent": 100,
-          "order": 2,
-          "completed": true
         }
       ],
       "distributionRules": [
-        "50% на обязательные расходы",
-        "30% на накопления и инвестиции",
-        "20% на личные расходы"
+        "Основной счёт",
+        "Цель на месяц",
+        "60% на подушку безопасности",
+        "40% на развлечения"
       ],
-      "updatedAt": "2026-07-05T14:30:00"
+      "updatedAt": "2026-07-12T19:12:35.908Z",
+      "incomeSource": "analytics"
     },
     "2026-08": {
-      "monthlyIncome": 0,
+      "monthlyIncome": 19424,
       "lastMonthExpense": 0,
       "mainAccountCategories": [],
       "monthGoals": [],
       "savingsCategories": [],
       "distributionRules": [],
-      "updatedAt": "2026-07-05T14:30:00"
+      "updatedAt": "2026-07-12T18:34:25.017Z",
+      "incomeSource": "analytics"
     }
-  },
-  "financialAnalytics": {
-    "manualIncomeSources": [
-      {
-        "id": "mi-001",
-        "name": "Фриланс (веб-сайты)",
-        "amount": 45000,
-        "date": "2026-07-05",
-        "createdAt": 1720166400000
-      },
-      {
-        "id": "mi-002",
-        "name": "Консультации",
-        "amount": 15000,
-        "date": "2026-07-03",
-        "createdAt": 1719993600000
-      },
-      {
-        "id": "mi-003",
-        "name": "Дивиденды",
-        "amount": 8000,
-        "date": "2026-06-30",
-        "createdAt": 1719758400000
-      },
-      {
-        "id": "mi-004",
-        "name": "Продажа курса",
-        "amount": 12000,
-        "date": "2026-07-01",
-        "createdAt": 1719792000000
-      },
-      {
-        "id": "mi-005",
-        "name": "Бонус от работодателя",
-        "amount": 35000,
-        "date": "2026-06-25",
-        "createdAt": 1719273600000
-      }
-    ]
   }
 }

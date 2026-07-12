@@ -152,12 +152,12 @@
     // На мобилке начальный вид — день, на десктопе — неделя
     const initialView = isSmallPhone ? "timeGridDay" : isMobile ? "timeGridWeek" : "timeGridWeek";
 
-    // На телефоне упрощаем тулбар: стрелки + сегодня + переключение вида
+    // Тулбар: стрелки + переключение вида (кнопка "Сегодня" убрана)
     const headerToolbar = isSmallPhone
-      ? { left: "prev,next", center: "title", right: "today,dayGridMonth,timeGridWeek,timeGridDay" }
+      ? { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
       : isMobile
-        ? { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
-        : { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
+        ? { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
+        : { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
 
     calendar = new Calendar(calendarEl, {
       plugins: [
@@ -170,7 +170,6 @@
       locale: "ru",
       headerToolbar,
       buttonText: {
-        today: "Сегодня",
         month: "Месяц",
         week: "Неделя",
         day: "День",
@@ -1292,10 +1291,6 @@
       border-radius: 8px;
     }
 
-    :global(.fc .fc-today-button) {
-      min-width: 56px;
-    }
-
     :global(.fc .fc-col-header-cell-cushion) {
       font-size: 10.5px;
       padding: 6px 0;
@@ -1737,8 +1732,7 @@
 
     /* Увеличиваем кнопки навигации */
     :global(.fc .fc-prev-button),
-    :global(.fc .fc-next-button),
-    :global(.fc .fc-today-button) {
+    :global(.fc .fc-next-button) {
       min-height: 44px;
       min-width: 44px;
     }
