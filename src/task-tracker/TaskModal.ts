@@ -42,7 +42,8 @@ export class TaskModal extends Modal {
     onSubmit: (task: Partial<ITask> & { isNoteTask?: boolean; notePath?: string }) => void,
     task?: ITask,
     initialDate?: string,
-    initialTime?: string
+    initialTime?: string,
+    initialEstimatedTime?: number
   ) {
     super(app);
     this.onSubmit = onSubmit;
@@ -107,6 +108,10 @@ export class TaskModal extends Modal {
       }
       if (initialTime) {
         this.scheduledTime = initialTime;
+      }
+      if (initialEstimatedTime && initialEstimatedTime > 0) {
+        this.estimatedTimeHours = String(Math.floor(initialEstimatedTime / 60));
+        this.estimatedTimeMinutes = String(initialEstimatedTime % 60);
       }
       const currentSettings = get(settings);
       this.paymentType = currentSettings.defaultPaymentType || "hour";

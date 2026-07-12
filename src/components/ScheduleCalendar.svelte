@@ -419,8 +419,17 @@
     const viewType = calendar.view?.type || "";
     const initialTime = viewType.startsWith("timeGrid") ? timeStr : undefined;
 
+    // Calculate estimated time from selected range
+    let estimatedTime: number | undefined;
+    if (info.end && info.start.getTime() !== info.end.getTime()) {
+      const durationMin = Math.round((info.end.getTime() - info.start.getTime()) / 1000 / 60);
+      if (durationMin > 0) {
+        estimatedTime = Math.max(15, durationMin);
+      }
+    }
+
     calendar.unselect();
-    openTaskCreator(dateStr, initialTime);
+    openTaskCreator(dateStr, initialTime, estimatedTime);
   }
 
   function handleEventDragStart(_info: any): void {
@@ -493,7 +502,7 @@
     }
   }
 
-  async function openTaskCreator(dateStr: string, timeStr?: string): Promise<void> {
+  async function openTaskCreator(dateStr: string, timeStr?: string, prefillEstimatedTime?: number): Promise<void> {
     const moment = window.moment(dateStr, "YYYY-MM-DD", true);
     if (!moment.isValid()) return;
 
@@ -519,7 +528,7 @@
         tags: [],
         sortOrder: 0,
         recurrence: data.recurrence,
-        estimatedTime: data.estimatedTime,
+        estimatedTime: data.estimatedTime || prefillEstimatedTime,
         scheduledTime: data.scheduledTime || initialTime,
       });
 
@@ -538,7 +547,7 @@
       if (!destroyed && calendar) {
         calendar.refetchEvents();
       }
-    }, undefined, initialDate, initialTime).open();
+    }, undefined, initialDate, initialTime, prefillEstimatedTime).open();
   }
 
   // Контекстное меню задачи — рендерим в document.body,

@@ -50,23 +50,31 @@ export function getMonthData(monthKey: string): FinanceMonthData {
   if (!allData[monthKey]) {
     return createEmptyMonthData();
   }
-  const data = allData[monthKey];
+  const raw = allData[monthKey];
+
+  // Deep copy to avoid mutating store data
+  const data: FinanceMonthData = {
+    ...raw,
+    mainAccountCategories: raw.mainAccountCategories.map((c) => ({ ...c })),
+    monthGoals: (raw.monthGoals || []).map((g) => ({ ...g })),
+    savingsCategories: (raw.savingsCategories || []).map((c) => ({ ...c })),
+    distributionRules: [...raw.distributionRules],
+  };
 
   // Migration: convert old string[] monthGoals to MonthGoal[]
-  if (Array.isArray(data.monthGoals) && data.monthGoals.length > 0 && typeof data.monthGoals[0] === "string") {
-    const migratedGoals: MonthGoal[] = (data.monthGoals as string[]).map((g: string) => ({
+  if (Array.isArray(data.monthGoals) && data.monthGoals.length > 0 && typeof (data.monthGoals[0] as any) === "string") {
+    data.monthGoals = (data.monthGoals as unknown as string[]).map((g: string) => ({
       id: generateGoalId(),
       icon: "🎯",
       name: typeof g === "string" ? g : "Цель",
       currentAmount: 0,
       targetAmount: 0,
     }));
-    data.monthGoals = migratedGoals;
   }
 
   // Migration: ensure savingsCategories have percent and completed
   if (data.savingsCategories) {
-    data.savingsCategories = data.savingsCategories.map((c: Record<string, unknown>) => ({
+    data.savingsCategories = data.savingsCategories.map((c) => ({
       ...c,
       percent: c.percent ?? 0,
       completed: c.completed ?? false,

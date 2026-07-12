@@ -10,6 +10,7 @@
   } from "./storage";
   import type { FinanceCategory, FinanceMonthData, MonthGoal, SavingsCategory } from "./types";
   import { generateCategoryId, generateGoalId } from "./types";
+  import { parseSavingsInput } from "./inputUtils";
   import { get } from "svelte/store";
   import { tasks } from "../task-tracker/stores";
   import { calculateTaskEarnings } from "../task-tracker/stores";
@@ -65,7 +66,7 @@
     const newData = getMonthData(monthKey);
     if (newData) {
       monthData = newData;
-      incomeSource = (monthData as any).incomeSource || "analytics";
+      incomeSource = monthData.incomeSource || "analytics";
       manualIncome = monthData.monthlyIncome;
     }
   }
@@ -78,8 +79,8 @@
       updateMonthData(monthKey, {
         monthlyIncome: income,
         incomeSource: "analytics",
-      } as any);
-      monthData = getMonthData(monthKey);
+      });
+      // Don't reassign monthData here — the $financeData reactive block above handles it
     }
   }
 
@@ -131,12 +132,12 @@
       updateMonthData(monthKey, {
         monthlyIncome: income,
         incomeSource: "analytics",
-      } as any);
+      });
     } else {
       updateMonthData(monthKey, {
         monthlyIncome: manualIncome,
         incomeSource: "manual",
-      } as any);
+      });
     }
     monthData = getMonthData(monthKey);
   }
@@ -148,7 +149,7 @@
       updateMonthData(monthKey, {
         monthlyIncome: manualIncome,
         incomeSource: "manual",
-      } as any);
+      });
       monthData = getMonthData(monthKey);
     }, 300);
   }
@@ -218,8 +219,8 @@
   function addSavingsCategory() {
     const newCat: SavingsCategory = {
       id: generateCategoryId(),
-      name: "Новая цель",
-      icon: "🎯",
+      name: "Место куда отложить",
+      icon: "👛",
       amount: 0,
       order: monthData.savingsCategories.length,
       percent: 0,
@@ -508,20 +509,27 @@
           <div class="category-row editing">
             <input type="text" value={cat.icon} on:change={(e) => updateSavingsCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
             <input type="text" value={cat.name} on:change={(e) => updateSavingsCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
-            <input type="number" value={cat.amount} on:change={(e) => updateSavingsCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 })} min="0" class="cat-edit-amount" />
+            <div class="savings-edit-fields">
+              <div class="savings-field">
+                <span class="savings-field-label">Сумма</span>
+                <input type="number" value={cat.amount} on:change={(e) => { const amount = parseFloat(inputVal(e)) || 0; const percent = monthData.monthlyIncome > 0 ? Math.round((amount / monthData.monthlyIncome) * 100) : 0; updateSavingsCategory(cat.id, { amount, percent }); }} min="0" class="savings-field-input" />
+                <span class="savings-field-unit">₽</span>
+              </div>
+              <div class="savings-field">
+                <span class="savings-field-label">Процент</span>
+                <input type="number" value={cat.percent} on:change={(e) => { const percent = parseFloat(inputVal(e)) || 0; const amount = Math.round(monthData.monthlyIncome * percent / 100); updateSavingsCategory(cat.id, { amount, percent }); }} min="0" max="100" class="savings-field-input" />
+                <span class="savings-field-unit">%</span>
+              </div>
+            </div>
             <button class="goal-done-btn" on:click={() => editingSavingsId = null}>✓</button>
           </div>
         {:else}
-          <div class="category-row">
+          <div class="category-row" on:click={() => editingSavingsId = cat.id}>
             <span class="cat-icon-display">{cat.icon}</span>
             <span class="cat-name-display">{cat.name}</span>
             <span class="cat-amount-display">{formatMoney(cat.amount)} ₽</span>
-            <span class="cat-percent">{monthData.monthlyIncome > 0 ? Math.round((cat.amount / monthData.monthlyIncome) * 100) : 0}%</span>
-            <div class="savings-actions">
-              <input type="number" min="0" max="100" placeholder="%" class="savings-percent-input" on:change={(e) => { const pct = parseInt(inputVal(e)) || 0; updateSavingsCategory(cat.id, { amount: Math.round(monthData.monthlyIncome * pct / 100) }); clearInput(e); }} />
-              <input type="number" min="0" placeholder="₽" class="savings-amount-input" on:change={(e) => { updateSavingsCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 }); clearInput(e); }} />
-            </div>
-            <button class="cat-delete" on:click={() => removeSavingsCategory(cat.id)}>✕</button>
+            <span class="cat-percent">{cat.percent}%</span>
+            <button class="cat-delete" on:click|stopPropagation={() => removeSavingsCategory(cat.id)}>✕</button>
           </div>
         {/if}
       {/each}
@@ -980,31 +988,51 @@
     opacity: 1;
   }
 
-  .savings-actions {
+  .savings-edit-fields {
     display: flex;
-    gap: 6px;
-    flex-shrink: 0;
+    gap: 12px;
+    flex: 1;
   }
 
-  .savings-percent-input,
-  .savings-amount-input {
-    width: 60px;
-    padding: 4px 6px;
+  .savings-field {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .savings-field-label {
+    font-size: 10px;
+    color: var(--fi-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 50px;
+  }
+
+  .savings-field-input {
+    width: 80px;
+    padding: 6px 8px;
     border: 1px solid var(--fi-border);
     border-radius: 6px;
     background: var(--background-primary);
     color: var(--fi-text);
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 600;
     font-family: inherit;
-    text-align: center;
+    text-align: right;
     transition: all 0.2s ease;
   }
 
-  .savings-percent-input:focus,
-  .savings-amount-input:focus {
+  .savings-field-input:focus {
     border-color: var(--fi-accent);
     outline: none;
     box-shadow: 0 0 0 2px rgba(95, 153, 225, 0.15);
+  }
+
+  .savings-field-unit {
+    font-size: 12px;
+    color: var(--fi-muted);
+    font-weight: 500;
   }
 
   .cat-delete {

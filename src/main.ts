@@ -28,8 +28,8 @@ import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
-import { initFinanceStores } from "./finance/storage";
-import { initFinancialAnalyticsStores } from "./finance/financialAnalyticsStorage";
+import { initFinanceStores, reloadFinanceStores } from "./finance/storage";
+import { initFinancialAnalyticsStores, reloadFinancialAnalyticsStores } from "./finance/financialAnalyticsStorage";
 import { NotificationService } from "./services/NotificationService";
 
 declare global {
@@ -203,6 +203,8 @@ export default class CalendarPlugin extends Plugin {
       this.syncReloadTimer = setTimeout(() => {
         reloadTaskStores(this);
         reloadHabitStores(this);
+        reloadFinanceStores();
+        reloadFinancialAnalyticsStores();
       }, 500);
     };
 

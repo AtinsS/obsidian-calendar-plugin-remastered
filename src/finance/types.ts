@@ -26,6 +26,7 @@ export interface FinanceMonthData {
   monthGoals: MonthGoal[];
   savingsCategories: SavingsCategory[];
   distributionRules: string[];
+  incomeSource?: "analytics" | "manual";
   updatedAt: string;
 }
 
