@@ -17,8 +17,10 @@
     removeTask,
     addTask,
   } from "../task-tracker/stores";
+  import { createNoteTask, deleteNoteTask, archiveNoteTask } from "../task-tracker/noteTasks";
   import { TaskModal } from "../task-tracker/TaskModal";
   import { getDateUID } from "obsidian-daily-notes-interface";
+  import { settings } from "../ui/stores";
   import {
     tasksToEvents,
   } from "./scheduleUtils";
@@ -449,7 +451,7 @@
         const newDateUID = getDateUID(moment, "day");
         updateTask(task.id, {
           dateUID: newDateUID,
-          scheduledTime: newTime,
+          scheduledTime: info.event.allDay ? undefined : newTime,
         });
       }
     }
@@ -477,7 +479,21 @@
     }, task).open();
   }
 
-  function openTaskCreator(dateStr: string, timeStr?: string): void {
+  async function deleteNoteFileIfNeeded(task: ITask): Promise<void> {
+    if (!task.isNoteTask || !task.notePath) return;
+    await deleteNoteTask(task.notePath, plugin.app);
+  }
+
+  async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
+    if (newStatus !== "done" || !task.notePath || !task.isNoteTask) return;
+    const archivePath = get(settings).archiveFolderPath || "Archive";
+    const newPath = await archiveNoteTask(task.notePath, archivePath, plugin.app);
+    if (newPath) {
+      updateTask(task.id, { notePath: newPath });
+    }
+  }
+
+  async function openTaskCreator(dateStr: string, timeStr?: string): Promise<void> {
     const moment = window.moment(dateStr, "YYYY-MM-DD", true);
     if (!moment.isValid()) return;
 
@@ -489,14 +505,16 @@
     const initialDate = dateStr;
     const initialTime = isTimeView ? timeStr : undefined;
 
-    new TaskModal(plugin.app, (data) => {
+    new TaskModal(plugin.app, async (data) => {
+      const isNoteTask = !!data.isNoteTask;
       const task = addTask({
         title: data.title || "Новая задача",
         completed: false,
         status: "todo",
         dateUID: data.dateUID || dateUID,
         projectId: data.projectId || null,
-        notePath: (data as any).notePath || null,
+        isNoteTask,
+        notePath: isNoteTask ? null : (data as any).notePath || null,
         priority: data.priority || "medium",
         tags: [],
         sortOrder: 0,
@@ -504,6 +522,19 @@
         estimatedTime: data.estimatedTime,
         scheduledTime: data.scheduledTime || initialTime,
       });
+
+      if (isNoteTask) {
+        const project = get(projects).find((p) => p.id === data.projectId);
+        try {
+          const file = await createNoteTask(task, project, plugin.app, (data as any).notePath || undefined);
+          if (file) {
+            updateTask(task.id, { notePath: file.path });
+          }
+        } catch (error) {
+          console.error("[ScheduleCalendar] failed to create note task:", error);
+        }
+      }
+
       if (!destroyed && calendar) {
         calendar.refetchEvents();
       }
@@ -535,15 +566,17 @@
 
     // Кнопки меню
     const items = [
-      { label: "✏️ Редактировать", action: () => contextEditTask() },
-      { divider: true },
+      { label: "📝 Редактировать", action: () => contextEditTask() },
+      ...(task.notePath
+        ? [{ label: "📄 Открыть заметку", action: () => contextOpenNote() }, { divider: true }]
+        : []),
       { label: "Перевести статус:", disabled: true },
-      { label: "☐ Сделать", action: () => contextChangeStatus("todo") },
-      { label: "▶ В работу", action: () => contextChangeStatus("progress") },
-      { label: "⏸ На паузу", action: () => contextChangeStatus("paused") },
-      { label: "✓ Готово", action: () => contextChangeStatus("done") },
+      { label: "🟢 Сделать", action: () => contextChangeStatus("todo") },
+      { label: "▶️ В работу", action: () => contextChangeStatus("progress") },
+      { label: "⏸️ На паузу", action: () => contextChangeStatus("paused") },
+      { label: "✅ Готово", action: () => contextChangeStatus("done") },
       { divider: true },
-      { label: "🗑 Удалить", action: () => contextDeleteTask(), danger: true },
+      { label: "🗑️ Удалить", action: () => contextDeleteTask(), danger: true },
     ];
 
     for (const item of items) {
@@ -599,15 +632,29 @@
     closeContextMenu();
   }
 
-  function contextChangeStatus(newStatus: "todo" | "progress" | "done" | "paused"): void {
-    if (contextMenuTask) {
-      updateTaskStatus(contextMenuTask.id, newStatus);
+  async function contextOpenNote(): Promise<void> {
+    if (!contextMenuTask?.notePath) return;
+    try {
+      plugin.app.workspace.openLinkText(contextMenuTask.notePath, "", false);
+    } catch (error) {
+      console.error("[ScheduleCalendar] failed to open note:", error);
     }
     closeContextMenu();
   }
 
-  function contextDeleteTask(): void {
+  function contextChangeStatus(newStatus: "todo" | "progress" | "done" | "paused"): void {
     if (contextMenuTask) {
+      updateTaskStatus(contextMenuTask.id, newStatus);
+      if (newStatus === "done") {
+        archiveNoteIfCompleted(contextMenuTask, newStatus);
+      }
+    }
+    closeContextMenu();
+  }
+
+  async function contextDeleteTask(): Promise<void> {
+    if (contextMenuTask) {
+      await deleteNoteFileIfNeeded(contextMenuTask);
       removeTask(contextMenuTask.id);
     }
     closeContextMenu();

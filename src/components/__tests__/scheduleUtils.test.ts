@@ -9,7 +9,7 @@ import {
 
 const TEST_DATE = "day-2026-07-05T00:00:00";
 
-function makeTask(overrides: Partial<ITask> = {}): ITask {
+function makeTask(overrides: Partial<ITask> & Record<string, any> = {}): ITask {
   return {
     id: "test-id",
     title: "Test Task",
@@ -130,12 +130,12 @@ describe("taskToEvent", () => {
     expect(event.end).toBe("2026-07-05T15:30:00");
   });
 
-  it("should default to 09:00 when no scheduledTime", () => {
+  it("should create an all-day event when no scheduledTime", () => {
     const task = makeTask({ scheduledTime: undefined, estimatedTime: 60 });
     const event = taskToEvent(task, []);
 
-    expect(event.start).toBe("2026-07-05T09:00:00");
-    expect(event.end).toBe("2026-07-05T10:00:00");
+    expect(event.start).toBe("2026-07-05");
+    expect(event.end).toBe("2026-07-06T00:00:00");
   });
 
   it("should default to 60 minutes when no estimatedTime", () => {
@@ -273,7 +273,7 @@ describe("tasksToEvents", () => {
     const events = tasksToEvents(taskList, []);
 
     expect(events.length).toBe(1);
-    expect(events[0].extendedProps.task.description).toBe("Some description");
+    expect((events[0].extendedProps.task as any).description).toBe("Some description");
   });
 
   it("should handle tasks with recurrence", () => {

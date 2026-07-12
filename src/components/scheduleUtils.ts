@@ -85,6 +85,12 @@ export interface ScheduleEvent {
   };
 }
 
+function calculateAllDayEnd(date: string): string {
+  const d = new Date(`${date}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00`;
+}
+
 export function taskToEvent(
   task: ITask,
   projects: IProject[]
@@ -93,13 +99,11 @@ export function taskToEvent(
   if (!dateStr) return null;
 
   const hasTime = !!task.scheduledTime;
-  const start = hasTime
-    ? `${dateStr}T${task.scheduledTime}:00`
-    : `${dateStr}T09:00:00`;
+  const start = hasTime ? `${dateStr}T${task.scheduledTime}:00` : dateStr;
 
   const end = hasTime
     ? calculateEndTime(dateStr, task.scheduledTime, task.estimatedTime || 60)
-    : calculateEndTime(dateStr, "09:00", task.estimatedTime || 60);
+    : calculateAllDayEnd(dateStr);
 
   const project = projects.find((p) => p.id === task.projectId);
   const hasProject = !!project;
