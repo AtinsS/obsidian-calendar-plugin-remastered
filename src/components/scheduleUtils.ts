@@ -78,6 +78,7 @@ export interface ScheduleEvent {
   textColor: string;
   extendedProps: {
     task: ITask;
+    taskId: string;
     projectId: string | null;
     projectColor: string | null;
     isDeadlineEvent?: boolean;
@@ -118,6 +119,7 @@ export function taskToEvent(
     textColor: "#e8ecf0",
     extendedProps: {
       task,
+      taskId: task.id,
       projectId: task.projectId,
       projectColor: project?.color || null,
     },
@@ -156,6 +158,7 @@ function deadlineToEvent(
     textColor: "#fff",
     extendedProps: {
       task,
+      taskId: task.id,
       projectId: task.projectId,
       projectColor: project?.color || null,
       isDeadlineEvent: true,

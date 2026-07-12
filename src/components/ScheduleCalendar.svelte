@@ -92,6 +92,7 @@
     unsubTasks();
     unsubProjects();
     window.removeEventListener("resize", handleResize);
+    closeContextMenu(); // убираем контекстное меню из document.body
     if (calendarEl) {
       calendarEl.removeEventListener("touchstart", handleTouchStart);
       calendarEl.removeEventListener("touchmove", handleTouchMove);
@@ -183,6 +184,7 @@
       editable: !isMobile,
       selectable: true,
       selectMirror: true,
+      select: handleCalendarSelect,
       dayMaxEvents: true,
       weekends: true,
       firstDay: 1,
@@ -207,7 +209,6 @@
       eventDidMount: handleEventDidMount,
       eventDragStart: handleEventDragStart,
       eventDragStop: handleEventDragStop,
-      dateClick: handleDateClick,
     });
 
     calendar.render();
@@ -228,10 +229,23 @@
     }
   }
 
+  /** FullCalendar v6 + luxon3 не сохраняет complex objects в extendedProps.
+   *  Ищем task по ID из store — это гарантированно работает. */
+  function resolveTask(event: any): ITask | null {
+    const fromProps = event.extendedProps?.task as ITask | undefined;
+    if (fromProps) return fromProps;
+    const taskId = event.extendedProps?.taskId || event.id;
+    if (!taskId) return null;
+    return get(tasks).find((t) => t.id === taskId) || null;
+  }
+
   function renderEventContent(eventInfo: any) {
     const { time, event } = eventInfo;
-    const task = event.extendedProps.task as ITask;
-    const isDeadlineEvent = event.extendedProps.isDeadlineEvent as boolean;
+    const task = resolveTask(event);
+    if (!task) {
+      return { html: `<div class="sch-event sch-event-compact"><span class="sch-event-title">${event.title || "?"}</span></div>` };
+    }
+    const isDeadlineEvent = event.extendedProps?.isDeadlineEvent as boolean;
 
     if (isDeadlineEvent) {
       return {
@@ -324,9 +338,10 @@
 
   function handleEventDidMount(info: any): void {
     const el = info.el;
-    const task = info.event.extendedProps.task as ITask;
-    const projectColor = info.event.extendedProps.projectColor as string | null;
-    const isDeadlineEvent = info.event.extendedProps.isDeadlineEvent as boolean;
+    const task = resolveTask(info.event);
+    if (!task) return;
+    const projectColor = info.event.extendedProps?.projectColor as string | null;
+    const isDeadlineEvent = info.event.extendedProps?.isDeadlineEvent as boolean;
 
     if (isDeadlineEvent) {
       el.style.backgroundColor = "rgba(180, 60, 60, 0.85)";
@@ -368,29 +383,42 @@
   }
 
   function handleEventClick(info: any): void {
-    if (info.event.extendedProps.isDeadlineEvent) return;
-    const task = info.event.extendedProps.task as ITask;
+    if (info.event.extendedProps?.isDeadlineEvent) return;
+    const task = resolveTask(info.event);
+    if (!task) return;
 
-    // Позиционируем меню по центру элемента события — самая надёжная позиция
-    const el = info.el as HTMLElement;
-    const rect = el.getBoundingClientRect();
     const menuWidth = 220;
     const menuHeight = 260;
+    let x = info.jsEvent?.clientX ?? 0;
+    let y = info.jsEvent?.clientY ?? 0;
 
-    // Центр элемента по горизонтали, сразу под элементом по вертикали
-    let x = rect.left + rect.width / 2 - menuWidth / 2;
-    let y = rect.bottom + 4;
-
-    // Clamp по краям экрана
     if (x + menuWidth > window.innerWidth) {
       x = window.innerWidth - menuWidth - 8;
     }
     if (x < 8) x = 8;
     if (y + menuHeight > window.innerHeight) {
-      y = Math.max(8, rect.top - menuHeight - 4);
+      y = Math.max(8, y - menuHeight - 4);
     }
 
     openContextMenu(task, x, y);
+  }
+
+  function handleCalendarSelect(info: any): void {
+    if (!info.start || !calendar) return;
+
+    const date = info.start as Date;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const timeStr = `${hours}:${minutes}`;
+    const viewType = calendar.view?.type || "";
+    const initialTime = viewType.startsWith("timeGrid") ? timeStr : undefined;
+
+    calendar.unselect();
+    openTaskCreator(dateStr, initialTime);
   }
 
   function handleEventDragStart(_info: any): void {
@@ -402,8 +430,9 @@
   }
 
   function handleEventDrop(info: any): void {
-    if (info.event.extendedProps.isDeadlineEvent) return;
-    const task = info.event.extendedProps.task as ITask;
+    if (info.event.extendedProps?.isDeadlineEvent) return;
+    const task = resolveTask(info.event);
+    if (!task) return;
     const newStart = info.event.start as Date;
 
     if (newStart) {
@@ -427,7 +456,8 @@
   }
 
   function handleEventResize(info: any): void {
-    const task = info.event.extendedProps.task as ITask;
+    const task = resolveTask(info.event);
+    if (!task) return;
     const start = info.event.start as Date;
     const end = info.event.end as Date;
 
@@ -441,28 +471,13 @@
     }
   }
 
-  function handleDateClick(info: any): void {
-    const date = info.date as Date;
-    if (!date) return;
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const timeStr = `${hours}:${minutes}`;
-
-    openTaskCreator(dateStr, timeStr);
-  }
-
   function openTaskEditor(task: ITask): void {
     new TaskModal(plugin.app, (updates) => {
       updateTask(task.id, updates);
     }, task).open();
   }
 
-  function openTaskCreator(dateStr: string, timeStr: string): void {
+  function openTaskCreator(dateStr: string, timeStr?: string): void {
     const moment = window.moment(dateStr, "YYYY-MM-DD", true);
     if (!moment.isValid()) return;
 
@@ -475,7 +490,7 @@
     const initialTime = isTimeView ? timeStr : undefined;
 
     new TaskModal(plugin.app, (data) => {
-      addTask({
+      const task = addTask({
         title: data.title || "Новая задача",
         completed: false,
         status: "todo",
@@ -489,30 +504,91 @@
         estimatedTime: data.estimatedTime,
         scheduledTime: data.scheduledTime || initialTime,
       });
-      // Ждём закрытия модалки Obsidian и обновления DOM
-      setTimeout(() => {
-        if (!destroyed && calendar) {
-          calendar.refetchEvents();
-        }
-      }, 500);
+      if (!destroyed && calendar) {
+        calendar.refetchEvents();
+      }
     }, undefined, initialDate, initialTime).open();
   }
 
-  // Контекстное меню задачи
-  let contextMenuVisible = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
+  // Контекстное меню задачи — рендерим в document.body,
+  // чтобы position:fixed работал относительно viewport,
+  // а не относительно schedule-view-container с backdrop-filter
   let contextMenuTask: ITask | null = null;
+  let contextMenuEl: HTMLDivElement | null = null;
 
   function openContextMenu(task: ITask, x: number, y: number): void {
+    closeContextMenu(); // убираем предыдущее, если есть
     contextMenuTask = task;
-    contextMenuX = x;
-    contextMenuY = y;
-    contextMenuVisible = true;
+
+    // Создаём DOM-элемент в document.body, минуя backdrop-filter containing block
+    const el = document.createElement("div");
+    el.className = "sch-context-overlay";
+    el.addEventListener("click", closeContextMenu);
+    el.addEventListener("keydown", closeContextMenu);
+
+    const menu = document.createElement("div");
+    menu.className = "sch-context-menu";
+    menu.style.position = "fixed";
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+    menu.style.zIndex = "9999";
+
+    // Кнопки меню
+    const items = [
+      { label: "✏️ Редактировать", action: () => contextEditTask() },
+      { divider: true },
+      { label: "Перевести статус:", disabled: true },
+      { label: "☐ Сделать", action: () => contextChangeStatus("todo") },
+      { label: "▶ В работу", action: () => contextChangeStatus("progress") },
+      { label: "⏸ На паузу", action: () => contextChangeStatus("paused") },
+      { label: "✓ Готово", action: () => contextChangeStatus("done") },
+      { divider: true },
+      { label: "🗑 Удалить", action: () => contextDeleteTask(), danger: true },
+    ];
+
+    for (const item of items) {
+      if ("divider" in item && item.divider) {
+        const div = document.createElement("div");
+        div.className = "sch-context-divider";
+        menu.appendChild(div);
+      } else if ("disabled" in item && item.disabled) {
+        const lbl = document.createElement("div");
+        lbl.className = "sch-context-label";
+        lbl.textContent = item.label;
+        menu.appendChild(lbl);
+      } else if ("action" in item) {
+        const btn = document.createElement("button");
+        btn.className = "sch-context-item" + ("danger" in item && item.danger ? " sch-context-danger" : "");
+        btn.innerHTML = item.label;
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          item.action();
+        });
+        menu.appendChild(btn);
+      }
+    }
+
+    el.appendChild(menu);
+    document.body.appendChild(el);
+    contextMenuEl = el;
+
+    // Границы viewport — сдвигаем меню, если не помещается
+    requestAnimationFrame(() => {
+      const rect = menu.getBoundingClientRect();
+      if (rect.right > window.innerWidth) {
+        menu.style.left = `${Math.max(8, window.innerWidth - rect.width - 8)}px`;
+      }
+      if (rect.bottom > window.innerHeight) {
+        menu.style.top = `${Math.max(8, window.innerHeight - rect.height - 8)}px`;
+      }
+    });
   }
 
   function closeContextMenu(): void {
-    contextMenuVisible = false;
+    if (contextMenuEl) {
+      contextMenuEl.remove();
+      contextMenuEl = null;
+    }
     contextMenuTask = null;
   }
 
@@ -550,32 +626,9 @@
   {/if}
   <div bind:this={calendarEl} class="schedule-calendar"></div>
 
-  {#if contextMenuVisible}
-    <div class="sch-context-overlay" on:click={closeContextMenu} on:keydown={closeContextMenu}></div>
-    <div class="sch-context-menu" style="left: {contextMenuX}px; top: {contextMenuY}px;">
-      <button class="sch-context-item" on:click={contextEditTask}>
-        &#9998; Редактировать
-      </button>
-      <div class="sch-context-divider"></div>
-      <div class="sch-context-label">Перевести статус:</div>
-      <button class="sch-context-item" on:click={() => contextChangeStatus("todo")}>
-        &#9744; Сделать
-      </button>
-      <button class="sch-context-item" on:click={() => contextChangeStatus("progress")}>
-        &#9654; В работу
-      </button>
-      <button class="sch-context-item" on:click={() => contextChangeStatus("paused")}>
-        &#9208; На паузу
-      </button>
-      <button class="sch-context-item" on:click={() => contextChangeStatus("done")}>
-        &#10003; Готово
-      </button>
-      <div class="sch-context-divider"></div>
-      <button class="sch-context-item sch-context-danger" on:click={contextDeleteTask}>
-        &#128465; Удалить
-      </button>
-    </div>
-  {/if}
+  <!-- Контекстное меню теперь рендерится в document.body через DOM API,
+       чтобы position:fixed работал корректно (backdrop-filter на
+       schedule-view-container создаёт containing block) -->
 </div>
 
 <style>
@@ -629,15 +682,15 @@
     width: 100%;
   }
 
-  /* Контекстное меню задачи */
-  .sch-context-overlay {
+  /* Контекстное меню задачи — global, т.к. рендерится в document.body */
+  :global(.sch-context-overlay) {
     position: fixed;
     inset: 0;
     z-index: 9998;
     background: transparent;
   }
 
-  .sch-context-menu {
+  :global(.sch-context-menu) {
     position: fixed;
     z-index: 9999;
     min-width: 200px;
@@ -650,7 +703,7 @@
     font-size: 13px;
   }
 
-  .sch-context-item {
+  :global(.sch-context-item) {
     display: block;
     width: 100%;
     padding: 7px 12px;
@@ -665,17 +718,17 @@
     font-size: 13px;
   }
 
-  .sch-context-item:hover {
+  :global(.sch-context-item:hover) {
     background: var(--background-modifier-hover, rgba(255, 255, 255, 0.06));
   }
 
-  .sch-context-divider {
+  :global(.sch-context-divider) {
     height: 1px;
     background: var(--background-modifier-border, rgba(255, 255, 255, 0.06));
     margin: 3px 8px;
   }
 
-  .sch-context-label {
+  :global(.sch-context-label) {
     padding: 4px 12px 2px;
     font-size: 11px;
     color: var(--text-faint, rgba(200, 210, 220, 0.4));
@@ -684,11 +737,11 @@
     letter-spacing: 0.04em;
   }
 
-  .sch-context-danger {
+  :global(.sch-context-danger) {
     color: var(--text-error, #ef4444);
   }
 
-  .sch-context-danger:hover {
+  :global(.sch-context-danger:hover) {
     background: rgba(239, 68, 68, 0.12);
   }
 
@@ -794,9 +847,9 @@
     font-weight: 500;
   }
 
-  :global(.fc .fc-timegrid-slot) {
-    height: 30px;
-  }
+  /* Не переопределяем height слотов — FullCalendar рассчитывает
+     позиции highlight/drag/snap на основе slotDuration,
+     а CSS height создаёт рассинхрон */
 
   :global(.fc .fc-daygrid-day-number) {
     color: var(--mcp-text, var(--text-normal));
@@ -909,7 +962,6 @@
   :global(.fc .fc-event-event-dragging),
   :global(.fc .fc-event-mirror) {
     transition: none !important;
-    transform: none !important;
     will-change: auto;
     opacity: 0.9;
     z-index: 9999;
@@ -1274,10 +1326,7 @@
       padding: 3px 5px;
     }
 
-    /* Сетка времени — увеличенные слоты для тапа */
-    :global(.fc .fc-timegrid-slot) {
-      height: 40px;
-    }
+    /* Сетка времени — FullCalendar сам управляет высотой слотов */
 
     :global(.fc .fc-timegrid-axis-cushion),
     :global(.fc .fc-timegrid-slot-label-cushion) {
@@ -1502,10 +1551,6 @@
       font-size: 9px;
     }
 
-    :global(.fc .fc-timegrid-slot) {
-      height: 32px;
-    }
-
     :global(.fc .fc-timegrid-axis) {
       width: 26px;
     }
@@ -1547,11 +1592,6 @@
       padding: 0 2px;
     }
 
-    /* TimeGrid — ещё компактнее */
-    :global(.fc .fc-timegrid-slot) {
-      height: 34px;
-    }
-
     :global(.fc .fc-timegrid-axis) {
       width: 24px;
     }
@@ -1587,10 +1627,6 @@
       width: auto;
       order: 0;
       font-size: 12px;
-    }
-
-    :global(.fc .fc-timegrid-slot) {
-      height: 32px;
     }
 
     :global(.sch-event) {
@@ -1641,11 +1677,6 @@
     :global(.fc .fc-daygrid-event) {
       min-height: 20px;
       padding: 2px 4px;
-    }
-
-    /* Увеличиваем слоты времени для удобного тапа */
-    :global(.fc .fc-timegrid-slot) {
-      min-height: 44px;
     }
 
     /* Увеличиваем кнопки навигации */
