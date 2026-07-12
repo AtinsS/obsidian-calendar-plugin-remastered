@@ -100,7 +100,8 @@ export class NotificationService {
             );
           }
 
-          if (now >= fireAt + 30 * 60_000 && !this.firedOverdue.has(overdueKey)) {
+          // Просрочка — только для задач в статусе "todo" (не в работе / на паузе / готово)
+          if (task.status === "todo" && now >= fireAt + 30 * 60_000 && !this.firedOverdue.has(overdueKey)) {
             this.firedOverdue.add(overdueKey);
             this.notify(
               `📅 Calendar Remastered`,

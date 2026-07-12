@@ -36,6 +36,7 @@ export interface ITask {
   overtimeMultiplier?: number; // rate multiplier during overtime (e.g., 1.5 = 1.5x)
   deadline?: DateUID; // deadline date (format: "day-YYYY-MM-DD")
   deadlineTime?: string; // deadline time (format: "HH:MM")
+  isNoteTask?: boolean; // true = задача-заметка (файл создаётся/архивируется)
 }
 
 export interface IProject {

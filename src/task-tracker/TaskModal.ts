@@ -40,7 +40,9 @@ export class TaskModal extends Modal {
   constructor(
     app: App,
     onSubmit: (task: Partial<ITask> & { isNoteTask?: boolean; notePath?: string }) => void,
-    task?: ITask
+    task?: ITask,
+    initialDate?: string,
+    initialTime?: string
   ) {
     super(app);
     this.onSubmit = onSubmit;
@@ -93,8 +95,19 @@ export class TaskModal extends Modal {
         this.deadlineTime = this.task.deadlineTime;
       }
     } else {
-      this.dateUID = get(selectedDate) || "";
-      this.dateValue = this.extractDateValue(this.dateUID);
+      if (initialDate) {
+        this.dateValue = initialDate;
+        const m = window.moment(initialDate, "YYYY-MM-DD", true);
+        if (m.isValid()) {
+          this.dateUID = getDateUID(m, "day");
+        }
+      } else {
+        this.dateUID = get(selectedDate) || "";
+        this.dateValue = this.extractDateValue(this.dateUID);
+      }
+      if (initialTime) {
+        this.scheduledTime = initialTime;
+      }
       const currentSettings = get(settings);
       this.paymentType = currentSettings.defaultPaymentType || "hour";
       this.rate = currentSettings.defaultRate ? String(currentSettings.defaultRate) : "";

@@ -23,6 +23,7 @@ import HabitAnalyticsView from "./views/HabitAnalyticsView";
 import FinanceView from "./views/FinanceView";
 import FinancialAnalyticsView from "./views/FinancialAnalyticsView";
 import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
+import { cleanupTimers } from "./task-tracker/TimerManager";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import { setupNoteTaskSync } from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
@@ -48,6 +49,7 @@ export default class CalendarPlugin extends Plugin {
   onunload(): void {
     if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
     this.notificationService?.stop();
+    cleanupTimers();
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_CALENDAR)
       .forEach((leaf) => leaf.detach());
@@ -126,14 +128,16 @@ export default class CalendarPlugin extends Plugin {
         if (checking) {
           return !appHasPeriodicNotesPluginLoaded();
         }
-        this.view.selectDateForWeek(moment());
+        if (this.view) this.view.selectDateForWeek(moment());
       },
     });
 
     this.addCommand({
       id: "reveal-active-note",
       name: "Reveal active note",
-      callback: () => this.view.revealActiveNote(),
+      callback: () => {
+        if (this.view) this.view.revealActiveNote();
+      },
     });
 
     this.addCommand({
@@ -176,7 +180,7 @@ export default class CalendarPlugin extends Plugin {
 
     // Initialize task tracker
     initTaskStores(this);
-    setupNoteTaskSync(this.app);
+    setupNoteTaskSync(this.app, this);
 
     // Initialize habit tracker
     initHabitStores(this);

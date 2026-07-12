@@ -219,7 +219,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
   private getVaultFolders(): string[] {
     const folders: string[] = [];
     const root = this.app.vault.getRoot();
-    const walk = (folder: any) => {
+    const walk = (folder: { children?: Array<{ children?: unknown[]; path: string }>; path: string }) => {
       for (const child of folder.children) {
         if (child.children) {
           folders.push(child.path);

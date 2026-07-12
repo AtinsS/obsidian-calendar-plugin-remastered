@@ -1,6 +1,7 @@
 import { App, TFile } from "obsidian";
 import { get } from "svelte/store";
 
+import type CalendarPlugin from "src/main";
 import type { ITask, IProject } from "./types";
 import { tasks, projects, updateTask } from "./stores";
 
@@ -147,8 +148,9 @@ export async function syncTaskToFrontmatter(
   isSyncing = false;
 }
 
-export function setupNoteTaskSync(app: App): void {
-  app.vault.on("modify", async (file) => {
+export function setupNoteTaskSync(app: App, plugin: CalendarPlugin): void {
+  plugin.registerEvent(
+    app.vault.on("modify", async (file) => {
     if (isSyncing) return;
     if (!(file instanceof TFile)) return;
 
@@ -198,5 +200,6 @@ export function setupNoteTaskSync(app: App): void {
       updateTask(taskId, changes);
       isSyncing = false;
     }
-  });
+    })
+  );
 }

@@ -22,6 +22,14 @@ function stopTickInterval(): void {
   }
 }
 
+export function cleanupTimers(): void {
+  if (tickInterval) {
+    clearInterval(tickInterval);
+    tickInterval = null;
+  }
+  activeTimers.set(new Map());
+}
+
 export function startTimer(taskId: string): void {
   activeTimers.update((current) => {
     const next = new Map(current);

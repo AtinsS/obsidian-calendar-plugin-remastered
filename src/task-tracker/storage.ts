@@ -102,7 +102,7 @@ function migrateData(data: ITaskTrackerData): ITaskTrackerData {
       ...migrated,
       tasks: migrated.tasks.map((t) => {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { description: _desc, ...rest } = t as any;
+        const { description: _desc, ...rest } = t as Record<string, unknown>;
         return rest;
       }),
       version: 5,

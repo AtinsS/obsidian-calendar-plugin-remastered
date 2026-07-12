@@ -33,6 +33,7 @@ import { habitSource } from "./habit-tracker/habitSource";
 
 import { getMonthGoals } from "./finance/storage";
 import { financeData } from "./finance/storage";
+import type { MonthGoal } from "./finance/types";
 
 export default class CalendarView extends ItemView {
   private calendar: Calendar;
@@ -130,7 +131,7 @@ export default class CalendarView extends ItemView {
     selectedDate.set(getDateUID(moment(), "day"));
 
     // Schedule view button
-    const scheduleBtn = (this as any).contentEl.createEl("button", {
+    const scheduleBtn = this.contentEl.createEl("button", {
       text: "📅 Открыть расписание",
       cls: "schedule-open-btn",
     });
@@ -141,7 +142,7 @@ export default class CalendarView extends ItemView {
     });
 
     // Monthly goals indicator
-    this.goalsContainer = (this as any).contentEl.createDiv({
+    this.goalsContainer = this.contentEl.createDiv({
       cls: "month-goals-indicator",
     });
     this.updateGoalsIndicator();
@@ -158,8 +159,7 @@ export default class CalendarView extends ItemView {
     this.app.workspace.trigger(TRIGGER_ON_OPEN, sources);
 
     this.calendar = new Calendar({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target: (this as any).contentEl,
+      target: this.contentEl,
       props: {
         onClickDay: this.selectDateForDay,
         onClickWeek: this.selectDateForWeek,
@@ -178,8 +178,7 @@ export default class CalendarView extends ItemView {
     // Create task panel below calendar
     if (this.settings?.showTaskTracker !== false) {
       this.taskPanel = new TaskPanel({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        target: (this as any).contentEl,
+        target: this.contentEl,
         props: {
           appInstance: this.app,
         },
@@ -189,8 +188,7 @@ export default class CalendarView extends ItemView {
     // Create habit panel below task panel
     if (this.settings?.showHabitTracker !== false) {
       this.habitPanel = new HabitPanel({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        target: (this as any).contentEl,
+        target: this.contentEl,
         props: {
           appInstance: this.app,
         },
@@ -199,6 +197,8 @@ export default class CalendarView extends ItemView {
 
     // Subscribe to finance data changes (deferred to avoid init issues)
     setTimeout(() => {
+      // Guard: view may have closed before the deferred callback fires
+      if (!this.goalsContainer) return;
       this.goalsUnsub = financeData.subscribe(() => {
         this.updateGoalsIndicator(this.currentMonthKey);
       });
@@ -217,7 +217,7 @@ export default class CalendarView extends ItemView {
     this.renderGoalsIndicator(goals, monthKey);
   }
 
-  private renderGoalsIndicator(goals: any[], monthKey: string): void {
+  private renderGoalsIndicator(goals: MonthGoal[], monthKey: string): void {
     if (!this.goalsContainer) return;
     this.goalsContainer.empty();
 
@@ -284,7 +284,7 @@ export default class CalendarView extends ItemView {
     const closeBtn = header.createEl("button", { text: "✕", cls: "goals-modal-close" });
 
     const body = modal.createDiv({ cls: "goals-modal-body" });
-    goals.forEach((goal: any, i: number) => {
+    goals.forEach((goal: MonthGoal, i: number) => {
       const remaining = (goal.targetAmount || 0) - (goal.currentAmount || 0);
       const item = body.createDiv({ cls: "goal-item" });
       item.createEl("span", { text: `${i + 1}.`, cls: "goal-number" });
@@ -427,18 +427,21 @@ export default class CalendarView extends ItemView {
   }
 
   private updateActiveFile(): void {
-    const { view } = this.app.workspace.activeLeaf;
+    const leaf = this.app.workspace.activeLeaf;
+    if (!leaf) return;
+
+    const { view } = leaf;
 
     let file = null;
     if (view instanceof FileView) {
       file = view.file;
     }
     activeFile.setFile(file);
-    // Calendar uses $activeFile as selectedId prop — Svelte handles reactivity
   }
 
   public revealActiveNote(): void {
-    const { activeLeaf } = this.app.workspace;
+    const activeLeaf = this.app.workspace.activeLeaf;
+    if (!activeLeaf) return;
 
     if (activeLeaf.view instanceof FileView) {
       // Check to see if the active note is a daily-note

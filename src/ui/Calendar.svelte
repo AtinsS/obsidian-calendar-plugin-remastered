@@ -32,7 +32,7 @@
           sameDay: "[Сегодня в] LT",
           nextDay: "[Завтра в] LT",
           lastDay: "[Вчера в] LT",
-          nextWeek: function (now) {
+          nextWeek: function (now: moment.Moment) {
             if (now.week() !== this.week()) {
               switch (this.day()) {
                 case 0:
@@ -112,7 +112,7 @@
         displayedMonth = today;
       }
     }
-  }, 1000 * 30);
+  }, 1000 * 60);
 
   // Long-press for context menu on touch devices
   let containerEl: HTMLElement;

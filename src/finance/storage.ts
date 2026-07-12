@@ -54,7 +54,7 @@ export function getMonthData(monthKey: string): FinanceMonthData {
 
   // Migration: convert old string[] monthGoals to MonthGoal[]
   if (Array.isArray(data.monthGoals) && data.monthGoals.length > 0 && typeof data.monthGoals[0] === "string") {
-    const migratedGoals: MonthGoal[] = (data.monthGoals as any[]).map((g: any) => ({
+    const migratedGoals: MonthGoal[] = (data.monthGoals as string[]).map((g: string) => ({
       id: generateGoalId(),
       icon: "🎯",
       name: typeof g === "string" ? g : "Цель",
@@ -66,7 +66,7 @@ export function getMonthData(monthKey: string): FinanceMonthData {
 
   // Migration: ensure savingsCategories have percent and completed
   if (data.savingsCategories) {
-    data.savingsCategories = data.savingsCategories.map((c: any) => ({
+    data.savingsCategories = data.savingsCategories.map((c: Record<string, unknown>) => ({
       ...c,
       percent: c.percent ?? 0,
       completed: c.completed ?? false,
@@ -109,7 +109,7 @@ export function getCurrentBalance(monthKey: string): number {
   return data.monthlyIncome - data.lastMonthExpense;
 }
 
-export function getMonthGoals(monthKey: string) {
+export function getMonthGoals(monthKey: string): MonthGoal[] {
   const data = getMonthData(monthKey);
   return data.monthGoals || [];
 }

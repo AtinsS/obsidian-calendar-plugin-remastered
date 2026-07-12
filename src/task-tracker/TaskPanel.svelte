@@ -51,9 +51,10 @@
   });
 
   $: showAllDates = !currentDate;
-  $: taskGroups = showAllDates
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  $: taskGroups = (showAllDates
     ? groupTasksByDateAndProject(filteredTasks, $projects)
-    : groupTasksByProject(filteredTasks, $projects);
+    : groupTasksByProject(filteredTasks, $projects)) as any[];
   $: totalCount = allTasksForDate.length;
   $: doneCount = allTasksForDate.filter((t) => t.status === "done").length;
 
@@ -167,7 +168,7 @@
   }
 
   async function handleTaskDelete(task: ITask) {
-    if (task.notePath && appInstance) {
+    if (task.notePath && task.isNoteTask && appInstance) {
       await deleteNoteTask(task.notePath, appInstance);
     }
     removeTask(task.id);
@@ -217,9 +218,9 @@
 
     if (!confirm(`Удалить ${completedTasks.length} выполненных задач?`)) return;
 
-    // Delete associated note files if they exist
+    // Delete associated note files only for note tasks
     for (const task of completedTasks) {
-      if (task.notePath) {
+      if (task.notePath && task.isNoteTask) {
         const file = appInstance.vault.getAbstractFileByPath(task.notePath);
         if (file) {
           await appInstance.vault.delete(file);
@@ -371,7 +372,7 @@
         on:click|stopPropagation={goToToday}
         title="Перейти к сегодня"
       >
-        ☀️
+        🔅
       </button>
       {#if currentDate}
         <button
@@ -387,14 +388,14 @@
         on:click|stopPropagation={openCreateTask}
         title="Добавить задачу"
       >
-        +
+        ➕
       </button>
       <button
         class="task-tracker-btn"
         on:click|stopPropagation={openProjectSettings}
         title="Управление проектами"
       >
-        ❇️
+        📂
       </button>
       <div class="task-tracker-menu-wrapper">
         <button

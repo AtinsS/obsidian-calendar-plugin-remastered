@@ -160,7 +160,8 @@
 <div
   class="task-item"
   class:completed={task.status === "done"}
-  class:is-note-task={!!task.notePath}
+  class:is-note-task={!!task.isNoteTask}
+  class:has-bound-note={!task.isNoteTask && !!task.notePath}
   data-status={task.status}
   draggable="true"
   on:dragstart={handleDragStart}
@@ -177,11 +178,12 @@
   {#if task.notePath}
     <button
       class="note-icon"
+      class:note-icon-link={!task.isNoteTask}
       on:click|stopPropagation={openNote}
-      title="Открыть заметку"
+      title={task.isNoteTask ? "Открыть заметку-задачу" : "Перейти к привязанной заметке"}
       aria-label="Открыть заметку"
     >
-      &#128221;
+      {task.isNoteTask ? "📝" : "🔗"}
     </button>
   {:else}
     <button
@@ -226,7 +228,7 @@
     </span>
   {/if}
 
-  {#if task.scheduledTime && task.status !== "progress"}
+  {#if task.scheduledTime && task.status !== "progress" && task.status !== "paused"}
     {#if task.status === "done"}
       <span class="task-scheduled done" title="Готово">
         &#10003; Готово
@@ -250,7 +252,16 @@
     </span>
   {/if}
 
-  {#if timerDisplay}
+  {#if task.status === "paused"}
+    <span class="task-work-paused" title="Работа на паузе">
+      &#9208; Работа на паузе
+    </span>
+    {#if hasActual}
+      <span class="task-timer total" title="Общее время">
+        &#9201; {formatDuration(task.totalWorkTime)}
+      </span>
+    {/if}
+  {:else if timerDisplay}
     <span class="task-timer" title="Текущее время">
       &#9201; {timerDisplay}
     </span>
@@ -258,7 +269,7 @@
     <span class="task-estimate" title="План">
       &#9201; {formatEstimate(task.estimatedTime)}
     </span>
-  {:else if hasEstimate && hasActual}
+  {:else if task.status === "done" && hasEstimate && hasActual}
     <span
       class="task-estimate-compare {estimateOver ? 'over' : 'under'}"
       title="План → Факт"

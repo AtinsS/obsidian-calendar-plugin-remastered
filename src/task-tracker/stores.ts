@@ -14,6 +14,15 @@ let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
 const AUTO_CLEANUP_THRESHOLD = 180;
 
+function notifyStatusChange(taskTitle: string, statusLabel: string): void {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const n = new Notification(`📅 Calendar Remastered`, {
+    body: `🔄 ${taskTitle}\nСтатус: ${statusLabel}`,
+  });
+  n.onclick = () => { window.focus(); n.close(); };
+  setTimeout(() => n.close(), 5000);
+}
+
 function autoCleanupCompleted(): void {
   const allTasks = get(tasks);
   const completed = allTasks
@@ -108,8 +117,13 @@ export function updateTask(id: string, changes: Partial<ITask>): void {
     )
   );
   debouncedSave();
+  // Only run cleanup check if we're approaching the threshold
   if (changes.completed !== undefined) {
-    autoCleanupCompleted();
+    const allTasks = get(tasks);
+    const completedCount = allTasks.filter((t) => t.completed).length;
+    if (completedCount > AUTO_CLEANUP_THRESHOLD - 20) {
+      autoCleanupCompleted();
+    }
   }
 }
 
@@ -245,12 +259,15 @@ export function updateTaskStatus(id: string, status: TaskStatus): void {
 
   if (oldStatus !== "progress" && status === "progress") {
     startTaskTimer(id);
+    notifyStatusChange(task?.title || "Задача", "В работу");
   } else if (oldStatus === "progress" && status === "paused") {
     pauseTaskTimer(id);
+    notifyStatusChange(task?.title || "Задача", "На паузу");
   } else if (oldStatus === "progress" && status !== "progress") {
     stopTaskTimerAndLog(id, status);
   } else if (oldStatus === "paused" && status === "progress") {
     startTaskTimer(id);
+    notifyStatusChange(task?.title || "Задача", "Продолжена");
   } else {
     setTaskStatus(id, status);
   }

@@ -15,6 +15,14 @@
   import { calculateTaskEarnings } from "../task-tracker/stores";
   import { financialAnalyticsData, getTotalManualIncome } from "./financialAnalyticsStorage";
 
+  function inputVal(e: Event): string {
+    return (e.target as HTMLInputElement).value;
+  }
+
+  function clearInput(e: Event): void {
+    (e.target as HTMLInputElement).value = '';
+  }
+
   let monthKey = getCurrentMonthKey();
   let monthData: FinanceMonthData = {
     monthlyIncome: 0,
@@ -382,7 +390,7 @@
           <input
             type="number"
             value={manualIncome}
-            on:input={(e) => updateManualIncome(e.target.value)}
+            on:input={(e) => updateManualIncome(inputVal(e))}
             min="0"
             class="balance-input income-input"
           />
@@ -425,9 +433,9 @@
       {#each monthData.mainAccountCategories as cat (cat.id)}
         {#if editingMainCatId === cat.id}
           <div class="category-row editing">
-            <input type="text" value={cat.icon} on:change={(e) => updateMainCategory(cat.id, { icon: e.target.value })} class="cat-edit-icon" maxlength="2" />
-            <input type="text" value={cat.name} on:change={(e) => updateMainCategory(cat.id, { name: e.target.value })} class="cat-edit-name" />
-            <input type="number" value={cat.amount} on:change={(e) => updateMainCategory(cat.id, { amount: parseFloat(e.target.value) || 0 })} min="0" class="cat-edit-amount" />
+            <input type="text" value={cat.icon} on:change={(e) => updateMainCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
+            <input type="text" value={cat.name} on:change={(e) => updateMainCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
+            <input type="number" value={cat.amount} on:change={(e) => updateMainCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 })} min="0" class="cat-edit-amount" />
             <button class="goal-done-btn" on:click={() => editingMainCatId = null}>✓</button>
           </div>
         {:else}
@@ -453,13 +461,13 @@
       {#each (monthData.monthGoals || []) as goal (goal.id)}
         {#if editingGoalId === goal.id}
           <div class="goal-row editing">
-            <input type="text" value={goal.icon} on:change={(e) => updateGoal(goal.id, { icon: e.target.value })} class="goal-edit-icon" maxlength="2" />
+            <input type="text" value={goal.icon} on:change={(e) => updateGoal(goal.id, { icon: inputVal(e) })} class="goal-edit-icon" maxlength="2" />
             <div class="goal-info">
               <div class="goal-edit-row">
-                <input type="text" value={goal.name} on:change={(e) => updateGoal(goal.id, { name: e.target.value })} class="goal-edit-name" placeholder="Название" />
-                <input type="number" value={goal.currentAmount} on:change={(e) => updateGoal(goal.id, { currentAmount: parseFloat(e.target.value) || 0 })} min="0" class="goal-edit-amount" placeholder="Накоплено" />
+                <input type="text" value={goal.name} on:change={(e) => updateGoal(goal.id, { name: inputVal(e) })} class="goal-edit-name" placeholder="Название" />
+                <input type="number" value={goal.currentAmount} on:change={(e) => updateGoal(goal.id, { currentAmount: parseFloat(inputVal(e)) || 0 })} min="0" class="goal-edit-amount" placeholder="Накоплено" />
                 <span class="goal-edit-sep">/</span>
-                <input type="number" value={goal.targetAmount} on:change={(e) => updateGoal(goal.id, { targetAmount: parseFloat(e.target.value) || 0 })} min="0" class="goal-edit-amount" placeholder="Цель" />
+                <input type="number" value={goal.targetAmount} on:change={(e) => updateGoal(goal.id, { targetAmount: parseFloat(inputVal(e)) || 0 })} min="0" class="goal-edit-amount" placeholder="Цель" />
               </div>
             </div>
             <button class="goal-done-btn" on:click={() => editingGoalId = null}>✓</button>
@@ -498,9 +506,9 @@
       {#each monthData.savingsCategories as cat (cat.id)}
         {#if editingSavingsId === cat.id}
           <div class="category-row editing">
-            <input type="text" value={cat.icon} on:change={(e) => updateSavingsCategory(cat.id, { icon: e.target.value })} class="cat-edit-icon" maxlength="2" />
-            <input type="text" value={cat.name} on:change={(e) => updateSavingsCategory(cat.id, { name: e.target.value })} class="cat-edit-name" />
-            <input type="number" value={cat.amount} on:change={(e) => updateSavingsCategory(cat.id, { amount: parseFloat(e.target.value) || 0 })} min="0" class="cat-edit-amount" />
+            <input type="text" value={cat.icon} on:change={(e) => updateSavingsCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
+            <input type="text" value={cat.name} on:change={(e) => updateSavingsCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
+            <input type="number" value={cat.amount} on:change={(e) => updateSavingsCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 })} min="0" class="cat-edit-amount" />
             <button class="goal-done-btn" on:click={() => editingSavingsId = null}>✓</button>
           </div>
         {:else}
@@ -510,8 +518,8 @@
             <span class="cat-amount-display">{formatMoney(cat.amount)} ₽</span>
             <span class="cat-percent">{monthData.monthlyIncome > 0 ? Math.round((cat.amount / monthData.monthlyIncome) * 100) : 0}%</span>
             <div class="savings-actions">
-              <input type="number" min="0" max="100" placeholder="%" class="savings-percent-input" on:change={(e) => { const pct = parseInt(e.target.value) || 0; updateSavingsCategory(cat.id, { amount: Math.round(monthData.monthlyIncome * pct / 100) }); e.target.value = ''; }} />
-              <input type="number" min="0" placeholder="₽" class="savings-amount-input" on:change={(e) => { updateSavingsCategory(cat.id, { amount: parseFloat(e.target.value) || 0 }); e.target.value = ''; }} />
+              <input type="number" min="0" max="100" placeholder="%" class="savings-percent-input" on:change={(e) => { const pct = parseInt(inputVal(e)) || 0; updateSavingsCategory(cat.id, { amount: Math.round(monthData.monthlyIncome * pct / 100) }); clearInput(e); }} />
+              <input type="number" min="0" placeholder="₽" class="savings-amount-input" on:change={(e) => { updateSavingsCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 }); clearInput(e); }} />
             </div>
             <button class="cat-delete" on:click={() => removeSavingsCategory(cat.id)}>✕</button>
           </div>

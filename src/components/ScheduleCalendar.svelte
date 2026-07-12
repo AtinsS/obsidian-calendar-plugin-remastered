@@ -13,6 +13,8 @@
     tasks,
     projects,
     updateTask,
+    updateTaskStatus,
+    removeTask,
     addTask,
   } from "../task-tracker/stores";
   import { TaskModal } from "../task-tracker/TaskModal";
@@ -205,7 +207,7 @@
       eventDidMount: handleEventDidMount,
       eventDragStart: handleEventDragStart,
       eventDragStop: handleEventDragStop,
-      select: handleSelect,
+      dateClick: handleDateClick,
     });
 
     calendar.render();
@@ -255,6 +257,11 @@
       task.priority === "medium" ? '<span class="sch-priority sch-priority-mid">~</span>' : "";
     const workBadge = task.isWorkTask
       ? '<span class="sch-work-badge" title="Рабочая задача">&#128188;</span>' : "";
+    const noteBadge = task.notePath
+      ? task.isNoteTask
+        ? '<span class="sch-note-badge" title="Задача-заметка">&#128221;</span>'
+        : '<span class="sch-note-badge" title="С привязанной заметкой">&#128279;</span>'
+      : "";
 
     let deadlineHtml = "";
     if (task.deadline && task.status !== "done") {
@@ -276,14 +283,39 @@
       }
     }
 
+    // Бейдж «Просрочено на N» — только todo (не в работе / на паузе / готово)
+    let overdueHtml = "";
+    if (task.status === "todo" && task.scheduledTime && task.dateUID) {
+      const dateMatch = task.dateUID.match(/^day-(\d{4})-(\d{2})-(\d{2})/);
+      if (dateMatch) {
+        const [, dy, dm, dd] = dateMatch;
+        const [sh, sm] = task.scheduledTime.split(":").map(Number);
+        const scheduledStart = new Date(`${dy}-${dm}-${dd}T${String(sh).padStart(2,"0")}:${String(sm).padStart(2,"0")}:00`);
+        const now = new Date();
+        if (now.getTime() > scheduledStart.getTime()) {
+          const diffMs = now.getTime() - scheduledStart.getTime();
+          const diffMin = Math.floor(diffMs / 60000);
+          const diffH = Math.floor(diffMin / 60);
+          const diffD = Math.floor(diffH / 24);
+          let overdueLabel = "";
+          if (diffD > 0) overdueLabel = `${diffD}д ${diffH % 24}ч`;
+          else if (diffH > 0) overdueLabel = `${diffH}ч ${diffMin % 60}м`;
+          else overdueLabel = `${diffMin}м`;
+          overdueHtml = `<span class="sch-overdue" title="Просрочено">⚠ ${overdueLabel}</span>`;
+        }
+      }
+    }
+
     return {
       html: `
         <div class="sch-event sch-event-compact">
-          ${displayTime ? `<span class="sch-event-time">${displayTime}</span>` : ""}
+          ${displayTime ? `<span class="sch-event-time${overdueHtml ? ' sch-time-overdue' : ''}">${displayTime}</span>` : ""}
           <span class="sch-event-title">${event.title}</span>
           ${statusHtml}
           ${workBadge}
+          ${noteBadge}
           ${priorityBadge}
+          ${overdueHtml}
           ${deadlineHtml}
         </div>
       `,
@@ -313,8 +345,9 @@
       el.style.backgroundColor = projectColor;
     }
 
-    // Tooltip: recurrence + estimated time
+    // Tooltip: full title + recurrence + estimated time
     const lines: string[] = [];
+    lines.push(task.title);
     if (task.recurrence) {
       const recMap: Record<string, string> = { daily: "Ежедневно", weekly: "Еженедельно", monthly: "Ежемесячно" };
       let recText = `Повторение: ${recMap[task.recurrence.type] || task.recurrence.type}`;
@@ -332,13 +365,32 @@
     if (lines.length > 0) {
       el.setAttribute("title", lines.join("\n"));
     }
-    el.setAttribute("title", lines.join("\n"));
   }
 
   function handleEventClick(info: any): void {
     if (info.event.extendedProps.isDeadlineEvent) return;
     const task = info.event.extendedProps.task as ITask;
-    openTaskEditor(task);
+
+    // Позиционируем меню по центру элемента события — самая надёжная позиция
+    const el = info.el as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const menuWidth = 220;
+    const menuHeight = 260;
+
+    // Центр элемента по горизонтали, сразу под элементом по вертикали
+    let x = rect.left + rect.width / 2 - menuWidth / 2;
+    let y = rect.bottom + 4;
+
+    // Clamp по краям экрана
+    if (x + menuWidth > window.innerWidth) {
+      x = window.innerWidth - menuWidth - 8;
+    }
+    if (x < 8) x = 8;
+    if (y + menuHeight > window.innerHeight) {
+      y = Math.max(8, rect.top - menuHeight - 4);
+    }
+
+    openContextMenu(task, x, y);
   }
 
   function handleEventDragStart(_info: any): void {
@@ -389,22 +441,19 @@
     }
   }
 
-  function handleSelect(info: any): void {
-    const start = info.start as Date;
+  function handleDateClick(info: any): void {
+    const date = info.date as Date;
+    if (!date) return;
 
-    if (start) {
-      const year = start.getFullYear();
-      const month = String(start.getMonth() + 1).padStart(2, "0");
-      const day = String(start.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-      const hours = String(start.getHours()).padStart(2, "0");
-      const minutes = String(start.getMinutes()).padStart(2, "0");
-      const timeStr = `${hours}:${minutes}`;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${month}-${day}`;
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const timeStr = `${hours}:${minutes}`;
 
-      openTaskCreator(dateStr, timeStr);
-    }
-
-    calendar.unselect();
+    openTaskCreator(dateStr, timeStr);
   }
 
   function openTaskEditor(task: ITask): void {
@@ -419,6 +468,12 @@
 
     const dateUID = getDateUID(moment, "day");
 
+    // Определяем текущий вид: time-based (неделя/день) или месяц
+    const viewType = calendar?.view?.type || "";
+    const isTimeView = viewType.startsWith("timeGrid");
+    const initialDate = dateStr;
+    const initialTime = isTimeView ? timeStr : undefined;
+
     new TaskModal(plugin.app, (data) => {
       addTask({
         title: data.title || "Новая задача",
@@ -430,12 +485,56 @@
         priority: data.priority || "medium",
         tags: [],
         sortOrder: 0,
-        description: data.description,
         recurrence: data.recurrence,
         estimatedTime: data.estimatedTime,
-        scheduledTime: data.scheduledTime || timeStr,
+        scheduledTime: data.scheduledTime || initialTime,
       });
-    }).open();
+      // Ждём закрытия модалки Obsidian и обновления DOM
+      setTimeout(() => {
+        if (!destroyed && calendar) {
+          calendar.refetchEvents();
+        }
+      }, 500);
+    }, undefined, initialDate, initialTime).open();
+  }
+
+  // Контекстное меню задачи
+  let contextMenuVisible = false;
+  let contextMenuX = 0;
+  let contextMenuY = 0;
+  let contextMenuTask: ITask | null = null;
+
+  function openContextMenu(task: ITask, x: number, y: number): void {
+    contextMenuTask = task;
+    contextMenuX = x;
+    contextMenuY = y;
+    contextMenuVisible = true;
+  }
+
+  function closeContextMenu(): void {
+    contextMenuVisible = false;
+    contextMenuTask = null;
+  }
+
+  function contextEditTask(): void {
+    if (contextMenuTask) {
+      openTaskEditor(contextMenuTask);
+    }
+    closeContextMenu();
+  }
+
+  function contextChangeStatus(newStatus: "todo" | "progress" | "done" | "paused"): void {
+    if (contextMenuTask) {
+      updateTaskStatus(contextMenuTask.id, newStatus);
+    }
+    closeContextMenu();
+  }
+
+  function contextDeleteTask(): void {
+    if (contextMenuTask) {
+      removeTask(contextMenuTask.id);
+    }
+    closeContextMenu();
   }
 
   export function refresh(): void {
@@ -450,6 +549,33 @@
     </div>
   {/if}
   <div bind:this={calendarEl} class="schedule-calendar"></div>
+
+  {#if contextMenuVisible}
+    <div class="sch-context-overlay" on:click={closeContextMenu} on:keydown={closeContextMenu}></div>
+    <div class="sch-context-menu" style="left: {contextMenuX}px; top: {contextMenuY}px;">
+      <button class="sch-context-item" on:click={contextEditTask}>
+        &#9998; Редактировать
+      </button>
+      <div class="sch-context-divider"></div>
+      <div class="sch-context-label">Перевести статус:</div>
+      <button class="sch-context-item" on:click={() => contextChangeStatus("todo")}>
+        &#9744; Сделать
+      </button>
+      <button class="sch-context-item" on:click={() => contextChangeStatus("progress")}>
+        &#9654; В работу
+      </button>
+      <button class="sch-context-item" on:click={() => contextChangeStatus("paused")}>
+        &#9208; На паузу
+      </button>
+      <button class="sch-context-item" on:click={() => contextChangeStatus("done")}>
+        &#10003; Готово
+      </button>
+      <div class="sch-context-divider"></div>
+      <button class="sch-context-item sch-context-danger" on:click={contextDeleteTask}>
+        &#128465; Удалить
+      </button>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -497,9 +623,73 @@
     50% { opacity: 0.8; }
     100% { opacity: 0; transform: translateY(-50%) scale(1); }
   }
+
   .schedule-calendar {
     height: 100%;
     width: 100%;
+  }
+
+  /* Контекстное меню задачи */
+  .sch-context-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: transparent;
+  }
+
+  .sch-context-menu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 200px;
+    background: var(--background-primary, #1e1e2e);
+    border: 1px solid var(--background-modifier-border, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+    padding: 4px;
+    font-family: var(--font-interface);
+    font-size: 13px;
+  }
+
+  .sch-context-item {
+    display: block;
+    width: 100%;
+    padding: 7px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-normal, #e8ecf0);
+    text-align: left;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background 0.15s;
+    font-family: var(--font-interface);
+    font-size: 13px;
+  }
+
+  .sch-context-item:hover {
+    background: var(--background-modifier-hover, rgba(255, 255, 255, 0.06));
+  }
+
+  .sch-context-divider {
+    height: 1px;
+    background: var(--background-modifier-border, rgba(255, 255, 255, 0.06));
+    margin: 3px 8px;
+  }
+
+  .sch-context-label {
+    padding: 4px 12px 2px;
+    font-size: 11px;
+    color: var(--text-faint, rgba(200, 210, 220, 0.4));
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .sch-context-danger {
+    color: var(--text-error, #ef4444);
+  }
+
+  .sch-context-danger:hover {
+    background: rgba(239, 68, 68, 0.12);
   }
 
   /* ===== FullCalendar — Glassmorphism тема ===== */
@@ -656,6 +846,23 @@
     border-radius: 4px;
   }
 
+  /* Hover на слотах времени */
+  :global(.fc .fc-timegrid-slot) {
+    transition: background-color 0.15s ease;
+  }
+
+  :global(.fc .fc-timegrid-slot:hover) {
+    background: rgba(95, 153, 225, 0.06);
+  }
+
+  :global(.fc .fc-timegrid-slot-lane:hover) {
+    background: rgba(95, 153, 225, 0.06);
+  }
+
+  :global(.fc .fc-daygrid-day:hover) {
+    background: rgba(95, 153, 225, 0.04);
+  }
+
   :global(.fc .fc-daygrid-more-link) {
     color: var(--mcp-text-muted, var(--text-muted));
     font-size: 11px;
@@ -764,6 +971,21 @@
   :global(.sch-deadline-overdue) {
     background: rgba(220, 100, 100, 0.4);
     color: rgba(255, 180, 180, 0.95);
+  }
+
+  :global(.sch-overdue) {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(220, 80, 80, 0.35);
+    color: rgba(255, 160, 160, 0.95);
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  :global(.sch-time-overdue) {
+    color: rgba(255, 130, 130, 0.95) !important;
   }
 
   :global(.sch-event-deadline) {
@@ -882,6 +1104,12 @@
   :global(.sch-work-badge) {
     font-size: 10px;
     opacity: 0.8;
+    flex-shrink: 0;
+  }
+
+  :global(.sch-note-badge) {
+    font-size: 10px;
+    opacity: 0.85;
     flex-shrink: 0;
   }
 
@@ -1106,6 +1334,15 @@
 
     :global(.sch-note-icon) {
       font-size: 9px;
+    }
+
+    :global(.sch-note-badge) {
+      font-size: 9px;
+    }
+
+    :global(.sch-overdue) {
+      font-size: 8px;
+      padding: 1px 4px;
     }
 
     :global(.sch-duration) {

@@ -4,23 +4,25 @@
 
   $: currentDate = $selectedDate;
 
-  $: counts = {
-    all: $tasks.filter(
-      (t) => t.status !== "done" && (!currentDate || t.dateUID === currentDate)
-    ).length,
-    todo: $tasks.filter(
-      (t) => t.status === "todo" && (!currentDate || t.dateUID === currentDate)
-    ).length,
-    progress: $tasks.filter(
-      (t) => t.status === "progress" && (!currentDate || t.dateUID === currentDate)
-    ).length,
-    paused: $tasks.filter(
-      (t) => t.status === "paused" && (!currentDate || t.dateUID === currentDate)
-    ).length,
-    done: $tasks.filter(
-      (t) => t.status === "done" && (!currentDate || t.dateUID === currentDate)
-    ).length,
-  };
+  $: counts = (() => {
+    const result = { all: 0, todo: 0, progress: 0, paused: 0, done: 0 };
+    for (const t of $tasks) {
+      if (currentDate && t.dateUID !== currentDate) continue;
+      if (t.status === "done") {
+        result.done++;
+      } else if (t.status === "todo") {
+        result.todo++;
+        result.all++;
+      } else if (t.status === "progress") {
+        result.progress++;
+        result.all++;
+      } else if (t.status === "paused") {
+        result.paused++;
+        result.all++;
+      }
+    }
+    return result;
+  })();
 
   const tabs: { key: TaskStatus; icon: string; label: string }[] = [
     { key: "all", icon: "📋", label: "Все" },
