@@ -18,6 +18,7 @@ export class HabitModal extends Modal {
   private frequencyInput: "daily" | "weekly" | "monthly" = "daily";
   private customDaysInput: number[] = [];
   private monthlyDayInput = 1;
+  private targetCountInput = 1;
 
   constructor(
     app: App,
@@ -35,6 +36,7 @@ export class HabitModal extends Modal {
       this.frequencyInput = this.habit.frequency as "daily" | "weekly" | "monthly";
       this.customDaysInput = this.habit.customDays || [];
       this.monthlyDayInput = this.habit.monthlyDay || 1;
+      this.targetCountInput = this.habit.targetCount || 1;
     }
   }
 
@@ -89,6 +91,23 @@ export class HabitModal extends Modal {
         swatch.addClass("active");
       });
     }
+
+    new Setting(contentEl)
+      .setName("Цель в день")
+      .setDesc("Сколько раз выполнять привычку за день (1 = обычный чекбокс)")
+      .addText((text) => {
+        text
+          .setPlaceholder("1")
+          .setValue(String(this.targetCountInput))
+          .onChange((value) => {
+            const v = parseInt(value) || 1;
+            this.targetCountInput = Math.max(1, Math.min(99, v));
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "1";
+        text.inputEl.max = "99";
+        text.inputEl.style.maxWidth = "60px";
+      });
 
     new Setting(contentEl)
       .setName("Частота")
@@ -191,7 +210,7 @@ export class HabitModal extends Modal {
         this.frequencyInput === "monthly"
           ? this.monthlyDayInput
           : undefined,
-      targetCount: 1,
+      targetCount: this.targetCountInput,
       archived: false,
     });
 

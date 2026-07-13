@@ -106,16 +106,28 @@ export function removeHabit(id: string): void {
 
 export function toggleHabitCompletion(
   habitId: string,
-  date: string
+  date: string,
+  targetCount = 1
 ): void {
   const key = `${habitId}::${date}`;
   const existing = logsByHabitDate.get(key);
 
   if (existing) {
-    // Remove completion (toggle off)
-    habitLogs.update((current) => current.filter((l) => l.id !== existing.id));
+    if (existing.count < targetCount) {
+      // Increment count
+      habitLogs.update((current) =>
+        current.map((l) =>
+          l.id === existing.id
+            ? { ...l, count: l.count + 1, completedAt: Date.now() }
+            : l
+        )
+      );
+    } else {
+      // Reached target — toggle off (remove)
+      habitLogs.update((current) => current.filter((l) => l.id !== existing.id));
+    }
   } else {
-    // Add completion (toggle on)
+    // First completion
     const log: IHabitLog = {
       id: generateId(),
       habitId,
@@ -129,6 +141,11 @@ export function toggleHabitCompletion(
   }
   rebuildLogsCache();
   debouncedSave();
+}
+
+export function getHabitCountOnDate(habitId: string, date: string): number {
+  const log = logsByHabitDate.get(`${habitId}::${date}`);
+  return log ? log.count : 0;
 }
 
 export function isHabitCompletedOnDate(habitId: string, date: string): boolean {

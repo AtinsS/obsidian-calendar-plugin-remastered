@@ -321,17 +321,24 @@
       }
     }
 
+    const descriptionHtml = task.description
+      ? `<span class="sch-event-description">${task.description}</span>`
+      : "";
+
     return {
       html: `
         <div class="sch-event sch-event-compact">
-          ${displayTime ? `<span class="sch-event-time${overdueHtml ? ' sch-time-overdue' : ''}">${displayTime}</span>` : ""}
-          <span class="sch-event-title">${event.title}</span>
-          ${statusHtml}
-          ${workBadge}
-          ${noteBadge}
-          ${priorityBadge}
-          ${overdueHtml}
-          ${deadlineHtml}
+          <div class="sch-event-header">
+            ${displayTime ? `<span class="sch-event-time${overdueHtml ? ' sch-time-overdue' : ''}">${displayTime}</span>` : ""}
+            <span class="sch-event-title">${event.title}</span>
+            ${statusHtml}
+            ${workBadge}
+            ${noteBadge}
+            ${priorityBadge}
+            ${overdueHtml}
+            ${deadlineHtml}
+          </div>
+          ${descriptionHtml}
         </div>
       `,
     };
@@ -361,9 +368,12 @@
       el.style.backgroundColor = projectColor;
     }
 
-    // Tooltip: full title + recurrence + estimated time
+    // Tooltip: full title + description + recurrence + estimated time
     const lines: string[] = [];
     lines.push(task.title);
+    if (task.description) {
+      lines.push(task.description);
+    }
     if (task.recurrence) {
       const recMap: Record<string, string> = { daily: "Ежедневно", weekly: "Еженедельно", monthly: "Ежемесячно" };
       let recText = `Повторение: ${recMap[task.recurrence.type] || task.recurrence.type}`;
@@ -517,6 +527,7 @@
       const isNoteTask = !!data.isNoteTask;
       const task = addTask({
         title: data.title || "Новая задача",
+        description: data.description,
         completed: false,
         status: "todo",
         dateUID: data.dateUID || dateUID,
@@ -1033,12 +1044,19 @@
 
   :global(.sch-event-compact) {
     display: flex;
-    align-items: center;
-    gap: 5px;
+    flex-direction: column;
+    gap: 0;
     padding: 4px 8px;
     line-height: 1.35;
     min-width: 0;
     overflow: hidden;
+  }
+
+  :global(.sch-event-compact .sch-event-header) {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
   }
 
   :global(.sch-event-compact .sch-event-time) {
@@ -1056,6 +1074,18 @@
     text-overflow: ellipsis;
     color: #fff;
     min-width: 0;
+  }
+
+  :global(.sch-event-compact .sch-event-description) {
+    font-size: 10px;
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: rgba(255, 255, 255, 0.7);
+    display: block;
+    line-height: 1.2;
+    margin-top: 1px;
   }
 
   :global(.sch-recurrence) {

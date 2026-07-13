@@ -375,6 +375,7 @@ export function createNextRecurringInstance(taskId: string): void {
 
   addTask({
     title: task.title,
+    description: task.description,
     completed: false,
     status: "todo",
     dateUID: newDateUID,
@@ -474,6 +475,7 @@ export function generateMonthlyRecurringTasks(taskId: string): void {
     if (!existing) {
       addTask({
         title: task.title,
+        description: task.description,
         completed: false,
         status: "todo",
         dateUID: newDateUID,

@@ -60,7 +60,8 @@
   }
 
   function handleToggle(event: CustomEvent<{ habit: IHabit }>) {
-    toggleHabitCompletion(event.detail.habit.id, dateStr);
+    const habit = event.detail.habit;
+    toggleHabitCompletion(habit.id, dateStr, habit.targetCount || 1);
   }
 
   function handleEdit(event: CustomEvent<{ habit: IHabit }>) {
@@ -101,7 +102,7 @@
     </div>
     <div class="habit-tracker-header-right">
       <button
-        class="habit-tracker-btn"
+        class="habit-tracker-btn add-btn"
         on:click|stopPropagation={openCreateHabit}
         title="Добавить привычку"
       >
@@ -137,7 +138,10 @@
   }
 
   .habit-tracker-btn {
-    min-width: 44px;
     min-height: 44px;
+  }
+
+  .add-btn {
+    min-width: auto;
   }
 </style>

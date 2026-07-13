@@ -22,7 +22,7 @@
   let contextMenuEl: HTMLDivElement | null = null;
 
   $: dateStr = currentDate.format("YYYY-MM-DD");
-  $: dayLabel = currentDate.format("dddd, D MMMM");
+  $: dayLabel = currentDate.locale("ru").format("dddd, D MMMM");
   $: dayTasks = $tasks.filter((t) => {
     const match = t.dateUID?.match(/^day-(\d{4}-\d{2}-\d{2})/);
     return match && match[1] === dateStr && t.scheduledTime;
@@ -190,7 +190,7 @@
         class:today={day.format("YYYY-MM-DD") === moment().format("YYYY-MM-DD")}
         on:click={() => selectDay(day)}
       >
-        <span class="ms-week-day-label">{day.format("dd")}</span>
+        <span class="ms-week-day-label">{day.locale("ru").format("dd")}</span>
         <span class="ms-week-day-num">{day.format("D")}</span>
       </button>
     {/each}

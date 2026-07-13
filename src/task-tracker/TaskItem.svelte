@@ -221,7 +221,7 @@
   {/if}
 
   {#if task.description}
-    <span class="task-description" title={task.description}>
+    <span class="task-descr" title={task.description}>
       {task.description}
     </span>
   {/if}

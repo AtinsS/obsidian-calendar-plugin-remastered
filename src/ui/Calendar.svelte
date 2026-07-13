@@ -7,12 +7,14 @@
     ICalendarSource,
     configureGlobalMomentLocale,
   } from "obsidian-calendar-ui";
-  import { onDestroy, onMount } from "svelte";
+  import { onDestroy, onMount, afterUpdate, tick } from "svelte";
 
   import type { ISettings } from "src/settings";
   import { activeFile, dailyNotes, settings, weeklyNotes } from "./stores";
   import { tasks } from "../task-tracker/stores";
   import { habitLogs } from "../habit-tracker/stores";
+  import { selectedDate } from "../task-tracker/stores";
+  import { getDateUID } from "obsidian-daily-notes-interface";
 
   let today: Moment = window.moment();
   let lastWeekStart: string = null;
@@ -173,7 +175,43 @@
     containerEl.addEventListener("touchmove", onContainerTouchMove, { passive: true });
     containerEl.addEventListener("touchend", onContainerTouchEnd, { passive: true });
     containerEl.addEventListener("touchcancel", onContainerTouchEnd, { passive: true });
+
+    // Hook into the Nav's reset button to also toggle task panel's selectedDate
+    const resetBtn = containerEl.querySelector(".reset-button");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const todayUID = getDateUID(window.moment(), "day");
+        const current = $selectedDate;
+        if (current === todayUID) {
+          selectedDate.set(null);
+          activeFile.setUID(null);
+        } else {
+          selectedDate.set(todayUID);
+          activeFile.setUID(todayUID);
+        }
+      });
+    }
   });
+
+  // Sync active class on reset button after every render
+  function syncResetButtonActive() {
+    if (!containerEl) return;
+    const resetBtn = containerEl.querySelector(".reset-button");
+    if (!resetBtn) return;
+    const todayUID = getDateUID(window.moment(), "day");
+    if ($selectedDate === todayUID) {
+      resetBtn.classList.add("active");
+    } else {
+      resetBtn.classList.remove("active");
+    }
+  }
+
+  afterUpdate(() => {
+    syncResetButtonActive();
+  });
+
+  $: $selectedDate, syncResetButtonActive();
 
   onDestroy(() => {
     clearInterval(heartbeat);

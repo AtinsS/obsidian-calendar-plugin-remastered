@@ -33,7 +33,9 @@
   let collapsed = false;
   let showTimeLogs = false;
   let showMenu = false;
+  let showSearch = false;
   let searchQuery = "";
+  // Collapse disabled — panel is always open
 
   $: currentDate = $selectedDate;
   $: allTasksForDate = currentDate
@@ -245,6 +247,13 @@
     showMenu = false;
   }
 
+  function toggleSearch() {
+    showSearch = !showSearch;
+    if (!showSearch) {
+      searchQuery = "";
+    }
+  }
+
   function goToToday() {
     const todayUID = getDateUID(window.moment(), "day");
     selectedDate.set(todayUID);
@@ -338,26 +347,13 @@
 
 <div
   class="task-tracker-panel"
-  class:collapsed
   role="region"
   aria-label="Панель задач"
 >
   <div
     class="task-tracker-header"
-    on:click={() => (collapsed = !collapsed)}
-    on:keydown={(e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        collapsed = !collapsed;
-      }
-    }}
-    tabindex="0"
-    role="button"
-    aria-expanded={!collapsed}
   >
     <div class="task-tracker-header-left">
-      <span class="task-tracker-chevron" class:rotated={!collapsed}
-        >&#9662;</span
-      >
       <span class="task-tracker-title">Задачи</span>
       {#if currentDate}
         <span class="task-tracker-date">{formatDate(currentDate)}</span>
@@ -369,47 +365,34 @@
           {doneCount}/{totalCount}
         </span>
       {/if}
-      <!-- Desktop: show all buttons inline -->
+      <!-- Desktop: kanban + search + add + dropdown -->
       {#if !isMobile}
+        <KanbanTabs />
         <button
-          class="task-tracker-btn"
-          on:click|stopPropagation={goToToday}
-          title="Перейти к сегодня"
+          class="task-tracker-btn icon-btn"
+          class:active={showSearch}
+          on:click|stopPropagation={toggleSearch}
+          title={showSearch ? "Закрыть поиск" : "Поиск задач"}
         >
-          🔅
+          &#128269;
         </button>
-        {#if currentDate}
-          <button
-            class="task-tracker-btn show-all-btn"
-            on:click|stopPropagation={() => selectedDate.set(null)}
-            title="Показать все задачи"
-          >
-            📋
-          </button>
-        {/if}
         <button
-          class="task-tracker-btn"
+          class="task-tracker-btn add-btn"
           on:click|stopPropagation={openCreateTask}
           title="Добавить задачу"
         >
-          ➕
-        </button>
-        <button
-          class="task-tracker-btn"
-          on:click|stopPropagation={openProjectSettings}
-          title="Управление проектами"
-        >
-          📂
+          +
         </button>
       {/if}
-      <!-- Mobile: only + button visible, rest in dropdown -->
+      <!-- Mobile: kanban + add + dropdown -->
       {#if isMobile}
+        <KanbanTabs />
         <button
-          class="task-tracker-btn"
+          class="task-tracker-btn add-btn"
           on:click|stopPropagation={openCreateTask}
           title="Добавить задачу"
         >
-          ➕
+          +
         </button>
       {/if}
       <div class="task-tracker-menu-wrapper">
@@ -422,32 +405,14 @@
         </button>
         {#if showMenu}
           <div class="task-tracker-dropdown" on:click|stopPropagation role="menu">
-            {#if isMobile}
-              <button
-                class="task-tracker-dropdown-item"
-                role="menuitem"
-                on:click|stopPropagation={() => { goToToday(); closeMenu(); }}
-              >
-                🔅 Сегодня
-              </button>
-              {#if currentDate}
-                <button
-                  class="task-tracker-dropdown-item"
-                  role="menuitem"
-                  on:click|stopPropagation={() => { selectedDate.set(null); closeMenu(); }}
-                >
-                  📋 Все задачи
-                </button>
-              {/if}
-              <button
-                class="task-tracker-dropdown-item"
-                role="menuitem"
-                on:click|stopPropagation={() => { openProjectSettings(); closeMenu(); }}
-              >
-                📂 Проекты
-              </button>
-              <div class="task-tracker-dropdown-divider"></div>
-            {/if}
+            <button
+              class="task-tracker-dropdown-item"
+              role="menuitem"
+              on:click|stopPropagation={() => { openProjectSettings(); closeMenu(); }}
+            >
+              📂 Проекты
+            </button>
+            <div class="task-tracker-dropdown-divider"></div>
             <button
               class="task-tracker-dropdown-item"
               role="menuitem"
@@ -475,16 +440,14 @@
     </div>
   </div>
 
-  {#if !collapsed}
-    <KanbanTabs />
-
-    {#if $activeTab === "all" && !currentDate}
+    {#if showSearch}
       <div class="task-tracker-search-bar">
         <input
           type="text"
           class="task-tracker-search-input"
           placeholder="Поиск задач..."
           bind:value={searchQuery}
+          autofocus
         />
       </div>
     {/if}
@@ -617,7 +580,6 @@
         {/each}
       {/if}
     </div>
-  {/if}
 </div>
 
 {#if showTimeLogs}

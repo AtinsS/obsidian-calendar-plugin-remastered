@@ -37,6 +37,8 @@ export class TaskModal extends Modal {
   private deadlineDateUID = "";
   private deadlineDateValue = "";
   private deadlineTime = "";
+  private titleInputEl: HTMLInputElement | null = null;
+  private descriptionInputEl: HTMLTextAreaElement | null = null;
 
   constructor(
     app: App,
@@ -144,6 +146,15 @@ export class TaskModal extends Modal {
           })
       );
 
+    // Страховочное чтение названия из DOM — Obsidian addTextArea может
+    // вызвать потерю значения у addText при перерисовке
+    this.titleInputEl = contentEl.querySelector('.setting-item input[type="text"], .setting-item input:not([type])') as HTMLInputElement | null;
+    if (this.titleInputEl) {
+      this.titleInputEl.addEventListener("input", () => {
+        this.titleInput = this.titleInputEl?.value ?? this.titleInput;
+      });
+    }
+
     // 2. Описание
     new Setting(contentEl)
       .setName("Описание")
@@ -156,6 +167,14 @@ export class TaskModal extends Modal {
             this.descriptionInput = value;
           })
       );
+
+    // Страховочное чтение описания из DOM
+    this.descriptionInputEl = contentEl.querySelector("textarea") as HTMLTextAreaElement | null;
+    if (this.descriptionInputEl) {
+      this.descriptionInputEl.addEventListener("input", () => {
+        this.descriptionInput = this.descriptionInputEl?.value ?? this.descriptionInput;
+      });
+    }
 
     // 3. Дата
     new Setting(contentEl)
@@ -579,6 +598,14 @@ export class TaskModal extends Modal {
   }
 
   private handleSubmit(): void {
+    // Страховочное чтение из DOM на случай, если onChange не сработал
+    if (this.titleInputEl) {
+      this.titleInput = this.titleInputEl.value;
+    }
+    if (this.descriptionInputEl) {
+      this.descriptionInput = this.descriptionInputEl.value;
+    }
+
     if (!this.titleInput.trim()) {
       return;
     }
