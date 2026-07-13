@@ -14,11 +14,13 @@
   $: project = $projects.find((p) => p.id === task.projectId);
   $: projectColor = project?.color || "var(--text-muted)";
 
-  // Timer display
+  // Timer display — include accumulated totalWorkTime from prior sessions
   $: elapsed = $timerTick && task.status === "progress" && task.timerStartedAt
     ? getActiveTimer(task.id)
     : null;
-  $: timerDisplay = elapsed !== null ? formatDuration(elapsed) : null;
+  $: timerDisplay = elapsed !== null
+    ? formatDuration(elapsed + (task.totalWorkTime || 0))
+    : null;
 
   // Estimate vs actual
   $: hasEstimate = !!task.estimatedTime;
@@ -215,6 +217,12 @@
   {:else}
     <span class="task-title" class:strikethrough={task.status === "done"}>
       {task.title}
+    </span>
+  {/if}
+
+  {#if task.description}
+    <span class="task-description" title={task.description}>
+      {task.description}
     </span>
   {/if}
 

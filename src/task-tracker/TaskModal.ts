@@ -13,6 +13,7 @@ export class TaskModal extends Modal {
   private onSubmit: (task: Partial<ITask> & { isNoteTask?: boolean; notePath?: string }) => void;
 
   private titleInput = "";
+  private descriptionInput = "";
   private projectId: string | null = null;
   private dateUID = "";
   private dateValue = "";
@@ -51,6 +52,7 @@ export class TaskModal extends Modal {
 
     if (this.task) {
       this.titleInput = this.task.title;
+      this.descriptionInput = this.task.description || "";
       this.projectId = this.task.projectId;
       this.dateUID = this.task.dateUID;
       this.dateValue = this.extractDateValue(this.task.dateUID);
@@ -142,7 +144,20 @@ export class TaskModal extends Modal {
           })
       );
 
-    // 2. Дата
+    // 2. Описание
+    new Setting(contentEl)
+      .setName("Описание")
+      .setDesc("Необязательно. Описание задачи.")
+      .addTextArea((text) =>
+        text
+          .setPlaceholder("Описание задачи...")
+          .setValue(this.descriptionInput)
+          .onChange((value) => {
+            this.descriptionInput = value;
+          })
+      );
+
+    // 3. Дата
     new Setting(contentEl)
       .setName("Дата")
       .addText((text) => {
@@ -595,6 +610,7 @@ export class TaskModal extends Modal {
 
     this.onSubmit({
       title: this.titleInput.trim(),
+      description: this.descriptionInput.trim() || undefined,
       projectId: this.projectId,
       dateUID: finalDateUID,
       priority: this.priority,

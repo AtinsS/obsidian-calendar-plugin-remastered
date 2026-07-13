@@ -7,7 +7,7 @@ import { getDateUID } from "obsidian-daily-notes-interface";
 import type { ITask, IProject, ITaskTrackerData, TimeLog, TaskStatus, DateUID } from "./types";
 import { TASK_TRACKER_DATA_VERSION } from "./types";
 import { loadTaskData, saveTaskData, generateId } from "./storage";
-import { startTimer, stopTimer, addTimeLog } from "./TimerManager";
+import { startTimer, resumeTimer, stopTimer, addTimeLog } from "./TimerManager";
 
 let pluginInstance: CalendarPlugin = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -74,6 +74,15 @@ export function initTaskStores(plugin: CalendarPlugin): void {
     projects.set(data.projects);
     timeLogs.set(data.timeLogs || []);
     autoCleanupCompleted();
+
+    // Auto-resume timers for tasks that were in "progress" when Obsidian closed
+    const inProgress = data.tasks.filter(
+      (t) => t.status === "progress" && t.timerStartedAt
+    );
+    for (const task of inProgress) {
+      resumeTimer(task.id, task.timerStartedAt);
+    }
+
     // Генерируем повторяющиеся задачи до конца месяца
     setTimeout(() => generateAllMonthlyRecurringTasks(), 100);
   });
@@ -85,6 +94,14 @@ export function reloadTaskStores(plugin: CalendarPlugin): void {
     projects.set(data.projects);
     timeLogs.set(data.timeLogs || []);
     autoCleanupCompleted();
+
+    // Auto-resume timers for tasks in "progress" that don't have an active timer yet
+    const inProgress = data.tasks.filter(
+      (t) => t.status === "progress" && t.timerStartedAt
+    );
+    for (const task of inProgress) {
+      resumeTimer(task.id, task.timerStartedAt);
+    }
   });
 }
 

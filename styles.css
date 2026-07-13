@@ -330,7 +330,7 @@ table {
 
 #calendar-container .calendar {
   border-collapse: separate;
-  border-spacing: 4px;
+  border-spacing: 5px;
   width: 100%;
   table-layout: fixed;
 }
@@ -349,9 +349,9 @@ table {
   border-radius: var(--mcp-radius-sm);
   transition: all var(--mcp-transition);
   position: relative;
-  padding: 8px 4px;
+  padding: 10px 6px;
   font-size: 14px;
-  min-height: 40px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -462,7 +462,7 @@ content: attr(data-task-count);
   backdrop-filter: var(--mcp-blur);
   -webkit-backdrop-filter: var(--mcp-blur);
   border-top: 1px solid var(--mcp-glass-border);
-  padding: 14px 16px;
+  padding: 16px 18px;
   max-height: 58vh;
   overflow-y: auto;
   width: 100%;
@@ -804,6 +804,12 @@ content: attr(data-task-count);
   background: var(--background-modifier-hover);
 }
 
+.task-tracker-dropdown-divider {
+  height: 1px;
+  background: var(--background-modifier-border, rgba(255, 255, 255, 0.06));
+  margin: 4px 8px;
+}
+
 /* ============================================
    FILTER BAR
    ============================================ */
@@ -887,7 +893,7 @@ content: attr(data-task-count);
 .task-group-header {
   display: flex;
   align-items: center;
-  padding: 12px 0 4px;
+  padding: 14px 0 6px;
   font-size: 10px;
   font-weight: 700;
   color: var(--mcp-text-muted);
@@ -925,13 +931,13 @@ content: attr(data-task-count);
 .task-item {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: var(--mcp-radius-sm);
   cursor: pointer;
   transition: all var(--mcp-transition);
   gap: 8px;
   min-width: 0;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   background: var(--mcp-glass-highlight);
   border: 1px solid transparent;
   border-left: 3px solid transparent;
@@ -1147,7 +1153,7 @@ content: attr(data-task-count);
 /* Title */
 .task-title {
   flex: 1;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--mcp-text);
   overflow: hidden;
@@ -1168,6 +1174,24 @@ content: attr(data-task-count);
 
 .task-title.note-link:hover {
   text-decoration: underline;
+}
+
+/* Task description */
+.task-description {
+  flex: 1 1 100%;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mcp-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  padding-left: 30px;
+  margin-top: -2px;
+}
+
+.task-item[data-status="done"] .task-description {
+  color: var(--mcp-text-faint);
 }
 
 .task-recurring-icon {
@@ -1816,12 +1840,13 @@ content: attr(data-task-count);
 .habit-item {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: var(--mcp-radius-sm);
   gap: 8px;
   transition: background var(--mcp-transition);
   background: var(--mcp-glass-highlight);
   border: 1px solid transparent;
+  margin-bottom: 2px;
 }
 
 .habit-item:hover {
@@ -1872,7 +1897,7 @@ content: attr(data-task-count);
 
 .habit-title {
   flex: 1;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--mcp-text);
   overflow: hidden;
@@ -2002,9 +2027,9 @@ content: attr(data-task-count);
 @media (min-width: 1400px) {
   #calendar-container .day,
   #calendar-container .week-num {
-    min-height: 48px;
+    min-height: 52px;
     font-size: 16px;
-    padding: 10px 6px;
+    padding: 12px 8px;
   }
 }
 
@@ -2156,64 +2181,81 @@ content: attr(data-task-count);
     flex-shrink: 0;
   }
 
-  /* Task items — more air between rows */
+  /* Task items — compact on mobile */
   .task-item {
-    padding: 8px 6px;
-    gap: 6px;
-    min-height: 42px;
+    padding: 5px 6px;
+    gap: 5px;
+    min-height: 36px;
     flex-wrap: wrap;
     align-items: center;
   }
 
   .task-title {
-    font-size: 14px;
+    font-size: 13px;
     min-width: 0;
     flex: 1 1 auto;
+  }
+
+  .task-description {
+    font-size: 10px;
+    padding-left: 26px;
   }
 
   .task-recurring-icon {
     font-size: 12px;
   }
 
-  /* Task metadata — more readable */
+  /* Task metadata — compact on mobile */
   .task-scheduled,
   .task-timer,
   .task-estimate,
   .task-estimate-compare {
-    font-size: 11px;
-    padding: 2px 5px;
+    font-size: 10px;
+    padding: 1px 4px;
     border-radius: 4px;
   }
 
   .task-deadline {
-    font-size: 11px;
-    padding: 2px 5px;
+    font-size: 10px;
+    padding: 1px 4px;
     border-radius: 4px;
   }
 
   .task-status-badge {
-    font-size: 10px;
-    padding: 2px 6px;
+    font-size: 9px;
+    padding: 1px 5px;
   }
 
   .task-work-badge {
-    font-size: 10px;
-    padding: 2px 6px;
+    font-size: 9px;
+    padding: 1px 4px;
   }
 
   .task-work-started,
   .task-work-paused {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   .task-priority {
-    font-size: 11px;
-    padding: 2px 6px;
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+
+  /* Hide less important badges on mobile to reduce clutter */
+  .task-item .task-status-badge {
+    display: none;
+  }
+
+  .task-item .task-work-badge {
+    font-size: 12px;
+    padding: 0;
+    background: none;
+    border: none;
   }
 
   .checkmark {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
   }
 
   /* Edit/delete always visible on touch */
@@ -2230,38 +2272,38 @@ content: attr(data-task-count);
     justify-content: center;
   }
 
-  /* Habit items — more air */
+  /* Habit items — compact on mobile */
   .habit-item {
-    padding: 7px 6px;
-    gap: 6px;
-    min-height: 40px;
+    padding: 5px 6px;
+    gap: 5px;
+    min-height: 34px;
   }
 
   .habit-check-btn {
-    width: 32px;
-    height: 32px;
+    width: 26px;
+    height: 26px;
   }
 
   .habit-icon {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .habit-title {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .habit-streak {
-    font-size: 11px;
-    padding: 2px 6px;
+    font-size: 10px;
+    padding: 1px 5px;
   }
 
   .habit-edit-btn,
   .habit-delete-btn {
-    opacity: 0.6;
-    padding: 6px 8px;
-    font-size: 13px;
-    min-width: 36px;
-    min-height: 36px;
+    opacity: 0.5;
+    padding: 4px 6px;
+    font-size: 12px;
+    min-width: 32px;
+    min-height: 32px;
   }
 
   /* Modals — more space */
@@ -2468,23 +2510,23 @@ content: attr(data-task-count);
   }
 
   .task-item {
-    padding: 7px 5px;
-    gap: 5px;
-    min-height: 40px;
+    padding: 4px 5px;
+    gap: 4px;
+    min-height: 32px;
   }
 
   .task-title {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .habit-item {
-    padding: 6px 5px;
-    gap: 5px;
-    min-height: 38px;
+    padding: 4px 5px;
+    gap: 4px;
+    min-height: 30px;
   }
 
   .habit-title {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .task-tracker-filter-btn {
@@ -3097,6 +3139,18 @@ content: attr(data-task-count);
    DISABLE HOVER EFFECTS ON MOBILE
    ============================================ */
 @media (hover: none) and (pointer: coarse) {
+  /* Calendar day cells — touch feedback */
+  #calendar-container .day {
+    -webkit-tap-highlight-color: rgba(95, 153, 225, 0.3);
+    transition: transform 0.1s ease, background 0.1s ease;
+  }
+
+  #calendar-container .day:active {
+    transform: scale(0.88);
+    background: var(--mcp-accent-dim);
+    border-color: var(--mcp-accent);
+  }
+
   #calendar-container .day:hover {
     background: var(--mcp-glass-highlight);
     border-color: transparent;
@@ -3104,10 +3158,26 @@ content: attr(data-task-count);
     box-shadow: none;
   }
 
+  #calendar-container .day.active:active {
+    background: var(--mcp-accent);
+    border-color: var(--mcp-accent);
+    box-shadow: 0 0 16px var(--mcp-accent-glow);
+    transform: scale(0.88);
+  }
+
   #calendar-container .day.active:hover {
     background: var(--mcp-accent);
     border-color: var(--mcp-accent);
     box-shadow: 0 0 16px var(--mcp-accent-glow);
+  }
+
+  #calendar-container .day.today:active {
+    background: var(--mcp-accent);
+    border-color: var(--mcp-accent);
+    box-shadow:
+      0 0 0 3px rgba(45, 212, 191, 0.2),
+      0 0 20px var(--mcp-accent-glow);
+    transform: scale(0.88);
   }
 
   #calendar-container .day.today:hover {

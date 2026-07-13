@@ -1302,6 +1302,11 @@
       font-size: 9.5px;
     }
 
+    /* Боковая ось — шире */
+    :global(.fc .fc-timegrid-axis) {
+      width: 34px;
+    }
+
     /* События — компактнее */
     :global(.sch-event) {
       padding: 3px 6px;
@@ -1346,13 +1351,13 @@
     }
 
     :global(.fc .fc-toolbar-title) {
-      font-size: 12px;
+      font-size: 11px;
     }
 
     :global(.fc .fc-button) {
       font-size: 10px;
       padding: 6px 8px;
-      min-height: 36px;
+      min-height: 32px;
       min-width: 36px;
       border-radius: 7px;
     }
@@ -1381,19 +1386,19 @@
 
     :global(.fc .fc-timegrid-axis-cushion),
     :global(.fc .fc-timegrid-slot-label-cushion) {
-      font-size: 9px;
+      font-size: 10px;
       padding-right: 2px;
     }
 
-    /* Боковая ось — уже */
+    /* Боковая ось — шире для читаемости */
     :global(.fc .fc-timegrid-axis) {
-      width: 30px;
+      width: 36px;
     }
 
-    /* События — крупные тап-таргеты */
+    /* События — крупные тап-таргеты, читаемый контент */
     :global(.fc .fc-event) {
       border-radius: 6px !important;
-      min-height: 28px;
+      min-height: 32px;
     }
 
     :global(.sch-event) {
@@ -1406,7 +1411,7 @@
     }
 
     :global(.sch-event-title) {
-      font-size: 10.5px;
+      font-size: 11px;
       font-weight: 600;
     }
 
@@ -1419,10 +1424,9 @@
       font-size: 9px;
     }
 
+    /* Скрываем статус и приоритет на телефоне — избыточно */
     :global(.sch-event-status) {
-      font-size: 8px;
-      padding: 0.5px 3px;
-      border-radius: 3px;
+      display: none;
     }
 
     :global(.sch-priority) {
@@ -1474,7 +1478,7 @@
 
     /* Day grid — крупные ячейки */
     :global(.fc .fc-daygrid-day) {
-      min-height: 44px;
+      min-height: 48px;
     }
 
     :global(.fc .fc-daygrid-more-link) {
@@ -1501,23 +1505,19 @@
       scrollbar-width: thin;
     }
 
-    /* Месяц на маленьком экране — ещё компактнее */
-    :global(.fc .fc-daygrid-day) {
-      min-height: 40px;
-    }
-
+    /* Месяц — события читаемые */
     :global(.fc .fc-daygrid-event) {
-      font-size: 9px;
+      font-size: 10px;
       margin: 1px 1px;
-      padding: 1px 3px;
+      padding: 1px 4px;
     }
 
     :global(.fc .fc-daygrid-event .sch-event-title) {
-      font-size: 9px;
+      font-size: 10px;
     }
 
     :global(.fc .fc-daygrid-more-link) {
-      font-size: 8px;
+      font-size: 9px;
     }
   }
 
@@ -1588,13 +1588,13 @@
   /* ===== Маленький телефон (≤360px) ===== */
   @media (max-width: 360px) {
     :global(.fc .fc-toolbar-title) {
-      font-size: 11px;
+      font-size: 10px;
     }
 
     :global(.fc .fc-button) {
       font-size: 9px;
       padding: 4px 5px;
-      min-height: 32px;
+      min-height: 30px;
       min-width: 30px;
     }
 
@@ -1603,11 +1603,11 @@
     }
 
     :global(.fc .fc-timegrid-axis) {
-      width: 26px;
+      width: 32px;
     }
 
     :global(.fc .fc-timegrid-axis-cushion) {
-      font-size: 8px;
+      font-size: 9px;
     }
 
     :global(.sch-event-title) {
@@ -1619,19 +1619,19 @@
       padding: 2px 4px;
     }
 
-    /* Месяц — минимальные ячейки */
+    /* Месяц — компактные ячейки */
     :global(.fc .fc-daygrid-day) {
-      min-height: 36px;
+      min-height: 40px;
     }
 
     :global(.fc .fc-daygrid-event) {
-      font-size: 8px;
-      padding: 1px 2px;
+      font-size: 9px;
+      padding: 1px 3px;
       margin: 0 1px;
     }
 
     :global(.fc .fc-daygrid-event .sch-event-title) {
-      font-size: 8px;
+      font-size: 9px;
     }
 
     :global(.fc .fc-daygrid-event .sch-priority) {
@@ -1639,21 +1639,12 @@
     }
 
     :global(.fc .fc-daygrid-more-link) {
-      font-size: 7px;
-      padding: 0 2px;
-    }
-
-    :global(.fc .fc-timegrid-axis) {
-      width: 24px;
-    }
-
-    :global(.fc .fc-timegrid-axis-cushion),
-    :global(.fc .fc-timegrid-slot-label-cushion) {
       font-size: 8px;
+      padding: 1px 3px;
     }
 
     :global(.fc .fc-timegrid-event) {
-      min-height: 26px;
+      min-height: 28px;
     }
 
     :global(.sch-event) {
@@ -1661,7 +1652,7 @@
     }
 
     :global(.sch-event-title) {
-      font-size: 9.5px;
+      font-size: 10px;
     }
   }
 

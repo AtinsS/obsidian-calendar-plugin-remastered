@@ -39,6 +39,16 @@ export function startTimer(taskId: string): void {
   startTickInterval();
 }
 
+/** Resume a timer with a saved start time (e.g. after Obsidian restart). */
+export function resumeTimer(taskId: string, savedStartTime: number): void {
+  activeTimers.update((current) => {
+    const next = new Map(current);
+    next.set(taskId, savedStartTime);
+    return next;
+  });
+  startTickInterval();
+}
+
 export function stopTimer(taskId: string): TimeLog | null {
   const timers = get(activeTimers);
   const startTime = timers.get(taskId);

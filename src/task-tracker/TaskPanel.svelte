@@ -28,6 +28,8 @@
 
   export let appInstance: App;
 
+  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+
   let collapsed = false;
   let showTimeLogs = false;
   let showMenu = false;
@@ -367,36 +369,49 @@
           {doneCount}/{totalCount}
         </span>
       {/if}
-      <button
-        class="task-tracker-btn"
-        on:click|stopPropagation={goToToday}
-        title="Перейти к сегодня"
-      >
-        🔅
-      </button>
-      {#if currentDate}
+      <!-- Desktop: show all buttons inline -->
+      {#if !isMobile}
         <button
-          class="task-tracker-btn show-all-btn"
-          on:click|stopPropagation={() => selectedDate.set(null)}
-          title="Показать все задачи"
+          class="task-tracker-btn"
+          on:click|stopPropagation={goToToday}
+          title="Перейти к сегодня"
         >
-          📋
+          🔅
+        </button>
+        {#if currentDate}
+          <button
+            class="task-tracker-btn show-all-btn"
+            on:click|stopPropagation={() => selectedDate.set(null)}
+            title="Показать все задачи"
+          >
+            📋
+          </button>
+        {/if}
+        <button
+          class="task-tracker-btn"
+          on:click|stopPropagation={openCreateTask}
+          title="Добавить задачу"
+        >
+          ➕
+        </button>
+        <button
+          class="task-tracker-btn"
+          on:click|stopPropagation={openProjectSettings}
+          title="Управление проектами"
+        >
+          📂
         </button>
       {/if}
-      <button
-        class="task-tracker-btn"
-        on:click|stopPropagation={openCreateTask}
-        title="Добавить задачу"
-      >
-        ➕
-      </button>
-      <button
-        class="task-tracker-btn"
-        on:click|stopPropagation={openProjectSettings}
-        title="Управление проектами"
-      >
-        📂
-      </button>
+      <!-- Mobile: only + button visible, rest in dropdown -->
+      {#if isMobile}
+        <button
+          class="task-tracker-btn"
+          on:click|stopPropagation={openCreateTask}
+          title="Добавить задачу"
+        >
+          ➕
+        </button>
+      {/if}
       <div class="task-tracker-menu-wrapper">
         <button
           class="task-tracker-btn"
@@ -407,6 +422,32 @@
         </button>
         {#if showMenu}
           <div class="task-tracker-dropdown" on:click|stopPropagation role="menu">
+            {#if isMobile}
+              <button
+                class="task-tracker-dropdown-item"
+                role="menuitem"
+                on:click|stopPropagation={() => { goToToday(); closeMenu(); }}
+              >
+                🔅 Сегодня
+              </button>
+              {#if currentDate}
+                <button
+                  class="task-tracker-dropdown-item"
+                  role="menuitem"
+                  on:click|stopPropagation={() => { selectedDate.set(null); closeMenu(); }}
+                >
+                  📋 Все задачи
+                </button>
+              {/if}
+              <button
+                class="task-tracker-dropdown-item"
+                role="menuitem"
+                on:click|stopPropagation={() => { openProjectSettings(); closeMenu(); }}
+              >
+                📂 Проекты
+              </button>
+              <div class="task-tracker-dropdown-divider"></div>
+            {/if}
             <button
               class="task-tracker-dropdown-item"
               role="menuitem"

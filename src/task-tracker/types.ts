@@ -10,6 +10,7 @@ export type TaskStatus = "todo" | "progress" | "done" | "paused" | "all";
 export interface ITask {
   id: string;
   title: string;
+  description?: string;
   completed: boolean;
   status: TaskStatus;
   dateUID: string;

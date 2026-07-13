@@ -31,6 +31,8 @@ import { selectedDate } from "./task-tracker/stores";
 import HabitPanel from "./habit-tracker/HabitPanel.svelte";
 import { habitSource } from "./habit-tracker/habitSource";
 
+import MobileSchedule from "./components/MobileSchedule.svelte";
+
 import { getMonthGoals } from "./finance/storage";
 import { financeData } from "./finance/storage";
 import type { MonthGoal } from "./finance/types";
@@ -39,11 +41,13 @@ export default class CalendarView extends ItemView {
   private calendar: Calendar;
   private taskPanel: TaskPanel;
   private habitPanel: HabitPanel;
+  private mobileSchedule: MobileSchedule;
   private settings: ISettings;
   private plugin: CalendarPlugin;
   private goalsContainer: HTMLElement;
   private goalsUnsub: (() => void) | null = null;
   private currentMonthKey = "";
+  private isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 
   constructor(leaf: WorkspaceLeaf, plugin?: CalendarPlugin) {
     super(leaf);
@@ -123,6 +127,10 @@ export default class CalendarView extends ItemView {
     if (this.habitPanel) {
       this.habitPanel.$destroy();
     }
+    if (this.mobileSchedule) {
+      this.mobileSchedule.$destroy();
+      this.mobileSchedule = null;
+    }
     return Promise.resolve();
   }
 
@@ -136,7 +144,9 @@ export default class CalendarView extends ItemView {
       cls: "schedule-open-btn",
     });
     scheduleBtn.addEventListener("click", () => {
-      if (this.plugin) {
+      if (this.isMobile) {
+        this.toggleMobileSchedule();
+      } else if (this.plugin) {
         this.plugin.activateScheduleView();
       }
     });
@@ -203,6 +213,44 @@ export default class CalendarView extends ItemView {
         this.updateGoalsIndicator(this.currentMonthKey);
       });
     }, 200);
+  }
+
+  private toggleMobileSchedule(): void {
+    if (this.mobileSchedule) {
+      // Close mobile schedule — show calendar + panels again
+      this.mobileSchedule.$destroy();
+      this.mobileSchedule = null;
+      // Restore calendar and panels
+      if (this.calendar) this.calendar.$set({});
+      // Re-render contentEl elements
+      this.contentEl.style.display = "";
+      return;
+    }
+
+    // Open mobile schedule — hide everything else
+    this.contentEl.style.display = "none";
+
+    // Create a container for the mobile schedule
+    const leaf = this.app.workspace.activeLeaf;
+    if (!leaf) return;
+    const viewContent = (leaf.view as any).containerEl?.querySelector(".view-content") || this.containerEl;
+    const scheduleContainer = viewContent.createDiv({ cls: "mobile-schedule-container" });
+    (scheduleContainer as HTMLElement).style.height = "100%";
+
+    this.mobileSchedule = new MobileSchedule({
+      target: scheduleContainer,
+      props: {
+        plugin: this.plugin,
+        onClose: () => {
+          if (this.mobileSchedule) {
+            this.mobileSchedule.$destroy();
+            this.mobileSchedule = null;
+          }
+          scheduleContainer.remove();
+          this.contentEl.style.display = "";
+        },
+      },
+    });
   }
 
   private updateGoalsIndicator(monthKey?: string): void {
