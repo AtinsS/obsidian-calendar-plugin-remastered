@@ -5,6 +5,7 @@ import { App, Plugin, WorkspaceLeaf } from "obsidian";
 import {
   VIEW_TYPE_CALENDAR,
   VIEW_TYPE_SCHEDULE,
+  VIEW_TYPE_MOBILE_SCHEDULE,
   VIEW_TYPE_HABIT_ANALYTICS,
   VIEW_TYPE_FINANCE,
   VIEW_TYPE_FINANCIAL_ANALYTICS,
@@ -19,6 +20,7 @@ import {
 import { TFile } from "obsidian";
 import CalendarView from "./view";
 import ScheduleView from "./views/ScheduleView";
+import MobileScheduleView from "./views/MobileScheduleView";
 import HabitAnalyticsView from "./views/HabitAnalyticsView";
 import FinanceView from "./views/FinanceView";
 import FinancialAnalyticsView from "./views/FinancialAnalyticsView";
@@ -57,6 +59,9 @@ export default class CalendarPlugin extends Plugin {
       .getLeavesOfType(VIEW_TYPE_SCHEDULE)
       .forEach((leaf) => leaf.detach());
     this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_MOBILE_SCHEDULE)
+      .forEach((leaf) => leaf.detach());
+    this.app.workspace
       .getLeavesOfType(VIEW_TYPE_HABIT_ANALYTICS)
       .forEach((leaf) => leaf.detach());
     this.app.workspace
@@ -91,6 +96,11 @@ export default class CalendarPlugin extends Plugin {
     this.registerView(
       VIEW_TYPE_SCHEDULE,
       (leaf: WorkspaceLeaf) => new ScheduleView(leaf, this)
+    );
+
+    this.registerView(
+      VIEW_TYPE_MOBILE_SCHEDULE,
+      (leaf: WorkspaceLeaf) => new MobileScheduleView(leaf, this)
     );
 
     this.registerView(
@@ -256,6 +266,25 @@ export default class CalendarPlugin extends Plugin {
     if (leaf) {
       await leaf.setViewState({
         type: VIEW_TYPE_SCHEDULE,
+        active: true,
+      });
+      workspace.revealLeaf(leaf);
+    }
+  }
+
+  async activateMobileScheduleView(): Promise<void> {
+    const { workspace } = this.app;
+
+    const existing = workspace.getLeavesOfType(VIEW_TYPE_MOBILE_SCHEDULE);
+    if (existing.length) {
+      workspace.revealLeaf(existing[0]);
+      return;
+    }
+
+    const leaf = workspace.getLeaf("tab");
+    if (leaf) {
+      await leaf.setViewState({
+        type: VIEW_TYPE_MOBILE_SCHEDULE,
         active: true,
       });
       workspace.revealLeaf(leaf);
