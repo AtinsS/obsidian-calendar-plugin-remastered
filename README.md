@@ -3,9 +3,6 @@
 Календарь, трекер задач и привычек, финансовый планировщик — всё в одном плагине для [Obsidian](https://obsidian.md).
 Разработан на основе [Calendar](https://github.com/liamcain/obsidian-calendar-plugin) от Liam Cain.
 
-> [!attention] Важно
-> Для мобильного обсидиана адаптация хромает, пэтому в будущем будет реализован мобильный функционал отдельным приложением.
-
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Obsidian](https://img.shields.io/badge/Obsidian-1.12.7-7C3AED?logo=obsidian)](https://obsidian.md)
