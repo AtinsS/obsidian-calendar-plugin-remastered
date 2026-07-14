@@ -83,6 +83,9 @@ function makeSettings(overrides: Partial<ISettings> = {}): ISettings {
     notifyDeadlines: true,
     ntfyEnabled: false,
     ntfyTopic: "Calendar_Remastered",
+    morningSummaryEnabled: false,
+    morningSummaryTime: "06:00",
+    overdueCheckEnabled: false,
     defaultPaymentType: "hour",
     defaultRate: 0,
     ...overrides,
@@ -115,6 +118,7 @@ describe("NotificationService", () => {
       configurable: true,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     getMock = require("svelte/store").get;
   });
 

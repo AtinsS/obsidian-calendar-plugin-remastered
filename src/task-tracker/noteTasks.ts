@@ -600,7 +600,7 @@ function parseFrontmatterFromContent(content: string): Record<string, unknown> {
     const match = line.match(/^([\w_]+):\s*(.*)/);
     if (!match) continue;
     const key = match[1];
-    let raw = match[2].trim();
+    const raw = match[2].trim();
 
     if (raw === "true") { result[key] = true; continue; }
     if (raw === "false") { result[key] = false; continue; }

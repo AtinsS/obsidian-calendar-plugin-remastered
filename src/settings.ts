@@ -3,7 +3,6 @@ import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
 
 import { DEFAULT_WORDS_PER_DOT } from "src/constants";
-import { defaultNotificationSettings } from "src/services/NotificationService";
 import { FolderSuggestModal } from "./modals/FolderSuggestModal";
 
 import type CalendarPlugin from "./main";
@@ -49,6 +48,11 @@ export interface ISettings {
   ntfyEnabled: boolean;
   ntfyTopic: string;
 
+  // GitHub Actions notification settings
+  morningSummaryEnabled: boolean;
+  morningSummaryTime: string;
+  overdueCheckEnabled: boolean;
+
   // Work task settings
   defaultPaymentType: "hour" | "day";
   defaultRate: number;
@@ -88,9 +92,9 @@ export const defaultSettings = Object.freeze({
 
   syncToVault: false,
 
-  notificationsEnabled: defaultNotificationSettings.notificationsEnabled,
-  reminderMinutesBefore: defaultNotificationSettings.reminderMinutesBefore,
-  checkIntervalMs: defaultNotificationSettings.checkIntervalMs,
+  notificationsEnabled: false,
+  reminderMinutesBefore: 5,
+  checkIntervalMs: 60000,
   notifyReminders: true,
   notifyOverdue: true,
   notifyEstimateExceeded: true,
@@ -98,6 +102,10 @@ export const defaultSettings = Object.freeze({
 
   ntfyEnabled: false,
   ntfyTopic: "Calendar_Remastered",
+
+  morningSummaryEnabled: false,
+  morningSummaryTime: "06:00",
+  overdueCheckEnabled: false,
 
   defaultPaymentType: "hour" as "hour" | "day",
   defaultRate: 0,
@@ -170,7 +178,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     const { moment } = window;
 
     const localizedWeekdays = moment.weekdays();
-    const localeWeekStartNum = window._bundledLocaleWeekSpec.dow;
+    const localeWeekStartNum = window._bundledLocaleWeekSpec?.dow ?? 0;
     const localeWeekStart = moment.weekdays()[localeWeekStartNum];
 
     new Setting(this.containerEl)
@@ -505,6 +513,186 @@ priority: medium
             }
           })
       );
+
+    this.containerEl.createEl("h4", {
+      text: "GitHub Actions",
+    });
+
+    const ghDesc = document.createElement("div");
+    ghDesc.addClass("setting-item-description");
+    ghDesc.style.marginBottom = "8px";
+    ghDesc.innerHTML = `
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        Уведомления отправляются через GitHub Actions, когда компьютер выключен.
+        Требуется: включённая синхронизация в корень хранилища + настроенный git push в репозиторий.
+      </p>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Настройка:</b> добавьте секрет <code>NTFY_TOPIC</code> в репозиторий (Settings → Secrets → Actions).
+      </p>
+    `;
+    this.containerEl.appendChild(ghDesc);
+
+    new Setting(this.containerEl)
+      .setName("Утренняя сводка")
+      .setDesc("Отправлять список задач на телефон каждое утро через GitHub Actions")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.morningSummaryEnabled);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ morningSummaryEnabled: value });
+          this.syncNotificationSettingsToVault();
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Время утренней сводки")
+      .setDesc("Когда отправлять сводку (локальное время, формат ЧЧ:ММ)")
+      .addText((text) => {
+        text
+          .setPlaceholder("06:00")
+          .setValue(this.plugin.options.morningSummaryTime || "06:00")
+          .onChange(async (value) => {
+            if (/^\d{2}:\d{2}$/.test(value)) {
+              this.plugin.writeOptions({ morningSummaryTime: value });
+              this.syncNotificationSettingsToVault();
+            }
+          });
+        text.inputEl.type = "time";
+        text.inputEl.style.maxWidth = "120px";
+      });
+
+    new Setting(this.containerEl)
+      .setName("Проверка просроченных (GitHub Actions)")
+      .setDesc("Проверять просроченные задачи и дедлайны каждые 30 мин, когда компьютер выключен")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.overdueCheckEnabled);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ overdueCheckEnabled: value });
+          this.syncNotificationSettingsToVault();
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Тест утренней сводки")
+      .setDesc("Отправить тестовое уведомление со списком задач на сегодня")
+      .addButton((btn) =>
+        btn
+          .setButtonText("Отправить тест")
+          .setWarning()
+          .onClick(async () => {
+            const topic = this.plugin.options.ntfyTopic || "Calendar_Remastered";
+            try {
+              const { tasks } = await import("./task-tracker/stores");
+              const { projects } = await import("./task-tracker/stores");
+              const { get } = await import("svelte/store");
+
+              const allTasks = get(tasks);
+              const allProjects = get(projects);
+              const now = new Date();
+
+              // Локальная дата, не UTC
+              const pad = (n: number) => String(n).padStart(2, "0");
+              const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+              const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+              const yesterdayStr = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
+
+              const getProjectName = (pid: string) => {
+                const p = allProjects.find((pr) => pr.id === pid);
+                return p ? ` [${p.name}]` : "";
+              };
+
+              const overdue: string[] = [];
+              const morning: string[] = [];
+              const afternoon: string[] = [];
+              const evening: string[] = [];
+              let doneYesterday = 0;
+
+              for (const t of allTasks) {
+                if (t.status === "done" || t.completed) {
+                  const d = t.dateUID || "";
+                  if (d.includes(yesterdayStr)) doneYesterday++;
+                  continue;
+                }
+
+                const dateUID = t.dateUID || "";
+                if (!dateUID.includes(todayStr)) {
+                  const schedDate = dateUID.replace("day-", "");
+                  if (schedDate && schedDate < todayStr) {
+                    overdue.push(`${getProjectName(t.projectId)} ${t.title} (${t.scheduledTime || "нет времени"})`);
+                  }
+                  continue;
+                }
+
+                const proj = getProjectName(t.projectId);
+                const time = t.scheduledTime || "--:--";
+                const hour = parseInt(time.split(":")[0]) || 12;
+                const line = `${proj} ${t.title} ⏰ ${time}`;
+
+                if (hour < 12) morning.push(line);
+                else if (hour < 17) afternoon.push(line);
+                else evening.push(line);
+              }
+
+              const total = overdue.length + morning.length + afternoon.length + evening.length;
+              const lines = [`📋 Задачи на сегодня (${total})`, ""];
+
+              if (overdue.length) {
+                lines.push(`🔥 Просроченные (${overdue.length}):`);
+                overdue.forEach((l, i) => lines.push(`${i + 1}. 🔴 ${l}`));
+                lines.push("");
+              }
+              if (morning.length) {
+                lines.push(`⏰ Утро (${morning.length}):`);
+                morning.forEach((l, i) => lines.push(`${i + overdue.length + 1}. 🟡 ${l}`));
+                lines.push("");
+              }
+              if (afternoon.length) {
+                lines.push(`🌆 День (${afternoon.length}):`);
+                afternoon.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + 1}. 🔴 ${l}`));
+                lines.push("");
+              }
+              if (evening.length) {
+                lines.push(`🌙 Вечер (${evening.length}):`);
+                evening.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + afternoon.length + 1}. 🟣 ${l}`));
+                lines.push("");
+              }
+
+              lines.push("📊 Статистика:");
+              lines.push(`✅ Вчера выполнено: ${doneYesterday}`);
+              lines.push(`📝 Сегодня осталось: ${total}`);
+
+              if (total === 0) {
+                lines.length = 0;
+                lines.push("📋 Задач на сегодня нет", "", "Отдыхай!");
+              }
+
+              const msg = lines.join("\n");
+
+              await fetch(`https://ntfy.sh/${topic}`, {
+                method: "POST",
+                body: msg,
+                headers: {
+                  Priority: "high",
+                  Tags: "calendar,clipboard",
+                },
+              });
+
+              alert(`Тестовая утренняя сводка отправлена в ${topic}`);
+            } catch (e) {
+              alert(`Ошибка отправки: ${e}`);
+            }
+          })
+      );
+  }
+
+  private async syncNotificationSettingsToVault(): Promise<void> {
+    if (!this.plugin.options.syncToVault) return;
+    const { saveNotificationSyncSettings } = await import("./io/vaultStorage");
+    await saveNotificationSyncSettings(this.app, {
+      morningSummaryEnabled: this.plugin.options.morningSummaryEnabled,
+      morningSummaryTime: this.plugin.options.morningSummaryTime,
+      overdueCheckEnabled: this.plugin.options.overdueCheckEnabled,
+      ntfyTopic: this.plugin.options.ntfyTopic || "Calendar_Remastered",
+    });
   }
 
   addWorkTaskSettings(): void {

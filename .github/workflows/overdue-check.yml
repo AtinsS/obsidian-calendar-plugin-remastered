@@ -1,0 +1,98 @@
+name: Overdue Task Check
+
+on:
+  schedule:
+    # каждые 30 мин
+    - cron: '0,30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check overdue and deadlines
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'Calendar_Remastered' }}
+        run: |
+          if [ ! -f "calendar-data.json" ]; then
+            exit 0
+          fi
+
+          python3 -c "
+          import json, os, subprocess
+          from datetime import datetime, timedelta, timezone
+
+          with open('calendar-data.json') as f:
+              data = json.load(f)
+
+          # Check if overdue check is enabled
+          ns = data.get('notificationSync', {})
+          if not ns.get('overdueCheckEnabled'):
+              print('Overdue check disabled in settings, skipping')
+              exit(0)
+
+          topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
+          tasks = data.get('taskTracker', {}).get('tasks', [])
+
+          # MSK = UTC+3
+          msk = timezone(timedelta(hours=3))
+          now = datetime.now(msk)
+          today = now.strftime('%Y-%m-%d')
+          now_str = now.strftime('%H:%M')
+          tomorrow = (now + timedelta(days=1)).strftime('%Y-%m-%d')
+
+          notifications = []
+
+          for t in tasks:
+              status = t.get('status', '')
+              completed = t.get('completed', False)
+
+              if status == 'done' or completed:
+                  continue
+
+              title = t.get('title', 'Задача')
+              sched = t.get('scheduledTime', '')
+              date_uid = t.get('dateUID', '')
+
+              # Overdue: scheduled time passed today
+              if sched and today in date_uid:
+                  if sched < now_str and status == 'todo':
+                      notifications.append(f'Просрочено: {title} (было в {sched})')
+
+              # Deadline today
+              deadline = t.get('deadline', '')
+              deadline_time = t.get('deadlineTime', '')
+              if deadline and today in deadline:
+                  if deadline_time and deadline_time <= now_str:
+                      notifications.append(f'Дедлайн истёк: {title} ({deadline_time})')
+                  elif not deadline_time:
+                      notifications.append(f'Дедлайн сегодня: {title}')
+
+              # Deadline tomorrow
+              if deadline and tomorrow in deadline:
+                  time_part = f' в {deadline_time}' if deadline_time else ''
+                  notifications.append(f'Дедлайн завтра: {title}{time_part}')
+
+              # Estimate exceeded
+              est = t.get('estimatedTime', 0)
+              work = t.get('totalWorkTime', 0)
+              if est > 0 and work > 0 and status == 'progress':
+                  if work > est * 60 * 1000:
+                      notifications.append(f'Превышен лимит: {title} (заявлено {est}м)')
+
+          if notifications:
+              msg = '\n'.join(notifications)
+              print(msg)
+              subprocess.run([
+                  'curl', '-s', '-d', msg,
+                  '-H', 'Title: Calendar Remastered',
+                  '-H', 'Priority: high',
+                  '-H', 'Tags: warning',
+                  f'https://ntfy.sh/{topic}'
+              ])
+          else:
+              print('No overdue tasks')
+          "

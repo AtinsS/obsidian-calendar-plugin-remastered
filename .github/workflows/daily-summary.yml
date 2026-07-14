@@ -1,0 +1,163 @@
+name: Daily Task Summary
+
+on:
+  schedule:
+    # каждый час с 3:00 до 8:00 UTC (6:00-11:00 MSK)
+    - cron: '0 3-8 * * *'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check settings and send summary
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'Calendar_Remastered' }}
+        run: |
+          if [ ! -f "calendar-data.json" ]; then
+            echo "calendar-data.json not found, skipping"
+            exit 0
+          fi
+
+          python3 -c "
+          import json, os, subprocess
+          from datetime import datetime, timedelta, timezone
+
+          with open('calendar-data.json') as f:
+              data = json.load(f)
+
+          # Check if morning summary is enabled
+          ns = data.get('notificationSync', {})
+          if not ns.get('morningSummaryEnabled'):
+              print('Morning summary disabled in settings, skipping')
+              exit(0)
+
+          # MSK = UTC+3
+          msk = timezone(timedelta(hours=3))
+          now = datetime.now(msk)
+          summary_time = ns.get('morningSummaryTime', '06:00')
+          target_h, target_m = map(int, summary_time.split(':'))
+
+          if now.hour != target_h:
+              print(f'Not the right time (target {summary_time}, current MSK {now.strftime(\"%H:%M\")}), skipping')
+              exit(0)
+
+          topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
+          tasks = data.get('taskTracker', {}).get('tasks', [])
+          projects = data.get('taskTracker', {}).get('projects', [])
+
+          today_str = now.strftime('%Y-%m-%d')
+          yesterday = now - timedelta(days=1)
+          yesterday_str = yesterday.strftime('%Y-%m-%d')
+
+          overdue = []
+          morning = []
+          afternoon = []
+          evening = []
+          done_today = 0
+          done_yesterday = 0
+
+          def get_project_name(pid):
+              for p in projects:
+                  if p['id'] == pid:
+                      return f\" [{p['name']}]\"
+              return ''
+
+          for t in tasks:
+              status = t.get('status', '')
+              completed = t.get('completed', False)
+              date_uid = t.get('dateUID', '')
+
+              if status == 'done' or completed:
+                  if today_str in date_uid:
+                      done_today += 1
+                  elif yesterday_str in date_uid:
+                      done_yesterday += 1
+                  continue
+
+              if today_str not in date_uid:
+                  sched_date = date_uid.replace('day-', '') if 'day-' in date_uid else ''
+                  if sched_date and sched_date < today_str:
+                      overdue.append(t)
+                  if t.get('deadline'):
+                      dl = t['deadline']
+                      if 'day-' in dl:
+                          dl_date = dl.replace('day-', '')
+                          if dl_date < today_str:
+                              overdue.append(t)
+                  continue
+
+              sched = t.get('scheduledTime', '')
+              proj = get_project_name(t.get('projectId', ''))
+              title = t.get('title', 'Без названия')
+              hour = int(sched.split(':')[0]) if sched and ':' in sched else 12
+
+              entry = {'title': title, 'project': proj, 'time': sched or '--:--', 'hour': hour}
+
+              if hour < 12:
+                  morning.append(entry)
+              elif hour < 17:
+                  afternoon.append(entry)
+              else:
+                  evening.append(entry)
+
+          # deduplicate overdue
+          seen_ids = set()
+          unique_overdue = []
+          for t in overdue:
+              tid = t.get('id', t.get('title', ''))
+              if tid not in seen_ids:
+                  seen_ids.add(tid)
+                  unique_overdue.append(t)
+
+          total = len(unique_overdue) + len(morning) + len(afternoon) + len(evening)
+
+          lines = [f'Задачи на сегодня ({total})', '']
+
+          if unique_overdue:
+              lines.append(f'Просроченные ({len(unique_overdue)}):')
+              for i, t in enumerate(unique_overdue, 1):
+                  proj = get_project_name(t.get('projectId', ''))
+                  sched = t.get('scheduledTime', '--:--')
+                  lines.append(f'{i}. {t[\"title\"]}{proj} {sched}')
+              lines.append('')
+
+          if morning:
+              lines.append(f'Утро ({len(morning)}):')
+              for i, e in enumerate(morning, len(unique_overdue) + 1):
+                  lines.append(f'{i}. {e[\"title\"]}{e[\"project\"]} {e[\"time\"]}')
+              lines.append('')
+
+          if afternoon:
+              lines.append(f'День ({len(afternoon)}):')
+              for i, e in enumerate(afternoon, len(unique_overdue) + len(morning) + 1):
+                  lines.append(f'{i}. {e[\"title\"]}{e[\"project\"]} {e[\"time\"]}')
+              lines.append('')
+
+          if evening:
+              lines.append(f'Вечер ({len(evening)}):')
+              for i, e in enumerate(evening, len(unique_overdue) + len(morning) + len(afternoon) + 1):
+                  lines.append(f'{i}. {e[\"title\"]}{e[\"project\"]} {e[\"time\"]}')
+              lines.append('')
+
+          lines.append('Статистика:')
+          lines.append(f'Вчера выполнено: {done_yesterday}')
+          lines.append(f'Сегодня осталось: {total}')
+
+          if total == 0:
+              lines = ['Задач на сегодня нет', '', 'Отдыхай!']
+
+          msg = '\n'.join(lines)
+          print(msg)
+
+          subprocess.run([
+              'curl', '-s', '-d', msg,
+              '-H', 'Title: Задачи на сегодня',
+              '-H', 'Priority: high',
+              '-H', 'Tags: calendar,clipboard',
+              f'https://ntfy.sh/{topic}'
+          ])
+          "

@@ -67,3 +67,17 @@ export async function saveVaultKey(
     await saveVaultData(app, vaultData);
   });
 }
+
+export interface NotificationSyncSettings {
+  morningSummaryEnabled: boolean;
+  morningSummaryTime: string;
+  overdueCheckEnabled: boolean;
+  ntfyTopic: string;
+}
+
+export async function saveNotificationSyncSettings(
+  app: App,
+  settings: NotificationSyncSettings
+): Promise<void> {
+  await saveVaultKey(app, "notificationSync", settings);
+}
