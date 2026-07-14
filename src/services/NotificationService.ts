@@ -12,12 +12,20 @@ export interface NotificationSettings {
   notificationsEnabled: boolean;
   reminderMinutesBefore: number;
   checkIntervalMs: number;
+  notifyReminders: boolean;
+  notifyOverdue: boolean;
+  notifyEstimateExceeded: boolean;
+  notifyDeadlines: boolean;
 }
 
 export const defaultNotificationSettings: NotificationSettings = {
   notificationsEnabled: false,
   reminderMinutesBefore: DEFAULT_REMINDER_MINUTES,
   checkIntervalMs: DEFAULT_CHECK_INTERVAL_MS,
+  notifyReminders: true,
+  notifyOverdue: true,
+  notifyEstimateExceeded: true,
+  notifyDeadlines: true,
 };
 
 export class NotificationService {
@@ -64,6 +72,10 @@ export class NotificationService {
       notificationsEnabled: opts.notificationsEnabled ?? defaultNotificationSettings.notificationsEnabled,
       reminderMinutesBefore: opts.reminderMinutesBefore ?? defaultNotificationSettings.reminderMinutesBefore,
       checkIntervalMs: opts.checkIntervalMs ?? defaultNotificationSettings.checkIntervalMs,
+      notifyReminders: opts.notifyReminders ?? defaultNotificationSettings.notifyReminders,
+      notifyOverdue: opts.notifyOverdue ?? defaultNotificationSettings.notifyOverdue,
+      notifyEstimateExceeded: opts.notifyEstimateExceeded ?? defaultNotificationSettings.notifyEstimateExceeded,
+      notifyDeadlines: opts.notifyDeadlines ?? defaultNotificationSettings.notifyDeadlines,
     };
   }
 
@@ -92,7 +104,7 @@ export class NotificationService {
           const overdueKey = `${task.id}:overdue`;
 
           const reminderMs = this.getSettings().reminderMinutesBefore * 60_000;
-          if (now >= fireAt - reminderMs && now < fireAt && !this.firedReminders.has(reminderKey)) {
+          if (this.getSettings().notifyReminders && now >= fireAt - reminderMs && now < fireAt && !this.firedReminders.has(reminderKey)) {
             this.firedReminders.add(reminderKey);
             this.notify(
               `📅 Calendar Remastered`,
@@ -100,8 +112,8 @@ export class NotificationService {
             );
           }
 
-          // Просрочка — только для задач в статусе "todo" (не в работе / на паузе / готово)
-          if (task.status === "todo" && now >= fireAt + 30 * 60_000 && !this.firedOverdue.has(overdueKey)) {
+          // Просрочка — сразу при наступлении запланированного времени
+          if (this.getSettings().notifyOverdue && task.status === "todo" && now >= fireAt && !this.firedOverdue.has(overdueKey)) {
             this.firedOverdue.add(overdueKey);
             this.notify(
               `📅 Calendar Remastered`,
@@ -112,7 +124,7 @@ export class NotificationService {
       }
 
       // Estimated time exceeded — notify when work time exceeds estimate
-      if (task.estimatedTime && task.totalWorkTime && task.status === "progress") {
+      if (this.getSettings().notifyEstimateExceeded && task.estimatedTime && task.totalWorkTime && task.status === "progress") {
         const estimateKey = `${task.id}:estimate-exceeded`;
         if (!this.firedEstimateExceeded.has(estimateKey)) {
           const estimatedMs = task.estimatedTime * 60_000;
@@ -130,7 +142,7 @@ export class NotificationService {
       }
 
       // Deadline notifications
-      if (task.deadline) {
+      if (this.getSettings().notifyDeadlines && task.deadline) {
         const deadlineMatch = task.deadline.match(/^day-(\d{4})-(\d{2})-(\d{2})/);
         if (deadlineMatch) {
           const [, y, m, d] = deadlineMatch;
@@ -205,6 +217,19 @@ export class NotificationService {
 
     // Auto-close after 10 seconds
     setTimeout(() => notification.close(), 10_000);
+
+    // Also send via ntfy.sh if enabled
+    this.sendNtfy(body);
+  }
+
+  private sendNtfy(body: string): void {
+    const opts = this.plugin.options as ISettings;
+    if (!opts.ntfyEnabled || !opts.ntfyTopic) return;
+
+    fetch(`https://ntfy.sh/${opts.ntfyTopic}`, {
+      method: "POST",
+      body,
+    }).catch((e) => console.warn("[ntfy] send failed:", e));
   }
 
   private cleanupFiredKeys(activeTasks: ITask[]): void {

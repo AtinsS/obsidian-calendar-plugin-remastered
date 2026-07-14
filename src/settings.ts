@@ -24,8 +24,6 @@ export interface ISettings {
   // Task Tracker settings
   showTaskTracker: boolean;
   taskTrackerCollapsed: boolean;
-  archiveCompletedNotes: boolean;
-  archiveFolderPath: string;
 
   // Task-Note sync settings
   syncAllTasksToNotes: boolean;
@@ -42,6 +40,14 @@ export interface ISettings {
   notificationsEnabled: boolean;
   reminderMinutesBefore: number;
   checkIntervalMs: number;
+  notifyReminders: boolean;
+  notifyOverdue: boolean;
+  notifyEstimateExceeded: boolean;
+  notifyDeadlines: boolean;
+
+  // ntfy.sh settings
+  ntfyEnabled: boolean;
+  ntfyTopic: string;
 
   // Work task settings
   defaultPaymentType: "hour" | "day";
@@ -73,8 +79,6 @@ export const defaultSettings = Object.freeze({
 
   showTaskTracker: true,
   taskTrackerCollapsed: false,
-  archiveCompletedNotes: false,
-  archiveFolderPath: "Archive",
 
   syncAllTasksToNotes: false,
   tasksFolderPath: "Tasks",
@@ -87,6 +91,13 @@ export const defaultSettings = Object.freeze({
   notificationsEnabled: defaultNotificationSettings.notificationsEnabled,
   reminderMinutesBefore: defaultNotificationSettings.reminderMinutesBefore,
   checkIntervalMs: defaultNotificationSettings.checkIntervalMs,
+  notifyReminders: true,
+  notifyOverdue: true,
+  notifyEstimateExceeded: true,
+  notifyDeadlines: true,
+
+  ntfyEnabled: false,
+  ntfyTopic: "Calendar_Remastered",
 
   defaultPaymentType: "hour" as "hour" | "day",
   defaultRate: 0,
@@ -189,43 +200,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
         toggle.setValue(this.plugin.options.showTaskTracker);
         toggle.onChange(async (value) => {
           this.plugin.writeOptions({ showTaskTracker: value });
-        });
-      });
-
-    new Setting(this.containerEl)
-      .setName("Архивировать заметки-задачи")
-      .setDesc("При завершении задачи-заметки перемещать её в папку архива")
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.options.archiveCompletedNotes);
-        toggle.onChange(async (value) => {
-          this.plugin.writeOptions({ archiveCompletedNotes: value });
-        });
-      });
-
-    new Setting(this.containerEl)
-      .setName("Папка архива")
-      .setDesc("Папка для перемещения завершённых заметок-задач")
-      .addDropdown((dropdown) => {
-        const folders = this.getVaultFolders();
-        folders.forEach((folder) => {
-          dropdown.addOption(folder, folder);
-        });
-        dropdown.addOption("__custom", "Другая...");
-        const current = this.plugin.options.archiveFolderPath || "Archive";
-        if (!folders.includes(current)) {
-          dropdown.addOption(current, current);
-        }
-        dropdown.setValue(current);
-        dropdown.onChange(async (value) => {
-          if (value === "__custom") {
-            const modal = new FolderSuggestModal(this.app, async (folder) => {
-              this.plugin.writeOptions({ archiveFolderPath: folder });
-              this.display();
-            });
-            modal.open();
-          } else {
-            this.plugin.writeOptions({ archiveFolderPath: value });
-          }
         });
       });
   }
@@ -443,6 +417,94 @@ priority: medium
           this.plugin.writeOptions({ reminderMinutesBefore: parseInt(value) });
         });
       });
+
+    new Setting(this.containerEl)
+      .setName("Типы уведомлений")
+      .setDesc("Выберите, какие типы уведомлений включить");
+
+    new Setting(this.containerEl)
+      .setName("Напоминания")
+      .setDesc("Напоминание за N минут до запланированного времени")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.notifyReminders);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ notifyReminders: value });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Просроченные задачи")
+      .setDesc("Уведомление, когда задача становится просроченной")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.notifyOverdue);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ notifyOverdue: value });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Превышение лимита времени")
+      .setDesc("Уведомление, когда время работы превышает оценку")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.notifyEstimateExceeded);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ notifyEstimateExceeded: value });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Дедлайны")
+      .setDesc("Уведомления о дедлайнах (завтра, сегодня, истёк)")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.notifyDeadlines);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ notifyDeadlines: value });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Отправлять в ntfy.sh")
+      .setDesc("Дублировать уведомления на смартфон через ntfy.sh")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.ntfyEnabled);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ ntfyEnabled: value });
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Topic для ntfy.sh")
+      .setDesc("Имя топика для получения уведомлений в приложении ntfy")
+      .addText((text) => {
+        text
+          .setPlaceholder("Calendar_Remastered")
+          .setValue(this.plugin.options.ntfyTopic || "Calendar_Remastered")
+          .onChange(async (value) => {
+            this.plugin.writeOptions({ ntfyTopic: value || "Calendar_Remastered" });
+          });
+        text.inputEl.style.maxWidth = "250px";
+      });
+
+    new Setting(this.containerEl)
+      .setName("Тест ntfy.sh")
+      .setDesc("Отправить тестовое уведомление на указанный топик")
+      .addButton((btn) =>
+        btn
+          .setButtonText("Отправить тест")
+          .setWarning()
+          .onClick(async () => {
+            const topic = this.plugin.options.ntfyTopic || "Calendar_Remastered";
+            try {
+              await fetch(`https://ntfy.sh/${topic}`, {
+                method: "POST",
+                body: "Тестовое уведомление из Calendar Remastered",
+              });
+              alert(`Тестовое уведомление отправлено в ${topic}`);
+            } catch (e) {
+              alert(`Ошибка отправки: ${e}`);
+            }
+          })
+      );
   }
 
   addWorkTaskSettings(): void {
