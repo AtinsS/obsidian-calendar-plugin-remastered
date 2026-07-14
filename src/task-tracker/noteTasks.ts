@@ -574,37 +574,85 @@ export function setupNoteDeleteSync(app: App, plugin: CalendarPlugin): void {
   );
 }
 
+/**
+ * Парсит YAML frontmatter из текста файла в простой Record<string, unknown>.
+ * Используется вместо metadataCache, т.к. кэш может быть устаревшим
+ * в момент вызова vault.on('modify').
+ */
+function parseFrontmatterFromContent(content: string): Record<string, unknown> {
+  const lines = content.split("\n");
+  let fmStart = -1;
+  let fmEnd = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === "---") {
+      if (fmStart === -1) fmStart = i;
+      else { fmEnd = i; break; }
+    }
+  }
+
+  if (fmStart === -1 || fmEnd === -1) return {};
+
+  const fmLines = lines.slice(fmStart + 1, fmEnd);
+  const result: Record<string, unknown> = {};
+
+  for (const line of fmLines) {
+    const match = line.match(/^([\w_]+):\s*(.*)/);
+    if (!match) continue;
+    const key = match[1];
+    let raw = match[2].trim();
+
+    if (raw === "true") { result[key] = true; continue; }
+    if (raw === "false") { result[key] = false; continue; }
+    if (raw === "null" || raw === "") { result[key] = undefined; continue; }
+
+    // Arrays: [a, b, c]
+    if (raw.startsWith("[") && raw.endsWith("]")) {
+      const inner = raw.slice(1, -1).trim();
+      if (inner === "") { result[key] = []; continue; }
+      result[key] = inner.split(",").map((s: string) => s.trim().replace(/^["']|["']$/g, ""));
+      continue;
+    }
+
+    result[key] = raw;
+  }
+
+  return result;
+}
+
 export function setupNoteTaskSync(app: App, plugin: CalendarPlugin): void {
   plugin.registerEvent(
     app.vault.on("modify", async (file) => {
       if (isSyncing) return;
       if (!(file instanceof TFile)) return;
 
+      // Быстрая проверка через metadataCache — есть ли task_id
       const cache = app.metadataCache.getFileCache(file);
-      const frontmatter = cache?.frontmatter;
-      if (!frontmatter?.task_id) return;
+      if (!cache?.frontmatter?.task_id) return;
 
-      const taskId = frontmatter.task_id;
-      const allTasks = get(tasks);
-      const task = allTasks.find((t) => t.id === taskId);
-      if (!task) {
-        console.warn(`[Calendar Plugin] Note references non-existent task: ${taskId}`);
-        return;
-      }
+      const taskId = cache.frontmatter.task_id as string;
 
-      // Читаем содержимое файла для парсинга строки задачи
-      const content = await app.vault.cachedRead(file);
-      const taskLineData = parseTaskLine(content);
-
-      // Debounce — предотвращает гонку при быстром редактировании
+      // Debounce — предотвращает гонку при быстром редакировании.
+      // Чтение файла и парсинг frontmatter происходят ВНУТРИ таймера,
+      // чтобы данные были актуальны на момент применения.
       if (syncDebounceTimers.has(taskId)) {
         clearTimeout(syncDebounceTimers.get(taskId));
       }
 
       syncDebounceTimers.set(
         taskId,
-        setTimeout(() => {
+        setTimeout(async () => {
           syncDebounceTimers.delete(taskId);
+
+          const allTasks = get(tasks);
+          const task = allTasks.find((t) => t.id === taskId);
+          if (!task) return;
+
+          // Читаем файл с диска — гарантированно свежие данные
+          const content = await app.vault.read(file);
+          const frontmatter = parseFrontmatterFromContent(content);
+          const taskLineData = parseTaskLine(content);
+
           applyFrontmatterChanges(taskId, frontmatter, task, taskLineData);
         }, SYNC_DEBOUNCE_MS)
       );

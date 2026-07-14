@@ -469,6 +469,11 @@
           dateUID: newDateUID,
           scheduledTime: info.event.allDay ? undefined : newTime,
         });
+        // Синхронизируем заметку
+        const updatedTask = get(tasks).find((t) => t.id === task.id);
+        if (updatedTask) {
+          syncTaskToNote(updatedTask, plugin.app);
+        }
       }
     }
   }
@@ -486,6 +491,11 @@
       updateTask(task.id, {
         estimatedTime: Math.max(15, durationMin),
       });
+      // Синхронизируем заметку
+      const updatedTask = get(tasks).find((t) => t.id === task.id);
+      if (updatedTask) {
+        syncTaskToNote(updatedTask, plugin.app);
+      }
     }
   }
 
@@ -688,6 +698,11 @@
       updateTaskStatus(contextMenuTask.id, newStatus);
       if (newStatus === "done") {
         archiveNoteIfCompleted(contextMenuTask, newStatus);
+      }
+      // Синхронизируем заметку
+      const updatedTask = get(tasks).find((t) => t.id === contextMenuTask!.id);
+      if (updatedTask) {
+        syncTaskToNote(updatedTask, plugin.app);
       }
     }
     closeContextMenu();
