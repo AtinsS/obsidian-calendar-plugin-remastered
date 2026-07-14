@@ -15,7 +15,8 @@ export interface ITask {
   status: TaskStatus;
   dateUID: string;
   projectId: string | null;
-  notePath: string | null;
+  notePath: string | null; // Task заметка в Tasks/
+  boundNotePath?: string | null; // Привязанная заметка
   priority: "low" | "medium" | "high";
   tags: string[];
   sortOrder: number;

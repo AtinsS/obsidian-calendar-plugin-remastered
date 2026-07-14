@@ -2,9 +2,12 @@
   import { createEventDispatcher } from "svelte";
   import type { App } from "obsidian";
   import type { ITask, TaskStatus } from "./types";
-  import { updateTask, updateTaskStatus, removeTask, projects, activeTab, calculateTaskEarnings } from "./stores";
+  import { updateTask, updateTaskStatus, removeTask, projects, activeTab, calculateTaskEarnings, tasks } from "./stores";
+  import { get } from "svelte/store";
   import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
+  import { syncTaskToNote, shouldSyncTaskToNote } from "./noteTasks";
+  import { settings } from "../ui/stores";
 
   export let task: ITask;
   export let appInstance: App;
@@ -99,16 +102,48 @@
     all: "",
   };
 
-  function quickStatus(status: TaskStatus) {
+  async function quickStatus(status: TaskStatus) {
     if (task.status === status) return;
     updateTaskStatus(task.id, status);
+    // Синхронизируем заметку при смене статуса
+    if (appInstance) {
+      const { tasks: tasksStore } = await import("./stores");
+      const { get } = await import("svelte/store");
+      const updatedTask = get(tasksStore).find((t) => t.id === task.id);
+      if (updatedTask) {
+        await syncTaskToNote(updatedTask, appInstance);
+      }
+    }
   }
 
   function handleEdit() {
     const modal = new TaskModal(
       appInstance,
-      (changes) => {
+      async (changes) => {
+        console.log("[TaskItem] handleEdit changes:", changes);
         updateTask(task.id, changes);
+
+        // Получаем обновлённую задачу из store
+        const updatedTask = get(tasks).find((t) => t.id === task.id);
+        console.log("[TaskItem] updatedTask:", updatedTask);
+        if (!updatedTask || !appInstance) return;
+
+        // Если нет Task заметки — создаём
+        if (!updatedTask.notePath && shouldSyncTaskToNote(updatedTask)) {
+          console.log("[TaskItem] Creating Task note...");
+          const { createNoteTask } = await import("./noteTasks");
+          const project = $projects.find((p) => p.id === updatedTask.projectId);
+          const file = await createNoteTask(updatedTask, project, appInstance);
+          if (file) {
+            console.log("[TaskItem] Task note created:", file.path);
+            updateTask(updatedTask.id, { notePath: file.path });
+          }
+        }
+
+        // Синхронизируем Task заметку
+        console.log("[TaskItem] Syncing to note...");
+        await syncTaskToNote(updatedTask, appInstance);
+        console.log("[TaskItem] Sync done");
       },
       task
     );
@@ -120,11 +155,13 @@
   }
 
   function openNote() {
-    if (!task.notePath) return;
+    // Приоритет: привязанная заметка > Task заметка
+    const pathToOpen = task.boundNotePath || task.notePath;
+    if (!pathToOpen) return;
     if (!appInstance) return;
-    const file = appInstance.vault.getAbstractFileByPath(task.notePath);
+    const file = appInstance.vault.getAbstractFileByPath(pathToOpen);
     if (file) {
-      appInstance.workspace.openLinkText(task.notePath, "", false);
+      appInstance.workspace.openLinkText(pathToOpen, "", false);
     }
   }
 
@@ -163,7 +200,6 @@
   class="task-item"
   class:completed={task.status === "done"}
   class:is-note-task={!!task.isNoteTask}
-  class:has-bound-note={!task.isNoteTask && !!task.notePath}
   data-status={task.status}
   draggable="true"
   on:dragstart={handleDragStart}
@@ -177,15 +213,14 @@
     style="background-color: {projectColor}"
   ></span>
 
-  {#if task.notePath}
+  {#if task.isNoteTask && task.notePath}
     <button
       class="note-icon"
-      class:note-icon-link={!task.isNoteTask}
       on:click|stopPropagation={openNote}
-      title={task.isNoteTask ? "Открыть заметку-задачу" : "Перейти к привязанной заметке"}
+      title="Открыть заметку-задачу"
       aria-label="Открыть заметку"
     >
-      {task.isNoteTask ? "📝" : "🔗"}
+      📝
     </button>
   {:else}
     <button
@@ -204,13 +239,13 @@
     </button>
   {/if}
 
-  {#if task.notePath}
+  {#if task.boundNotePath}
     <a
       class="task-title note-link"
       class:strikethrough={task.status === "done"}
-      href={task.notePath}
+      href={task.boundNotePath}
       on:click|preventDefault={openNote}
-      title="Открыть заметку: {task.notePath}"
+      title="Открыть привязанную заметку: {task.boundNotePath}"
     >
       {task.title}
     </a>
@@ -318,6 +353,19 @@
     {#if showActionsMenu}
       <div class="task-actions-menu" on:click|stopPropagation role="menu">
         {#if task.status === "done"}
+          <button
+            class="task-actions-item"
+            on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+          >
+            &#8634; Вернуть в Сделать
+          </button>
+          <button
+            class="task-actions-item"
+            on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
+          >
+            &#9203; Вернуть в работу
+          </button>
+          <div class="task-tracker-dropdown-divider"></div>
           <button
             class="task-actions-item danger"
             on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}

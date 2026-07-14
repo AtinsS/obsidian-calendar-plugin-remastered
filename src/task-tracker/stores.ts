@@ -8,11 +8,12 @@ import type { ITask, IProject, ITaskTrackerData, TimeLog, TaskStatus, DateUID } 
 import { TASK_TRACKER_DATA_VERSION } from "./types";
 import { loadTaskData, saveTaskData, generateId } from "./storage";
 import { startTimer, resumeTimer, stopTimer, addTimeLog } from "./TimerManager";
+import { settings } from "../ui/stores";
 
 let pluginInstance: CalendarPlugin = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const AUTO_CLEANUP_THRESHOLD = 180;
+const DEFAULT_AUTO_CLEANUP_THRESHOLD = 180;
 
 function notifyStatusChange(taskTitle: string, statusLabel: string): void {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
@@ -29,10 +30,27 @@ function autoCleanupCompleted(): void {
     .filter((t) => t.completed)
     .sort((a, b) => a.updatedAt - b.updatedAt);
 
-  if (completed.length <= AUTO_CLEANUP_THRESHOLD) return;
+  const threshold = get(settings).autoCleanupThreshold || DEFAULT_AUTO_CLEANUP_THRESHOLD;
 
-  const toRemove = completed.slice(0, completed.length - AUTO_CLEANUP_THRESHOLD);
+  if (completed.length <= threshold) return;
+
+  const toRemove = completed.slice(0, completed.length - threshold);
   const removeIds = new Set(toRemove.map((t) => t.id));
+
+  // Удаляем Task заметки из Tasks/
+  const tasksFolderPath = get(settings).tasksFolderPath || "Tasks";
+  if (pluginInstance) {
+    for (const task of toRemove) {
+      if (task.notePath && task.notePath.startsWith(tasksFolderPath + "/")) {
+        const file = pluginInstance.app.vault.getAbstractFileByPath(task.notePath);
+        if (file) {
+          pluginInstance.app.vault.delete(file).catch(() => {
+            // Игнорируем ошибки удаления
+          });
+        }
+      }
+    }
+  }
 
   tasks.update((current) => current.filter((t) => !removeIds.has(t.id)));
   debouncedSave();
@@ -41,7 +59,7 @@ function autoCleanupCompleted(): void {
 export const tasks = writable<ITask[]>([]);
 export const projects = writable<IProject[]>([]);
 export const selectedDate = writable<DateUID>(null);
-export const activeTab = writable<TaskStatus>("todo");
+export const activeTab = writable<TaskStatus>("all");
 export const taskFilter = writable<{
   projectId: string | null;
 }>({
@@ -138,7 +156,8 @@ export function updateTask(id: string, changes: Partial<ITask>): void {
   if (changes.completed !== undefined) {
     const allTasks = get(tasks);
     const completedCount = allTasks.filter((t) => t.completed).length;
-    if (completedCount > AUTO_CLEANUP_THRESHOLD - 20) {
+    const threshold = get(settings).autoCleanupThreshold || DEFAULT_AUTO_CLEANUP_THRESHOLD;
+    if (completedCount > threshold - 20) {
       autoCleanupCompleted();
     }
   }

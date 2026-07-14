@@ -27,7 +27,11 @@ import FinancialAnalyticsView from "./views/FinancialAnalyticsView";
 import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
 import { cleanupTimers } from "./task-tracker/TimerManager";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
-import { setupNoteTaskSync } from "./task-tracker/noteTasks";
+import {
+  setupNoteTaskSync,
+  setupNoteRenameSync,
+  setupNoteDeleteSync,
+} from "./task-tracker/noteTasks";
 import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
 import { initFinanceStores, reloadFinanceStores } from "./finance/storage";
@@ -191,6 +195,8 @@ export default class CalendarPlugin extends Plugin {
     // Initialize task tracker
     initTaskStores(this);
     setupNoteTaskSync(this.app, this);
+    setupNoteRenameSync(this.app, this);
+    setupNoteDeleteSync(this.app, this);
 
     // Initialize habit tracker
     initHabitStores(this);

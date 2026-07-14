@@ -17,7 +17,7 @@
     reorderProjects,
     clearAllRecurringTasks,
   } from "./stores";
-  import { createNoteTask, deleteNoteTask, archiveNoteTask } from "./noteTasks";
+  import { createNoteTask, deleteNoteTask, archiveNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "./noteTasks";
   import { settings } from "../ui/stores";
   import { getDateUID } from "obsidian-daily-notes-interface";
   import TaskItem from "./TaskItem.svelte";
@@ -148,20 +148,20 @@
     const modal = new TaskModal(
       appInstance,
       async (taskData) => {
-        const shouldCreateNote = taskData.isNoteTask;
-        const customNotePath = taskData.notePath;
         const task = addTask({
           ...taskData,
           completed: false,
           status: "todo",
-          notePath: shouldCreateNote ? null : (taskData.notePath || null),
+          notePath: null,
+          boundNotePath: taskData.notePath || null,
           tags: [],
           sortOrder: allTasksForDate.length,
         } as Omit<ITask, "id" | "createdAt" | "updatedAt">);
 
-        if (shouldCreateNote) {
+        // Всегда создаём Task заметку в Tasks/ если включена синхронизация
+        if (shouldSyncTaskToNote(task)) {
           const project = $projects.find((p) => p.id === task.projectId);
-          const file = await createNoteTask(task, project, appInstance, customNotePath);
+          const file = await createNoteTask(task, project, appInstance);
           if (file) {
             updateTask(task.id, { notePath: file.path });
           }
@@ -172,7 +172,8 @@
   }
 
   async function handleTaskDelete(task: ITask) {
-    if (task.notePath && task.isNoteTask && appInstance) {
+    // Удаляем Task заметку из Tasks/, но не привязанную заметку
+    if (task.notePath && task.notePath.startsWith($settings.tasksFolderPath + "/") && appInstance) {
       await deleteNoteTask(task.notePath, appInstance);
     }
     removeTask(task.id);
@@ -191,13 +192,8 @@
   }
 
   async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
-    if (newStatus !== "done" || !task.notePath || !task.isNoteTask) return;
-    if (!appInstance) return;
-    const archivePath = $settings.archiveFolderPath || "Archive";
-    const newPath = await archiveNoteTask(task.notePath, archivePath, appInstance);
-    if (newPath) {
-      updateTask(task.id, { notePath: newPath });
-    }
+    // Заметка просто остаётся на месте при смене статуса
+    // Архивация не выполняется
   }
 
   async function handleTaskComplete(task: ITask) {
@@ -205,7 +201,12 @@
 
     if (newStatus === "done") {
       handleRecurringNext(task);
-      await archiveNoteIfCompleted(task, newStatus);
+    }
+
+    // Синхронизируем заметку при смене статуса
+    const updatedTask = get(tasks).find((t) => t.id === task.id);
+    if (updatedTask && appInstance) {
+      await syncTaskToNote(updatedTask, appInstance);
     }
   }
 

@@ -27,6 +27,11 @@ export interface ISettings {
   archiveCompletedNotes: boolean;
   archiveFolderPath: string;
 
+  // Task-Note sync settings
+  syncAllTasksToNotes: boolean;
+  tasksFolderPath: string;
+  autoCleanupThreshold: number;
+
   // Habit Tracker settings
   showHabitTracker: boolean;
 
@@ -70,6 +75,10 @@ export const defaultSettings = Object.freeze({
   taskTrackerCollapsed: false,
   archiveCompletedNotes: false,
   archiveFolderPath: "Archive",
+
+  syncAllTasksToNotes: false,
+  tasksFolderPath: "Tasks",
+  autoCleanupThreshold: 180,
 
   showHabitTracker: true,
 
@@ -129,6 +138,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
     });
     this.addSyncToVaultSetting();
     this.addSyncAdvice();
+
+    this.containerEl.createEl("h3", {
+      text: "Синхронизация задач с заметками",
+    });
+    this.addTaskNoteSyncSettings();
 
     this.containerEl.createEl("h3", {
       text: "Уведомления",
@@ -273,6 +287,134 @@ export class CalendarSettingsTab extends PluginSettingTab {
       </p>
     `;
     this.containerEl.appendChild(desc);
+  }
+
+  addTaskNoteSyncSettings(): void {
+    new Setting(this.containerEl)
+      .setName("Создавать Task заметку для каждой задачи")
+      .setDesc(
+        "При создании задачи автоматически создавать .md файл в папке Tasks/ в формате Tasks плагина."
+      )
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.syncAllTasksToNotes);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ syncAllTasksToNotes: value });
+        });
+      })
+      .addButton((btn) =>
+        btn
+          .setButtonText("Создать заметки для всех задач")
+          .setTooltip("Создать Task заметки для задач, у которых их ещё нет")
+          .onClick(async () => {
+            const { tasks } = await import("./task-tracker/stores");
+            const { get } = await import("svelte/store");
+            const { createNoteTask, shouldSyncTaskToNote } = await import("./task-tracker/noteTasks");
+
+            const allTasks = get(tasks);
+            const tasksFolderPath = this.plugin.options.tasksFolderPath || "Tasks";
+            let created = 0;
+
+            for (const task of allTasks) {
+              // Пропускаем задачи у которых уже есть Task заметка
+              if (task.notePath && task.notePath.startsWith(tasksFolderPath + "/")) {
+                continue;
+              }
+
+              if (shouldSyncTaskToNote(task)) {
+                try {
+                  const { projects } = await import("./task-tracker/stores");
+                  const { get: getS } = await import("svelte/store");
+                  const project = getS(projects).find((p) => p.id === task.projectId);
+                  const file = await createNoteTask(task, project, this.app);
+                  if (file) {
+                    const { updateTask } = await import("./task-tracker/stores");
+                    updateTask(task.id, { notePath: file.path });
+                    created++;
+                  }
+                } catch (error) {
+                  console.error(`[Settings] Failed to create note for task ${task.id}:`, error);
+                }
+              }
+            }
+
+            alert(`Создано ${created} Task заметок`);
+          })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Папка для задач")
+      .setDesc("Папка, где будут храниться .md файлы задач")
+      .addDropdown((dropdown) => {
+        const folders = this.getVaultFolders();
+        folders.forEach((folder) => {
+          dropdown.addOption(folder, folder);
+        });
+        dropdown.addOption("__custom", "Другая...");
+        const current = this.plugin.options.tasksFolderPath || "Tasks";
+        if (!folders.includes(current)) {
+          dropdown.addOption(current, current);
+        }
+        dropdown.setValue(current);
+        dropdown.onChange(async (value) => {
+          if (value === "__custom") {
+            const modal = new FolderSuggestModal(this.app, async (folder) => {
+              this.plugin.writeOptions({ tasksFolderPath: folder });
+              this.display();
+            });
+            modal.open();
+          } else {
+            this.plugin.writeOptions({ tasksFolderPath: value });
+          }
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Лимит выполненных задач")
+      .setDesc("Максимальное количество выполненных задач. При превышении старые задачи и их заметки удаляются автоматически.")
+      .addText((text) => {
+        text
+          .setPlaceholder("180")
+          .setValue(String(this.plugin.options.autoCleanupThreshold || 180))
+          .onChange(async (value) => {
+            const num = parseInt(value);
+            if (!isNaN(num) && num >= 10) {
+              await this.plugin.writeOptions({ autoCleanupThreshold: num });
+            }
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "10";
+        text.inputEl.max = "10000";
+        text.inputEl.style.maxWidth = "100px";
+      });
+
+    // Информация о формате
+    const formatInfo = document.createElement("div");
+    formatInfo.addClass("setting-item-description");
+    formatInfo.style.marginTop = "8px";
+    formatInfo.innerHTML = `
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Формат заметки:</b>
+      </p>
+      <pre style="background: var(--background-secondary); padding: 8px; border-radius: 4px; font-size: 11px; overflow-x: auto; margin: 4px 0;"><code>---
+task_id: abc123
+title: Купить молоко
+status: todo
+date: day-2024-10-25
+priority: medium
+---
+
+- [ ] Купить молоко 📅 2024-10-25 🛫 14:30 ⏫</code></pre>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Статусы:</b> - [ ] todo, - [/] progress, - [-] paused, - [x] done
+      </p>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Эмодзи:</b> 📅 дата, 🛫 время, ⏰ дедлайн, 🔁 повторение, ⏫/⬇️ приоритет
+      </p>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Автоочистка:</b> при достижении лимита старые выполненные задачи и их заметки удаляются автоматически.
+      </p>
+    `;
+    this.containerEl.appendChild(formatInfo);
   }
 
   addNotificationSettings(): void {

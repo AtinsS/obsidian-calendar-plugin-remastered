@@ -17,7 +17,7 @@
     removeTask,
     addTask,
   } from "../task-tracker/stores";
-  import { createNoteTask, deleteNoteTask, archiveNoteTask } from "../task-tracker/noteTasks";
+  import { createNoteTask, deleteNoteTask, archiveNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "../task-tracker/noteTasks";
   import { TaskModal } from "../task-tracker/TaskModal";
   import { getDateUID } from "obsidian-daily-notes-interface";
   import { settings } from "../ui/stores";
@@ -272,10 +272,8 @@
       task.priority === "medium" ? '<span class="sch-priority sch-priority-mid">~</span>' : "";
     const workBadge = task.isWorkTask
       ? '<span class="sch-work-badge" title="Рабочая задача">&#128188;</span>' : "";
-    const noteBadge = task.notePath
-      ? task.isNoteTask
-        ? '<span class="sch-note-badge" title="Задача-заметка">&#128221;</span>'
-        : '<span class="sch-note-badge" title="С привязанной заметкой">&#128279;</span>'
+    const noteBadge = task.boundNotePath
+      ? '<span class="sch-note-badge" title="С привязанной заметкой">&#128279;</span>'
       : "";
 
     let deadlineHtml = "";
@@ -491,24 +489,35 @@
     }
   }
 
-  function openTaskEditor(task: ITask): void {
-    new TaskModal(plugin.app, (updates) => {
+  async function openTaskEditor(task: ITask): Promise<void> {
+    new TaskModal(plugin.app, async (updates) => {
       updateTask(task.id, updates);
+      // Получаем обновлённую задачу
+      const updatedTask = get(tasks).find((t) => t.id === task.id);
+      if (!updatedTask) return;
+
+      // Если нет Task заметки — создаём
+      if (!updatedTask.notePath && shouldSyncTaskToNote(updatedTask)) {
+        const project = get(projects).find((p) => p.id === updatedTask.projectId);
+        const file = await createNoteTask(updatedTask, project, plugin.app);
+        if (file) {
+          updateTask(updatedTask.id, { notePath: file.path });
+        }
+      }
+
+      // Синхронизируем Task заметку
+      await syncTaskToNote(updatedTask, plugin.app);
     }, task).open();
   }
 
   async function deleteNoteFileIfNeeded(task: ITask): Promise<void> {
-    if (!task.isNoteTask || !task.notePath) return;
+    if (!shouldSyncTaskToNote(task) || !task.notePath) return;
     await deleteNoteTask(task.notePath, plugin.app);
   }
 
   async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
-    if (newStatus !== "done" || !task.notePath || !task.isNoteTask) return;
-    const archivePath = get(settings).archiveFolderPath || "Archive";
-    const newPath = await archiveNoteTask(task.notePath, archivePath, plugin.app);
-    if (newPath) {
-      updateTask(task.id, { notePath: newPath });
-    }
+    // Заметка просто остаётся на месте при смене статуса
+    // Архивация не выполняется
   }
 
   async function openTaskCreator(dateStr: string, timeStr?: string, prefillEstimatedTime?: number): Promise<void> {
@@ -524,7 +533,6 @@
     const initialTime = isTimeView ? timeStr : undefined;
 
     new TaskModal(plugin.app, async (data) => {
-      const isNoteTask = !!data.isNoteTask;
       const task = addTask({
         title: data.title || "Новая задача",
         description: data.description,
@@ -532,8 +540,8 @@
         status: "todo",
         dateUID: data.dateUID || dateUID,
         projectId: data.projectId || null,
-        isNoteTask,
-        notePath: isNoteTask ? null : (data as any).notePath || null,
+        notePath: null,
+        boundNotePath: data.notePath || null,
         priority: data.priority || "medium",
         tags: [],
         sortOrder: 0,
@@ -542,10 +550,11 @@
         scheduledTime: data.scheduledTime || initialTime,
       });
 
-      if (isNoteTask) {
+      // Всегда создаём Task заметку в Tasks/ если включена синхронизация
+      if (shouldSyncTaskToNote(task)) {
         const project = get(projects).find((p) => p.id === data.projectId);
         try {
-          const file = await createNoteTask(task, project, plugin.app, (data as any).notePath || undefined);
+          const file = await createNoteTask(task, project, plugin.app);
           if (file) {
             updateTask(task.id, { notePath: file.path });
           }
@@ -585,15 +594,28 @@
 
     // Кнопки меню
     const items = [
-      { label: "📝 Редактировать", action: () => contextEditTask() },
-      ...(task.notePath
-        ? [{ label: "📄 Открыть заметку", action: () => contextOpenNote() }, { divider: true }]
+      // Редактирование только для незавершённых задач
+      ...(task.status !== "done"
+        ? [{ label: "📝 Редактировать", action: () => contextEditTask() }]
         : []),
+      // Открыть заметку — только если есть привязанная заметка
+      ...(task.boundNotePath
+        ? [{ label: "📄 Открыть заметку", action: () => contextOpenNote() }]
+        : []),
+      // Смена статуса — доступна всегда, включая из "done"
       { label: "Перевести статус:", disabled: true },
-      { label: "🟢 Сделать", action: () => contextChangeStatus("todo") },
-      { label: "▶️ В работу", action: () => contextChangeStatus("progress") },
-      { label: "⏸️ На паузу", action: () => contextChangeStatus("paused") },
-      { label: "✅ Готово", action: () => contextChangeStatus("done") },
+      ...(task.status !== "todo"
+        ? [{ label: "🟢 Сделать", action: () => contextChangeStatus("todo") }]
+        : []),
+      ...(task.status !== "progress"
+        ? [{ label: "▶️ В работу", action: () => contextChangeStatus("progress") }]
+        : []),
+      ...(task.status !== "paused"
+        ? [{ label: "⏸️ На паузу", action: () => contextChangeStatus("paused") }]
+        : []),
+      ...(task.status !== "done"
+        ? [{ label: "✅ Готово", action: () => contextChangeStatus("done") }]
+        : []),
       { divider: true },
       { label: "🗑️ Удалить", action: () => contextDeleteTask(), danger: true },
     ];
@@ -652,9 +674,9 @@
   }
 
   async function contextOpenNote(): Promise<void> {
-    if (!contextMenuTask?.notePath) return;
+    if (!contextMenuTask?.boundNotePath) return;
     try {
-      plugin.app.workspace.openLinkText(contextMenuTask.notePath, "", false);
+      plugin.app.workspace.openLinkText(contextMenuTask.boundNotePath, "", false);
     } catch (error) {
       console.error("[ScheduleCalendar] failed to open note:", error);
     }
