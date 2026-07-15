@@ -29,4 +29,4 @@ export interface IHabitTrackerData {
 }
 
 export const HABIT_TRACKER_DATA_VERSION = 1;
-export const MAX_HABIT_LOG_ENTRIES = 180;
+export const MAX_HABIT_LOG_ENTRIES = 1000;

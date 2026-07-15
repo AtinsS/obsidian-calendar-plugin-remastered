@@ -6,7 +6,6 @@
     getWeeklyStats,
     getHabitStats,
   } from "../habit-tracker/stores";
-  import type { IHabit } from "../habit-tracker/types";
   import HabitCard from "./HabitCard.svelte";
   import BarChart from "./BarChart.svelte";
   import DonutChart from "./DonutChart.svelte";
@@ -30,7 +29,6 @@
   } from "../finance/financialAnalyticsStorage";
   import { VIEW_TYPE_FINANCIAL_ANALYTICS } from "../constants";
 
-  let selectedHabitId: string = "all";
   let weeklyStats = getWeeklyStats(12);
 
   // Period selector for "Время и проекты"
@@ -44,11 +42,6 @@
   }
 
   $: activeHabits = $habits.filter((h) => !h.archived);
-
-  $: maxWeekly = Math.max(...weeklyStats.map((w) => w.total), 1);
-
-  // Calculate total possible completions per week (active habits * 7 days)
-  $: totalPossiblePerWeek = activeHabits.length * 7;
 
   // Calculate weekly earnings
   $: weeklyEarnings = weeklyStats.map((week) => {
@@ -107,26 +100,6 @@
     };
   })();
 
-  // Time logs delta (this week vs last week)
-  $: timeLogsDelta = (() => {
-    if ($timeLogs.length === 0) return 0;
-    const now = new Date();
-    const thisWeekStart = new Date(now);
-    thisWeekStart.setDate(now.getDate() - now.getDay() + 1);
-    thisWeekStart.setHours(0, 0, 0, 0);
-    const lastWeekStart = new Date(thisWeekStart);
-    lastWeekStart.setDate(thisWeekStart.getDate() - 7);
-
-    let thisWeekMs = 0;
-    let lastWeekMs = 0;
-    for (const log of $timeLogs) {
-      const d = new Date(log.date + "T12:00:00");
-      if (d >= thisWeekStart) thisWeekMs += log.duration;
-      else if (d >= lastWeekStart) lastWeekMs += log.duration;
-    }
-    return thisWeekMs - lastWeekMs;
-  })();
-
   // Donut chart data — time by project for done tasks (filtered by period)
   $: donutSegments = (() => {
     const allDoneTasks = get(tasks).filter((t) => t.status === "done");
@@ -152,22 +125,6 @@
       .filter((s) => s.ms > 0)
       .sort((a, b) => b.ms - a.ms)
       .map((s) => ({ label: s.name, value: s.ms, color: s.color }));
-  })();
-
-  // Earnings for period
-  $: periodEarnings = (() => {
-    const allTasks = get(tasks);
-    let total = 0;
-    for (const task of allTasks) {
-      if (!task.isWorkTask || !task.rate || task.status !== "done") continue;
-      const match = task.dateUID.match(/^day-(\d{4}-\d{2}-\d{2})/);
-      if (!match) continue;
-      const taskDate = match[1];
-      if (taskDate >= periodStart && taskDate <= periodEnd) {
-        total += calculateTaskEarnings(task);
-      }
-    }
-    return total;
   })();
 
   // Earnings stats

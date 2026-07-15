@@ -1,6 +1,5 @@
 <script lang="ts">
   import { get } from "svelte/store";
-  import moment from "moment";
   import type { App } from "obsidian";
   import type { ITask, IProject } from "./types";
   import {
@@ -18,9 +17,8 @@
     clearAllRecurringTasks,
     resetTaskTimer,
   } from "./stores";
-  import { createNoteTask, deleteNoteTask, archiveNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "./noteTasks";
+  import { createNoteTask, deleteNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "./noteTasks";
   import { settings } from "../ui/stores";
-  import { getDateUID } from "obsidian-daily-notes-interface";
   import TaskItem from "./TaskItem.svelte";
   import KanbanTabs from "./KanbanTabs.svelte";
   import TimeLogsModal from "./TimeLogsModal.svelte";
@@ -29,9 +27,8 @@
 
   export let appInstance: App;
 
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+  $: isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
 
-  let collapsed = false;
   let showTimeLogs = false;
   let showMenu = false;
   let showSearch = false;
@@ -195,11 +192,6 @@
     }
   }
 
-  async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
-    // Заметка просто остаётся на месте при смене статуса
-    // Архивация не выполняется
-  }
-
   async function handleTaskComplete(task: ITask) {
     const newStatus = toggleTaskStatus(task);
 
@@ -257,11 +249,6 @@
     if (!showSearch) {
       searchQuery = "";
     }
-  }
-
-  function goToToday() {
-    const todayUID = getDateUID(window.moment(), "day");
-    selectedDate.set(todayUID);
   }
 
   // Drag & Drop for project filter buttons

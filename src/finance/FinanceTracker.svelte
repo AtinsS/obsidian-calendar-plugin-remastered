@@ -10,7 +10,6 @@
   } from "./storage";
   import type { FinanceCategory, FinanceMonthData, MonthGoal, SavingsCategory } from "./types";
   import { generateCategoryId, generateGoalId } from "./types";
-  import { parseSavingsInput } from "./inputUtils";
   import { get } from "svelte/store";
   import { tasks } from "../task-tracker/stores";
   import { calculateTaskEarnings } from "../task-tracker/stores";
@@ -18,10 +17,6 @@
 
   function inputVal(e: Event): string {
     return (e.target as HTMLInputElement).value;
-  }
-
-  function clearInput(e: Event): void {
-    (e.target as HTMLInputElement).value = '';
   }
 
   let monthKey = getCurrentMonthKey();
@@ -49,7 +44,6 @@
 
   $: [displayYear, displayMonth] = monthKey.split("-").map(Number);
   $: displayMonthName = `${MONTH_NAMES[displayMonth - 1]} ${displayYear}`;
-  $: isCurrentMonth = monthKey === getCurrentMonthKey();
 
   function prevMonth(): void {
     const d = new Date(displayYear, displayMonth - 2, 1);
@@ -113,9 +107,7 @@
   $: balanceDelta = prevMonthData ? balance - ((prevMonthData.monthlyIncome || 0) - (prevMonthData.mainAccountCategories?.reduce((s, c) => s + c.amount, 0) || 0)) : 0;
 
   function getWorkIncome(): number {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
+    const [year, month] = monthKey.split("-").map(Number);
     const allTasks = get(tasks);
     const taskEarnings = allTasks
       .filter((t) => {
@@ -125,6 +117,9 @@
         return parseInt(match[1]) === year && parseInt(match[2]) === month;
       })
       .reduce((sum, t) => sum + calculateTaskEarnings(t), 0);
+    if (monthKey !== getCurrentMonthKey()) {
+      return taskEarnings;
+    }
     return taskEarnings + getTotalManualIncome();
   }
 

@@ -165,7 +165,7 @@
 
   const STATUS_LABELS: Record<string, string> = {
     done: "Выполнено",
-    progress: "Надо сделать",
+    progress: "В работе",
     todo: "Надо сделать",
     paused: "Приостановлено",
   };

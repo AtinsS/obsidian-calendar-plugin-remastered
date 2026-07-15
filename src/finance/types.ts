@@ -46,10 +46,12 @@ export function createEmptyMonthData(): FinanceMonthData {
   };
 }
 
+let idCounter = 0;
+
 export function generateGoalId(): string {
-  return `fg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `fg-${Date.now()}-${++idCounter}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export function generateCategoryId(): string {
-  return `fc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `fc-${Date.now()}-${++idCounter}-${Math.random().toString(36).slice(2, 6)}`;
 }

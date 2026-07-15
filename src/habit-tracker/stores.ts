@@ -4,8 +4,9 @@ import moment from "moment";
 import type CalendarPlugin from "src/main";
 
 import type { IHabit, IHabitLog, IHabitTrackerData } from "./types";
-import { HABIT_TRACKER_DATA_VERSION, MAX_HABIT_LOG_ENTRIES } from "./types";
+import { HABIT_TRACKER_DATA_VERSION } from "./types";
 import { loadHabitData, saveHabitData, generateId } from "./storage";
+import { settings } from "../ui/stores";
 
 let pluginInstance: CalendarPlugin = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -30,12 +31,13 @@ export function rebuildLogsCache(): void {
 }
 
 function cleanupOldHabitLogs(): void {
+  const maxEntries = get(settings).habitLogCleanupThreshold || 1000;
   habitLogs.update((current) => {
-    if (current.length <= MAX_HABIT_LOG_ENTRIES) return current;
+    if (current.length <= maxEntries) return current;
     const sorted = [...current].sort(
       (a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0)
     );
-    return sorted.slice(0, MAX_HABIT_LOG_ENTRIES);
+    return sorted.slice(0, maxEntries);
   });
 }
 
@@ -53,6 +55,20 @@ function debouncedSave(): void {
       saveHabitData(pluginInstance, data);
     }
   }, 300);
+}
+
+export function immediateSave(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  if (!pluginInstance) return;
+  const data: IHabitTrackerData = {
+    habits: get(habits),
+    habitLogs: get(habitLogs),
+    version: HABIT_TRACKER_DATA_VERSION,
+  };
+  saveHabitData(pluginInstance, data);
 }
 
 export function initHabitStores(plugin: CalendarPlugin): void {

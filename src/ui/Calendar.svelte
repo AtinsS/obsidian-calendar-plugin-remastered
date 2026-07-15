@@ -7,9 +7,8 @@
     ICalendarSource,
     configureGlobalMomentLocale,
   } from "obsidian-calendar-ui";
-  import { onDestroy, onMount, afterUpdate, tick } from "svelte";
+  import { onDestroy, onMount, afterUpdate } from "svelte";
 
-  import type { ISettings } from "src/settings";
   import { activeFile, dailyNotes, settings, weeklyNotes } from "./stores";
   import { tasks } from "../task-tracker/stores";
   import { habitLogs } from "../habit-tracker/stores";

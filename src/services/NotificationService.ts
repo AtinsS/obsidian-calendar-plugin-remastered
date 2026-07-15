@@ -31,7 +31,6 @@ export const defaultNotificationSettings: NotificationSettings = {
 export class NotificationService {
   private plugin: CalendarPlugin;
   private timer: ReturnType<typeof setInterval> | null = null;
-  private ntfyAbortController: AbortController | null = null;
   private firedReminders = new Set<string>();
   private firedOverdue = new Set<string>();
   private firedDeadline = new Set<string>();
@@ -40,12 +39,12 @@ export class NotificationService {
 
   constructor(plugin: CalendarPlugin) {
     this.plugin = plugin;
-    this.loadFiredState();
   }
 
-  start(): void {
+  async start(): Promise<void> {
     if (this.timer) return;
 
+    await this.loadFiredState();
     this.requestPermission();
     this.timer = setInterval(() => this.check(), this.getSettings().checkIntervalMs);
     this.check(); // run immediately
@@ -309,10 +308,6 @@ export class NotificationService {
     if (this.ntfyPollTimer) {
       clearInterval(this.ntfyPollTimer);
       this.ntfyPollTimer = null;
-    }
-    if (this.ntfyAbortController) {
-      this.ntfyAbortController.abort();
-      this.ntfyAbortController = null;
     }
   }
 

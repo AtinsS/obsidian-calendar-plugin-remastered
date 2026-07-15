@@ -4,11 +4,11 @@
   import type { IHabit } from "./types";
   import {
     habits,
+    habitLogs,
     addHabit,
     updateHabit,
     removeHabit,
     toggleHabitCompletion,
-    calculateStreak,
   } from "./stores";
   import { selectedDate } from "../task-tracker/stores";
   import HabitItem from "./HabitItem.svelte";
@@ -33,10 +33,32 @@
     }
     return true;
   });
-  $: totalStreak = activeHabits.reduce(
-    (sum, h) => sum + calculateStreak(h.id),
-    0
-  );
+  $: totalStreak = (() => {
+    const logsByHabit = new Map<string, typeof $habitLogs>();
+    for (const log of $habitLogs) {
+      if (!log.completed) continue;
+      const list = logsByHabit.get(log.habitId);
+      if (list) list.push(log);
+      else logsByHabit.set(log.habitId, [log]);
+    }
+    let total = 0;
+    for (const h of activeHabits) {
+      const logs = logsByHabit.get(h.id);
+      if (!logs || logs.length === 0) continue;
+      logs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      let streak = 0;
+      let streakDate = moment().startOf("day");
+      for (const log of logs) {
+        const logDate = moment(log.date, "YYYY-MM-DD").startOf("day");
+        if (streakDate.diff(logDate, "days") <= 1) {
+          streak++;
+          streakDate = logDate.clone().subtract(1, "days");
+        } else break;
+      }
+      total += streak;
+    }
+    return total;
+  })();
 
   function extractDateStr(dateUID: string): string {
     if (!dateUID) {

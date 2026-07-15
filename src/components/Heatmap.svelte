@@ -1,6 +1,5 @@
 <script lang="ts">
   import moment from "moment";
-  import { onMount } from "svelte";
   import { getHeatmapData } from "../habit-tracker/stores";
   import type { HeatmapCell } from "../habit-tracker/stores";
 

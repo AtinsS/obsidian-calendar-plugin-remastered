@@ -53,8 +53,19 @@ async function debouncedSave(): Promise<void> {
   }, 300);
 }
 
+export async function immediateAnalyticsSave(): Promise<void> {
+  if (!loaded || !pluginInstance) return;
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  await saveVaultKey(pluginInstance.app, "financialAnalytics", get(financialAnalyticsData));
+}
+
+let idCounter = 0;
+
 export function generateIncomeSourceId(): string {
-  return `fis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `fis-${Date.now()}-${++idCounter}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 export function addManualIncomeSource(source: Omit<ManualIncomeSource, "id" | "createdAt">): void {

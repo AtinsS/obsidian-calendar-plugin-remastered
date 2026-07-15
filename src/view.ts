@@ -87,12 +87,26 @@ export default class CalendarView extends ItemView {
       if (val.showTaskTracker === false && this.taskPanel) {
         this.taskPanel.$destroy();
         this.taskPanel = null;
+      } else if (val.showTaskTracker !== false && !this.taskPanel && this.contentEl) {
+        this.taskPanel = new TaskPanel({
+          target: this.contentEl,
+          props: {
+            appInstance: this.app,
+          },
+        });
       }
 
       // Toggle habit panel visibility
       if (val.showHabitTracker === false && this.habitPanel) {
         this.habitPanel.$destroy();
         this.habitPanel = null;
+      } else if (val.showHabitTracker !== false && !this.habitPanel && this.contentEl) {
+        this.habitPanel = new HabitPanel({
+          target: this.contentEl,
+          props: {
+            appInstance: this.app,
+          },
+        });
       }
     });
   }
@@ -291,7 +305,7 @@ export default class CalendarView extends ItemView {
       const remaining = (goal.targetAmount || 0) - (goal.currentAmount || 0);
       const item = body.createDiv({ cls: "goal-item" });
       item.createEl("span", { text: `${i + 1}.`, cls: "goal-number" });
-      const name = goal.name || goal;
+      const name = goal.name || "Цель";
       const icon = goal.icon || "🎯";
       item.createEl("span", { text: `${icon} ${name}`, cls: "goal-text" });
       const amountsEl = item.createDiv({ cls: "goal-amounts" });

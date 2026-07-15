@@ -1,10 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import { get } from "svelte/store";
   import moment from "moment";
-  import type { ITask, IProject } from "../task-tracker/types";
+  import type { ITask } from "../task-tracker/types";
   import { tasks, projects, updateTaskStatus, removeTask, updateTask, resetTaskTimer } from "../task-tracker/stores";
-  import { selectedDate } from "../task-tracker/stores";
   import { TaskModal } from "../task-tracker/TaskModal";
   import type CalendarPlugin from "../main";
 

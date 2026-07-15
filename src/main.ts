@@ -24,7 +24,7 @@ import MobileScheduleView from "./views/MobileScheduleView";
 import HabitAnalyticsView from "./views/HabitAnalyticsView";
 import FinanceView from "./views/FinanceView";
 import FinancialAnalyticsView from "./views/FinancialAnalyticsView";
-import { initTaskStores, reloadTaskStores } from "./task-tracker/stores";
+import { initTaskStores, reloadTaskStores, immediateSave as immediateTaskSave } from "./task-tracker/stores";
 import { cleanupTimers } from "./task-tracker/TimerManager";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
 import {
@@ -32,10 +32,10 @@ import {
   setupNoteRenameSync,
   setupNoteDeleteSync,
 } from "./task-tracker/noteTasks";
-import { initHabitStores, reloadHabitStores } from "./habit-tracker/stores";
+import { initHabitStores, reloadHabitStores, immediateSave as immediateHabitSave } from "./habit-tracker/stores";
 import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
-import { initFinanceStores, reloadFinanceStores } from "./finance/storage";
-import { initFinancialAnalyticsStores, reloadFinancialAnalyticsStores } from "./finance/financialAnalyticsStorage";
+import { initFinanceStores, reloadFinanceStores, immediateFinanceSave } from "./finance/storage";
+import { initFinancialAnalyticsStores, reloadFinancialAnalyticsStores, immediateAnalyticsSave } from "./finance/financialAnalyticsStorage";
 import { NotificationService } from "./services/NotificationService";
 
 declare global {
@@ -53,6 +53,12 @@ export default class CalendarPlugin extends Plugin {
   private notificationService: NotificationService;
 
   onunload(): void {
+    // Flush pending debounced saves before teardown
+    immediateTaskSave();
+    immediateHabitSave();
+    immediateFinanceSave();
+    immediateAnalyticsSave();
+
     if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
     this.notificationService?.stop();
     cleanupTimers();
@@ -259,99 +265,38 @@ export default class CalendarPlugin extends Plugin {
     });
   }
 
-  async activateScheduleView(): Promise<void> {
+  private async activateView(viewType: string): Promise<void> {
     const { workspace } = this.app;
-
-    const existing = workspace.getLeavesOfType(VIEW_TYPE_SCHEDULE);
+    const existing = workspace.getLeavesOfType(viewType);
     if (existing.length) {
       workspace.revealLeaf(existing[0]);
       return;
     }
-
     const leaf = workspace.getLeaf("tab");
     if (leaf) {
-      await leaf.setViewState({
-        type: VIEW_TYPE_SCHEDULE,
-        active: true,
-      });
+      await leaf.setViewState({ type: viewType, active: true });
       workspace.revealLeaf(leaf);
     }
+  }
+
+  async activateScheduleView(): Promise<void> {
+    return this.activateView(VIEW_TYPE_SCHEDULE);
   }
 
   async activateMobileScheduleView(): Promise<void> {
-    const { workspace } = this.app;
-
-    const existing = workspace.getLeavesOfType(VIEW_TYPE_MOBILE_SCHEDULE);
-    if (existing.length) {
-      workspace.revealLeaf(existing[0]);
-      return;
-    }
-
-    const leaf = workspace.getLeaf("tab");
-    if (leaf) {
-      await leaf.setViewState({
-        type: VIEW_TYPE_MOBILE_SCHEDULE,
-        active: true,
-      });
-      workspace.revealLeaf(leaf);
-    }
+    return this.activateView(VIEW_TYPE_MOBILE_SCHEDULE);
   }
 
   async activateHabitAnalyticsView(): Promise<void> {
-    const { workspace } = this.app;
-
-    const existing = workspace.getLeavesOfType(VIEW_TYPE_HABIT_ANALYTICS);
-    if (existing.length) {
-      workspace.revealLeaf(existing[0]);
-      return;
-    }
-
-    const leaf = workspace.getLeaf("tab");
-    if (leaf) {
-      await leaf.setViewState({
-        type: VIEW_TYPE_HABIT_ANALYTICS,
-        active: true,
-      });
-      workspace.revealLeaf(leaf);
-    }
+    return this.activateView(VIEW_TYPE_HABIT_ANALYTICS);
   }
 
   async activateFinanceView(): Promise<void> {
-    const { workspace } = this.app;
-
-    const existing = workspace.getLeavesOfType(VIEW_TYPE_FINANCE);
-    if (existing.length) {
-      workspace.revealLeaf(existing[0]);
-      return;
-    }
-
-    const leaf = workspace.getLeaf("tab");
-    if (leaf) {
-      await leaf.setViewState({
-        type: VIEW_TYPE_FINANCE,
-        active: true,
-      });
-      workspace.revealLeaf(leaf);
-    }
+    return this.activateView(VIEW_TYPE_FINANCE);
   }
 
   async activateFinancialAnalyticsView(): Promise<void> {
-    const { workspace } = this.app;
-
-    const existing = workspace.getLeavesOfType(VIEW_TYPE_FINANCIAL_ANALYTICS);
-    if (existing.length) {
-      workspace.revealLeaf(existing[0]);
-      return;
-    }
-
-    const leaf = workspace.getLeaf("tab");
-    if (leaf) {
-      await leaf.setViewState({
-        type: VIEW_TYPE_FINANCIAL_ANALYTICS,
-        active: true,
-      });
-      workspace.revealLeaf(leaf);
-    }
+    return this.activateView(VIEW_TYPE_FINANCIAL_ANALYTICS);
   }
 
   async loadOptions(): Promise<void> {

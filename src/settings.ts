@@ -32,6 +32,7 @@ export interface ISettings {
 
   // Habit Tracker settings
   showHabitTracker: boolean;
+  habitLogCleanupThreshold: number;
 
   // Sync settings
   syncToVault: boolean;
@@ -91,6 +92,7 @@ export const defaultSettings = Object.freeze({
   timeLogCleanupThreshold: 180,
 
   showHabitTracker: true,
+  habitLogCleanupThreshold: 1000,
 
   syncToVault: false,
 
@@ -239,6 +241,25 @@ export class CalendarSettingsTab extends PluginSettingTab {
           this.plugin.writeOptions({ showHabitTracker: value });
         });
       });
+
+    new Setting(this.containerEl)
+      .setName("Лимит логов привычек")
+      .setDesc("Максимальное количество записей логов привычек. При превышении старые записи удаляются автоматически.")
+      .addText((text) => {
+        text
+          .setPlaceholder("1000")
+          .setValue(String(this.plugin.options.habitLogCleanupThreshold || 1000))
+          .onChange(async (value) => {
+            const num = parseInt(value);
+            if (!isNaN(num) && num >= 50) {
+              await this.plugin.writeOptions({ habitLogCleanupThreshold: num });
+            }
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "50";
+        text.inputEl.max = "10000";
+        text.inputEl.style.maxWidth = "100px";
+      });
   }
 
   addSyncToVaultSetting(): void {
@@ -357,8 +378,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
       .setDesc("Максимальное количество выполненных задач. При превышении старые задачи и их заметки удаляются автоматически.")
       .addText((text) => {
         text
-          .setPlaceholder("180")
-          .setValue(String(this.plugin.options.autoCleanupThreshold || 180))
+          .setPlaceholder("1000")
+          .setValue(String(this.plugin.options.autoCleanupThreshold || 1000))
           .onChange(async (value) => {
             const num = parseInt(value);
             if (!isNaN(num) && num >= 10) {
@@ -376,8 +397,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
       .setDesc("Максимальное количество записей логов времени. При превышении старые логи удаляются автоматически.")
       .addText((text) => {
         text
-          .setPlaceholder("180")
-          .setValue(String(this.plugin.options.timeLogCleanupThreshold || 180))
+          .setPlaceholder("1000")
+          .setValue(String(this.plugin.options.timeLogCleanupThreshold || 1000))
           .onChange(async (value) => {
             const num = parseInt(value);
             if (!isNaN(num) && num >= 10) {

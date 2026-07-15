@@ -18,10 +18,9 @@
     addTask,
     resetTaskTimer,
   } from "../task-tracker/stores";
-  import { createNoteTask, deleteNoteTask, archiveNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "../task-tracker/noteTasks";
+  import { createNoteTask, deleteNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "../task-tracker/noteTasks";
   import { TaskModal } from "../task-tracker/TaskModal";
   import { getDateUID } from "obsidian-daily-notes-interface";
-  import { settings } from "../ui/stores";
   import {
     tasksToEvents,
   } from "./scheduleUtils";
@@ -32,9 +31,16 @@
   let refetchTimer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
 
-  // Мобильное определение — начальный вид зависит от ширины экрана
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
-  const isSmallPhone = typeof window !== "undefined" && window.innerWidth <= 480;
+  // Мобильное определение — реактивное через matchMedia
+  const mqlMobile = typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)") : null;
+  const mqlSmallPhone = typeof window !== "undefined" ? window.matchMedia("(max-width: 480px)") : null;
+  let isMobile = mqlMobile?.matches ?? false;
+  let isSmallPhone = mqlSmallPhone?.matches ?? false;
+
+  function handleBreakpointChange(): void {
+    isMobile = mqlMobile?.matches ?? false;
+    isSmallPhone = mqlSmallPhone?.matches ?? false;
+  }
 
   // Touch/swipe state
   let touchStartX = 0;
@@ -87,6 +93,8 @@
     initCalendar();
     setupTouchNavigation();
     window.addEventListener("resize", handleResize);
+    mqlMobile?.addEventListener("change", handleBreakpointChange);
+    mqlSmallPhone?.addEventListener("change", handleBreakpointChange);
   });
 
   onDestroy(() => {
@@ -95,6 +103,8 @@
     unsubTasks();
     unsubProjects();
     window.removeEventListener("resize", handleResize);
+    mqlMobile?.removeEventListener("change", handleBreakpointChange);
+    mqlSmallPhone?.removeEventListener("change", handleBreakpointChange);
     closeContextMenu(); // убираем контекстное меню из document.body
     if (calendarEl) {
       calendarEl.removeEventListener("touchstart", handleTouchStart);
@@ -151,14 +161,10 @@
 
   function initCalendar(): void {
     // На мобилке начальный вид — день, на десктопе — неделя
-    const initialView = isSmallPhone ? "timeGridDay" : isMobile ? "timeGridWeek" : "timeGridWeek";
+    const initialView = isSmallPhone ? "timeGridDay" : "timeGridWeek";
 
-    // Тулбар: стрелки + переключение вида (кнопка "Сегодня" убрана)
-    const headerToolbar = isSmallPhone
-      ? { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
-      : isMobile
-        ? { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" }
-        : { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
+    // Тулбар: стрелки + переключение вида
+    const headerToolbar = { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
 
     calendar = new Calendar(calendarEl, {
       plugins: [
@@ -209,8 +215,6 @@
       eventDrop: handleEventDrop,
       eventResize: handleEventResize,
       eventDidMount: handleEventDidMount,
-      eventDragStart: handleEventDragStart,
-      eventDragStop: handleEventDragStop,
     });
 
     calendar.render();
@@ -444,14 +448,6 @@
     openTaskCreator(dateStr, initialTime, estimatedTime);
   }
 
-  function handleEventDragStart(_info: any): void {
-    // Reserved for future use
-  }
-
-  function handleEventDragStop(): void {
-    // Reserved for future use
-  }
-
   function handleEventDrop(info: any): void {
     if (info.event.extendedProps?.isDeadlineEvent) return;
     const task = resolveTask(info.event);
@@ -528,11 +524,6 @@
   async function deleteNoteFileIfNeeded(task: ITask): Promise<void> {
     if (!shouldSyncTaskToNote(task) || !task.notePath) return;
     await deleteNoteTask(task.notePath, plugin.app);
-  }
-
-  async function archiveNoteIfCompleted(task: ITask, newStatus: "done" | "todo"): Promise<void> {
-    // Заметка просто остаётся на месте при смене статуса
-    // Архивация не выполняется
   }
 
   async function openTaskCreator(dateStr: string, timeStr?: string, prefillEstimatedTime?: number): Promise<void> {
@@ -704,9 +695,6 @@
       if (newStatus === "todo") {
         resetTaskTimer(contextMenuTask.id);
       }
-      if (newStatus === "done") {
-        archiveNoteIfCompleted(contextMenuTask, newStatus);
-      }
       // Синхронизируем заметку
       const updatedTask = get(tasks).find((t) => t.id === contextMenuTask!.id);
       if (updatedTask) {
@@ -786,11 +774,6 @@
     0% { opacity: 0; transform: translateY(-50%) scale(0.8); }
     50% { opacity: 0.8; }
     100% { opacity: 0; transform: translateY(-50%) scale(1); }
-  }
-
-  .schedule-calendar {
-    height: 100%;
-    width: 100%;
   }
 
   /* Контекстное меню задачи — global, т.к. рендерится в document.body */

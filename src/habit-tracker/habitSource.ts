@@ -11,6 +11,8 @@ import type { IHabitLog } from "./types";
 // --- Cached lookup to avoid N store reads per render ---
 let cachedLogs: IHabitLog[] = [];
 let cachedMap: Map<string, number> = new Map();
+let cachedActiveCount = 0;
+let cachedHabitsVersion = 0;
 
 function getLogsMap(): Map<string, number> {
   const current = get(habitLogs);
@@ -25,6 +27,16 @@ function getLogsMap(): Map<string, number> {
   return cachedMap;
 }
 
+function getActiveCount(): number {
+  const current = get(habits);
+  const version = current.length;
+  if (version !== cachedHabitsVersion) {
+    cachedHabitsVersion = version;
+    cachedActiveCount = current.filter((h) => !h.archived).length;
+  }
+  return cachedActiveCount;
+}
+
 function getMetadataForDate(dateStr: string): IDayMetadata {
   const map = getLogsMap();
   const count = map.get(dateStr) || 0;
@@ -33,8 +45,7 @@ function getMetadataForDate(dateStr: string): IDayMetadata {
     return {};
   }
 
-  const allHabits = get(habits);
-  const activeCount = allHabits.filter((h) => !h.archived).length;
+  const activeCount = getActiveCount();
   const allCompleted = activeCount > 0 && count >= activeCount;
   const badge = allCompleted ? "\uD83C\uDFC6" : "\uD83D\uDD25" + " " + String(count);
 
@@ -59,8 +70,7 @@ function getWeeklyMetadataForDate(weekStart: Moment): IDayMetadata {
     return {};
   }
 
-  const allHabits = get(habits);
-  const activeCount = allHabits.filter((h) => !h.archived).length;
+  const activeCount = getActiveCount();
   const maxPossible = activeCount * 7;
   const allCompleted = activeCount > 0 && totalCount >= maxPossible;
   const badge = allCompleted ? "\uD83C\uDFC6" : "\uD83D\uDD25" + " " + String(totalCount);

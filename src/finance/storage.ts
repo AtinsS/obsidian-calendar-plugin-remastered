@@ -41,6 +41,15 @@ async function debouncedSave(): Promise<void> {
   }, 300);
 }
 
+export async function immediateFinanceSave(): Promise<void> {
+  if (!loaded || !pluginInstance) return;
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  await saveVaultKey(pluginInstance.app, "finance", get(financeData));
+}
+
 export function getCurrentMonthKey(): string {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;

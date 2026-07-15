@@ -13,6 +13,9 @@ let cachedRawData: Record<string, unknown> | null = null;
 let syncEnabled = false;
 
 export function setSyncEnabled(enabled: boolean): void {
+  if (syncEnabled !== enabled) {
+    cachedRawData = null;
+  }
   syncEnabled = enabled;
 }
 
@@ -94,17 +97,9 @@ function migrateData(data: ITaskTrackerData): ITaskTrackerData {
     };
   }
 
-  // v4 -> v5: remove description field from tasks
+  // v4 -> v5: (removed destructive description stripping — description is still used)
   if (data.version < 5) {
-    migrated = {
-      ...migrated,
-      tasks: migrated.tasks.map((t) => {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { description: _desc, ...rest } = t as Record<string, unknown>;
-        return rest;
-      }),
-      version: 5,
-    };
+    migrated = { ...migrated, version: 5 };
   }
 
   // v5 -> v6: add deadline and deadlineTime fields to tasks

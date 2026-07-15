@@ -85,6 +85,21 @@ function debouncedSave(): void {
   }, 300);
 }
 
+export function immediateSave(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  if (!pluginInstance) return;
+  const data: ITaskTrackerData = {
+    tasks: get(tasks),
+    projects: get(projects),
+    timeLogs: get(timeLogs),
+    version: TASK_TRACKER_DATA_VERSION,
+  };
+  saveTaskData(pluginInstance, data);
+}
+
 export function initTaskStores(plugin: CalendarPlugin): void {
   pluginInstance = plugin;
   loadTaskData(plugin).then((data) => {
@@ -312,6 +327,7 @@ export function updateTaskStatus(id: string, status: TaskStatus): void {
 }
 
 export function removeTask(id: string): void {
+  stopTimer(id);
   tasks.update((current) => current.filter((t) => t.id !== id));
   debouncedSave();
 }
@@ -341,29 +357,6 @@ export function resetTaskTimer(id: string): void {
   // Remove time logs for this task
   timeLogs.update((current) => current.filter((l) => l.taskId !== id));
 
-  debouncedSave();
-}
-
-export function startTaskTimerFresh(id: string): void {
-  startTimer(id);
-  tasks.update((current) =>
-    current.map((t) =>
-      t.id === id
-        ? { ...t, timerStartedAt: Date.now(), pausedAt: undefined, pausedWorkTime: undefined, updatedAt: Date.now() }
-        : t
-    )
-  );
-  debouncedSave();
-}
-
-export function moveTask(taskId: string, newDateUID: string): void {
-  tasks.update((current) =>
-    current.map((t) =>
-      t.id === taskId
-        ? { ...t, dateUID: newDateUID, updatedAt: Date.now() }
-        : t
-    )
-  );
   debouncedSave();
 }
 
@@ -629,11 +622,8 @@ export function clearAllRecurringTasks(): { parentCount: number; instanceCount: 
   const recurringInstances = allTasks.filter(
     (t) => t.isRecurringInstance && t.parentTaskId
   );
-  const parentRecurring = allTasks.filter(
-    (t) => t.recurrence && !t.isRecurringInstance
-  );
 
-  const parentCount = parentRecurring.length;
+  const parentCount = parentIds.size;
   const instanceCount = recurringInstances.length;
 
   // Remove all recurring instances and parent recurring tasks
@@ -645,10 +635,6 @@ export function clearAllRecurringTasks(): { parentCount: number; instanceCount: 
   debouncedSave();
 
   return { parentCount, instanceCount };
-}
-
-export function getTasksForDate(dateUID: string): ITask[] {
-  return get(tasks).filter((t) => t.dateUID === dateUID);
 }
 
 export function calculateTaskEarnings(task: ITask): number {

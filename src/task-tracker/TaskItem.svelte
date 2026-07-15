@@ -7,7 +7,6 @@
   import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
   import { syncTaskToNote, shouldSyncTaskToNote } from "./noteTasks";
-  import { settings } from "../ui/stores";
 
   export let task: ITask;
   export let appInstance: App;
@@ -29,7 +28,6 @@
   $: hasEstimate = !!task.estimatedTime;
   $: hasActual = !!task.totalWorkTime;
   $: estimateOver = hasEstimate && hasActual && task.totalWorkTime > task.estimatedTime * 60000;
-  $: estimateUnder = hasEstimate && hasActual && task.totalWorkTime <= task.estimatedTime * 60000;
 
   $: scheduledTimePassed = task.scheduledTime && task.dateUID ? isTimePassed(task.scheduledTime, task.dateUID) : false;
 
