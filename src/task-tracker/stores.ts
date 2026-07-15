@@ -316,6 +316,46 @@ export function removeTask(id: string): void {
   debouncedSave();
 }
 
+export function resetTaskTimer(id: string): void {
+  // Stop active timer if running
+  stopTimer(id);
+
+  // Reset task timer fields and return to todo status
+  tasks.update((current) =>
+    current.map((t) =>
+      t.id === id
+        ? {
+            ...t,
+            status: "todo" as TaskStatus,
+            completed: false,
+            totalWorkTime: 0,
+            timerStartedAt: undefined,
+            pausedAt: undefined,
+            pausedWorkTime: undefined,
+            updatedAt: Date.now(),
+          }
+        : t
+    )
+  );
+
+  // Remove time logs for this task
+  timeLogs.update((current) => current.filter((l) => l.taskId !== id));
+
+  debouncedSave();
+}
+
+export function startTaskTimerFresh(id: string): void {
+  startTimer(id);
+  tasks.update((current) =>
+    current.map((t) =>
+      t.id === id
+        ? { ...t, timerStartedAt: Date.now(), pausedAt: undefined, pausedWorkTime: undefined, updatedAt: Date.now() }
+        : t
+    )
+  );
+  debouncedSave();
+}
+
 export function moveTask(taskId: string, newDateUID: string): void {
   tasks.update((current) =>
     current.map((t) =>

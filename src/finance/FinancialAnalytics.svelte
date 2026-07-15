@@ -1,34 +1,28 @@
 <script lang="ts">
-  import { get } from "svelte/store";
-  import { tasks } from "../task-tracker/stores";
+  import { slide } from "svelte/transition";
+  import { tasks, projects } from "../task-tracker/stores";
   import { calculateTaskEarnings } from "../task-tracker/stores";
   import { formatDuration } from "../task-tracker/TimerManager";
   import {
     financialAnalyticsData,
     addManualIncomeSource,
-    updateManualIncomeSource,
     removeManualIncomeSource,
     getTotalManualIncome,
   } from "./financialAnalyticsStorage";
-  import type { ManualIncomeSource } from "./financialAnalyticsStorage";
 
   let filterTab: "all" | "done" | "todo" = "all";
   let showAddIncome = false;
   let newIncomeName = "";
   let newIncomeAmount = 0;
   let newIncomeDate = new Date().toISOString().split("T")[0];
+  let collapsedProjects: Record<string, boolean> = {};
+  let collapseVersion = 0;
 
   const now = new Date();
   let selectedYear = now.getFullYear();
   let selectedMonth = now.getMonth() + 1;
 
   const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-
-  function getMonthUID(year: number, month: number): string {
-    return `day-${year}-${String(month).padStart(2, "0")}`;
-  }
-
-  $: monthPrefix = getMonthUID(selectedYear, selectedMonth);
 
   $: allWorkTasks = $tasks.filter((t) => {
     if (!t.isWorkTask) return false;
@@ -55,6 +49,54 @@
     : 0;
 
   $: grandTotal = totalTaskEarnings + totalManualIncome;
+
+  interface ProjectGroup {
+    projectId: string | null;
+    projectName: string;
+    projectColor: string;
+    tasks: typeof filteredTasks;
+    totalEarnings: number;
+  }
+
+  $: tasksByProject = groupTasksByProject(filteredTasks, $projects);
+
+  function groupTasksByProject(taskList: typeof filteredTasks, allProjects: typeof $projects): ProjectGroup[] {
+    const groups = new Map<string, ProjectGroup>();
+    const noProjectKey = "__none__";
+
+    for (const task of taskList) {
+      const pKey = task.projectId || noProjectKey;
+      if (!groups.has(pKey)) {
+        const proj = task.projectId ? allProjects.find((p) => p.id === task.projectId) : null;
+        groups.set(pKey, {
+          projectId: task.projectId,
+          projectName: proj?.name || "Без проекта",
+          projectColor: proj?.color || "#647177",
+          tasks: [],
+          totalEarnings: 0,
+        });
+      }
+      const group = groups.get(pKey);
+      group.tasks.push(task);
+      group.totalEarnings += calculateTaskEarnings(task);
+    }
+
+    const result = Array.from(groups.values());
+    result.sort((a, b) => b.totalEarnings - a.totalEarnings);
+    return result;
+  }
+
+  function toggleProject(projectId: string | null): void {
+    const key = projectId || "__none__";
+    collapsedProjects[key] = !collapsedProjects[key];
+    collapseVersion++;
+  }
+
+  function isProjectCollapsed(projectId: string | null): boolean {
+    const key = projectId || "__none__";
+    if (!(key in collapsedProjects)) return true;
+    return collapsedProjects[key];
+  }
 
   function getTaskDate(task: any): string {
     const match = task.dateUID.match(/^day-(\d{4}-\d{2}-\d{2})/);
@@ -215,33 +257,57 @@
     {#if filteredTasks.length === 0}
       <div class="fa-empty">Нет задач для отображения</div>
     {:else}
-      <div class="fa-task-list">
-        {#each filteredTasks as task (task.id)}
-          <div class="fa-task-item" class:completed={task.status === "done"}>
-            <div class="fa-task-status">
+      <div class="fa-project-groups">
+        {#each tasksByProject as group (group.projectId || "__none__")}
+          <div class="fa-project-group">
+            <button
+              class="fa-project-header"
+              on:click={() => toggleProject(group.projectId)}
+            >
+              <span class="fa-project-chevron" class:collapsed={isProjectCollapsed(group.projectId)}>▶</span>
               <span
-                class="fa-status-dot"
-                style="background: {STATUS_COLORS[task.status] || STATUS_COLORS.todo}"
+                class="fa-project-dot"
+                style="background: {group.projectColor}"
               ></span>
-            </div>
-            <div class="fa-task-info">
-              <div class="fa-task-title">{task.title}</div>
-              <div class="fa-task-meta">
-                <span>{getTaskDate(task)}</span>
-                <span class="fa-meta-separator">·</span>
-                <span>{STATUS_LABELS[task.status] || task.status}</span>
-                {#if task.totalWorkTime}
-                  <span class="fa-meta-separator">·</span>
-                  <span>{getTaskWorkTime(task)}</span>
-                {/if}
+              <span class="fa-project-name">{group.projectName}</span>
+              <span class="fa-project-count">{group.tasks.length}</span>
+              {#if group.totalEarnings > 0}
+                <span class="fa-project-earnings">{formatMoney(group.totalEarnings)} ₽</span>
+              {/if}
+            </button>
+
+            {#if collapseVersion >= 0 && !isProjectCollapsed(group.projectId)}
+              <div class="fa-task-list" transition:slide={{ duration: 250, easing: t => t * (2 - t) }}>
+                {#each group.tasks as task (task.id)}
+                  <div class="fa-task-item" class:completed={task.status === "done"}>
+                    <div class="fa-task-status">
+                      <span
+                        class="fa-status-dot"
+                        style="background: {STATUS_COLORS[task.status] || STATUS_COLORS.todo}"
+                      ></span>
+                    </div>
+                    <div class="fa-task-info">
+                      <div class="fa-task-title">{task.title}</div>
+                      <div class="fa-task-meta">
+                        <span>{getTaskDate(task)}</span>
+                        <span class="fa-meta-separator">·</span>
+                        <span>{STATUS_LABELS[task.status] || task.status}</span>
+                        {#if task.totalWorkTime}
+                          <span class="fa-meta-separator">·</span>
+                          <span>{getTaskWorkTime(task)}</span>
+                        {/if}
+                      </div>
+                    </div>
+                    <div class="fa-task-payment">
+                      <div class="fa-task-rate">{getTaskPaymentInfo(task)}</div>
+                      <div class="fa-task-earning">
+                        {formatMoney(calculateTaskEarnings(task))} ₽
+                      </div>
+                    </div>
+                  </div>
+                {/each}
               </div>
-            </div>
-            <div class="fa-task-payment">
-              <div class="fa-task-rate">{getTaskPaymentInfo(task)}</div>
-              <div class="fa-task-earning">
-                {formatMoney(calculateTaskEarnings(task))} ₽
-              </div>
-            </div>
+            {/if}
           </div>
         {/each}
       </div>
@@ -511,27 +577,98 @@
     color: var(--mcp-text);
   }
 
+  /* ── Project Groups ─────────────────────────────────── */
+  .fa-project-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .fa-project-group {
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: var(--mcp-radius-sm);
+    overflow: hidden;
+  }
+
+  .fa-project-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--mcp-glass-highlight);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: background 0.3s ease;
+  }
+
+  .fa-project-header:hover {
+    background: var(--mcp-surface);
+  }
+
+  .fa-project-chevron {
+    font-size: 10px;
+    color: var(--mcp-text-muted);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    width: 12px;
+  }
+
+  .fa-project-chevron.collapsed {
+    transform: rotate(0deg);
+  }
+
+  .fa-project-chevron:not(.collapsed) {
+    transform: rotate(180deg);
+  }
+
+  .fa-project-dot {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .fa-project-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--mcp-text);
+  }
+
+  .fa-project-count {
+    font-size: 11px;
+    color: var(--mcp-text-muted);
+    margin-left: auto;
+  }
+
+  .fa-project-earnings {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mcp-success);
+  }
+
   /* ── Task List ──────────────────────────────────────── */
   .fa-task-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 0;
   }
 
   .fa-task-item {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 16px;
-    background: var(--mcp-glass-highlight);
-    border: 1px solid var(--mcp-glass-border);
-    border-radius: var(--mcp-radius-sm);
-    transition: all 0.2s ease;
+    padding: 12px 16px 12px 42px;
+    background: var(--mcp-glass-bg);
+    border-top: 1px solid var(--mcp-glass-border);
+    transition: all 0.3s ease;
   }
 
   .fa-task-item:hover {
-    border-color: var(--mcp-accent);
-    transform: translateY(-1px);
+    background: var(--mcp-glass-highlight);
   }
 
   .fa-task-item.completed {
@@ -549,8 +686,8 @@
 
   .fa-status-dot {
     display: block;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     box-shadow: 0 0 6px currentColor;
   }
@@ -594,7 +731,7 @@
   }
 
   .fa-task-earning {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     color: var(--mcp-success);
   }
@@ -763,6 +900,7 @@
 
     .fa-task-item {
       flex-wrap: wrap;
+      padding-left: 16px;
     }
 
     .fa-task-payment {
@@ -779,6 +917,10 @@
 
     .fa-task-earning {
       font-size: 14px;
+    }
+
+    .fa-project-header {
+      flex-wrap: wrap;
     }
   }
 </style>

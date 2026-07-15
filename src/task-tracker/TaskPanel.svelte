@@ -16,6 +16,7 @@
     createNextRecurringInstance,
     reorderProjects,
     clearAllRecurringTasks,
+    resetTaskTimer,
   } from "./stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "./noteTasks";
   import { settings } from "../ui/stores";
@@ -182,6 +183,9 @@
   function toggleTaskStatus(task: ITask): "done" | "todo" {
     const newStatus = task.status === "done" ? "todo" : "done";
     updateTaskStatus(task.id, newStatus);
+    if (newStatus === "todo") {
+      resetTaskTimer(task.id);
+    }
     return newStatus;
   }
 

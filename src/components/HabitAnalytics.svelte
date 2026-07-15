@@ -9,9 +9,12 @@
   import type { IHabit } from "../habit-tracker/types";
   import HabitCard from "./HabitCard.svelte";
   import BarChart from "./BarChart.svelte";
+  import DonutChart from "./DonutChart.svelte";
+  import ProjectAnalytics from "./ProjectAnalytics.svelte";
   import {
     timeLogs,
     tasks,
+    projects,
     calculateTaskEarnings,
   } from "../task-tracker/stores";
   import { formatDuration } from "../task-tracker/TimerManager";
@@ -29,6 +32,11 @@
 
   let selectedHabitId: string = "all";
   let weeklyStats = getWeeklyStats(12);
+
+  // Period selector for "Время и проекты"
+  const now = new Date();
+  let periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6).toISOString().split("T")[0];
+  let periodEnd = now.toISOString().split("T")[0];
 
   $: {
     $habitLogs; // re-compute when logs change
@@ -77,9 +85,13 @@
     ),
   };
 
-  // Time logs stats
-  $: totalTimeMs = $timeLogs.reduce((sum, log) => sum + log.duration, 0);
-  $: uniqueDays = new Set($timeLogs.map((log) => log.date)).size;
+  // Time logs stats — filtered by period
+  $: filteredTimeLogs = $timeLogs.filter((log) => {
+    if (!periodStart || !periodEnd) return true;
+    return log.date >= periodStart && log.date <= periodEnd;
+  });
+  $: totalTimeMs = filteredTimeLogs.reduce((sum, log) => sum + log.duration, 0);
+  $: uniqueDays = new Set(filteredTimeLogs.map((log) => log.date)).size;
   $: avgPerDay = uniqueDays > 0 ? totalTimeMs / uniqueDays : 0;
 
   // Weekly deltas for trend indicators
@@ -113,6 +125,49 @@
       else if (d >= lastWeekStart) lastWeekMs += log.duration;
     }
     return thisWeekMs - lastWeekMs;
+  })();
+
+  // Donut chart data — time by project for done tasks (filtered by period)
+  $: donutSegments = (() => {
+    const allDoneTasks = get(tasks).filter((t) => t.status === "done");
+    const allProjects = get(projects);
+    const projectMap = new Map<string, { ms: number; color: string; name: string }>();
+    const noKey = "__none__";
+
+    for (const log of filteredTimeLogs) {
+      const task = allDoneTasks.find((t) => t.id === log.taskId);
+      const pKey = task?.projectId || noKey;
+      if (!projectMap.has(pKey)) {
+        const proj = task?.projectId ? allProjects.find((p) => p.id === task.projectId) : null;
+        projectMap.set(pKey, {
+          ms: 0,
+          color: proj?.color || "#647177",
+          name: proj?.name || "Без проекта",
+        });
+      }
+      projectMap.get(pKey).ms += log.duration;
+    }
+
+    return Array.from(projectMap.values())
+      .filter((s) => s.ms > 0)
+      .sort((a, b) => b.ms - a.ms)
+      .map((s) => ({ label: s.name, value: s.ms, color: s.color }));
+  })();
+
+  // Earnings for period
+  $: periodEarnings = (() => {
+    const allTasks = get(tasks);
+    let total = 0;
+    for (const task of allTasks) {
+      if (!task.isWorkTask || !task.rate || task.status !== "done") continue;
+      const match = task.dateUID.match(/^day-(\d{4}-\d{2}-\d{2})/);
+      if (!match) continue;
+      const taskDate = match[1];
+      if (taskDate >= periodStart && taskDate <= periodEnd) {
+        total += calculateTaskEarnings(task);
+      }
+    }
+    return total;
   })();
 
   // Earnings stats
@@ -189,21 +244,10 @@
 <div class="habit-analytics">
   <div class="habit-analytics-header">
     <h1>Аналитика</h1>
-    {#if activeHabits.length > 0}
-      <select bind:value={selectedHabitId} class="habit-analytics-select">
-        <option value="all">Все привычки</option>
-        {#each activeHabits as habit}
-          <option value={habit.id}>
-            {habit.icon}
-            {habit.title}
-          </option>
-        {/each}
-      </select>
-    {/if}
   </div>
 
   <!-- Summary Cards -->
-  {#if activeHabits.length > 0 && selectedHabitId === "all"}
+  {#if activeHabits.length > 0}
     <h2>Привычки</h2>
     <div class="habit-analytics-summary">
       <div class="summary-card">
@@ -230,105 +274,69 @@
         <span class="summary-trend trend-neutral">дней подряд</span>
       </div>
     </div>
-  {/if}
 
-  <!-- Weekly Bar Chart -->
-  {#if activeHabits.length > 0}
+    <!-- Per-habit cards -->
     <div class="habit-analytics-section">
-      <h3>Активность по неделям (12 нед.)</h3>
-      <div class="weekly-chart">
-        {#each weeklyStats as week, i}
-          <div class="weekly-bar-wrapper">
-            <div class="weekly-bar-info">
-              {#if week.total > 0}
-                <span class="weekly-bar-percent">
-                  {totalPossiblePerWeek > 0
-                    ? Math.round((week.total / totalPossiblePerWeek) * 100)
-                    : 0}%
-                </span>
-                {#if weeklyEarnings[i] > 0}
-                  <span class="weekly-bar-earnings">
-                    {weeklyEarnings[i].toLocaleString("ru-RU")} ₽
-                  </span>
-                {/if}
-              {/if}
-            </div>
-            <div
-              class="weekly-bar"
-              style="height: {week.total > 0
-                ? Math.max((week.total / maxWeekly) * 100, 4)
-                : 0}%;"
-              title="{week.weekStart}: {week.total} ({totalPossiblePerWeek > 0
-                ? Math.round((week.total / totalPossiblePerWeek) * 100)
-                : 0}%)"
-            ></div>
-            <span class="weekly-bar-label">
-              {week.weekStart.slice(5)}
-            </span>
-          </div>
+      <h3>Детали по привычкам</h3>
+      <div class="habit-cards-grid">
+        {#each activeHabits as habit (habit.id)}
+          <HabitCard {habit} />
         {/each}
       </div>
     </div>
-
-    <!-- Per-habit cards -->
-    {#if selectedHabitId === "all"}
-      <div class="habit-analytics-section">
-        <h3>Детали по привычкам</h3>
-        <div class="habit-cards-grid">
-          {#each activeHabits as habit (habit.id)}
-            <HabitCard {habit} />
-          {/each}
-        </div>
-      </div>
-    {:else}
-      {#each activeHabits.filter((h) => h.id === selectedHabitId) as habit (habit.id)}
-        <div class="habit-analytics-section">
-          <h3>{habit.icon} {habit.title}</h3>
-          <HabitCard {habit} />
-        </div>
-      {/each}
-    {/if}
   {/if}
 
-  <!-- Time Logs Section -->
+  <!-- Time & Projects — unified section -->
   <div class="habit-analytics-section">
-    <h3>Логи задач по времени</h3>
-    {#if $timeLogs.length === 0}
-      <div class="time-logs-empty">Нет логов времени</div>
+    <div class="section-header-row">
+      <h3>Время и проекты</h3>
+      <div class="period-selector">
+        <input type="date" bind:value={periodStart} class="period-input" />
+        <span class="period-separator">—</span>
+        <input type="date" bind:value={periodEnd} class="period-input" />
+      </div>
+    </div>
+    {#if filteredTimeLogs.length === 0}
+      <div class="time-logs-empty">Нет логов времени за период</div>
     {:else}
+      <!-- Stats cards -->
       <div class="time-logs-stats">
         <div class="time-stat">
           <span class="time-stat-value">{formatDuration(totalTimeMs)}</span>
           <span class="time-stat-label">Общее время</span>
-          {#if timeLogsDelta > 0}
-            <span class="time-stat-delta delta-up"
-              >+{formatDuration(timeLogsDelta)} за неделю</span
-            >
-          {:else if timeLogsDelta < 0}
-            <span class="time-stat-delta delta-down"
-              >{formatDuration(timeLogsDelta)} за неделю</span
-            >
-          {/if}
         </div>
         <div class="time-stat">
           <span class="time-stat-value">{uniqueDays}</span>
           <span class="time-stat-label">Дней с работой</span>
-          {#if timeLogsDelta > 0}
-            <span class="time-stat-delta delta-up">↑ за неделю</span>
-          {/if}
         </div>
         <div class="time-stat">
           <span class="time-stat-value">{formatDuration(avgPerDay)}</span>
           <span class="time-stat-label">Среднее в день</span>
-          {#if timeLogsDelta > 0}
-            <span class="time-stat-delta delta-up"
-              >+{formatDuration(Math.abs(timeLogsDelta) / 7)} за день</span
-            >
-          {/if}
         </div>
       </div>
+
+      <!-- Area chart -->
       <div class="time-logs-chart">
-        <BarChart logs={$timeLogs} mode="area" />
+        <BarChart logs={filteredTimeLogs} mode="area" />
+      </div>
+
+      <!-- Two columns: Donut + Project table -->
+      <div class="time-project-bottom">
+        <div class="time-project-donut">
+          <h4>Распределение времени</h4>
+          <DonutChart
+            segments={donutSegments}
+            centerValue={formatDuration(totalTimeMs)}
+            centerLabel="100%"
+          />
+        </div>
+        <div class="time-project-table">
+          <h4>Проекты</h4>
+          <ProjectAnalytics tasks={get(tasks).filter((t) => t.status === "done" && (() => {
+            const match = t.dateUID.match(/^day-(\d{4}-\d{2}-\d{2})/);
+            return match && match[1] >= periodStart && match[1] <= periodEnd;
+          })())} />
+        </div>
       </div>
     {/if}
   </div>
@@ -607,7 +615,7 @@
   /* Habit Cards Grid */
   .habit-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
   }
 
@@ -624,6 +632,47 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 12px;
     margin-bottom: 16px;
+  }
+
+  .section-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .section-header-row h3 {
+    margin: 0;
+  }
+
+  .period-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .period-input {
+    padding: 6px 10px;
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: var(--mcp-radius-sm);
+    background: var(--mcp-glass-bg);
+    color: var(--mcp-text);
+    font-size: 12px;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .period-input:focus {
+    border-color: var(--mcp-accent);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--mcp-accent-dim);
+  }
+
+  .period-separator {
+    color: var(--mcp-text-muted);
+    font-size: 12px;
   }
 
   .time-stat {
@@ -677,6 +726,36 @@
     padding: 12px;
     background: var(--mcp-glass-highlight);
     border-radius: var(--mcp-radius-sm);
+  }
+
+  .time-project-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .time-project-donut,
+  .time-project-table {
+    padding: 16px;
+    background: var(--mcp-glass-highlight);
+    border-radius: var(--mcp-radius-sm);
+  }
+
+  .time-project-bottom h4 {
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mcp-text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.85;
+  }
+
+  @media (max-width: 768px) {
+    .time-project-bottom {
+      grid-template-columns: 1fr;
+    }
   }
 
   /* Earnings */

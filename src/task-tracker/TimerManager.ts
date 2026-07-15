@@ -1,6 +1,7 @@
 import { writable, get } from "svelte/store";
 import type { TimeLog } from "./types";
 import { MAX_TIME_LOGS } from "./types";
+import { settings } from "../ui/stores";
 
 export const activeTimers = writable<Map<string, number>>(new Map());
 export const timerTick = writable<number>(0);
@@ -95,7 +96,8 @@ export function getAllActiveTimers(): Map<string, number> {
 
 export function addTimeLog(log: TimeLog, logs: TimeLog[]): TimeLog[] {
   const updated = [log, ...logs];
-  return updated.length > MAX_TIME_LOGS ? updated.slice(0, MAX_TIME_LOGS) : updated;
+  const limit = get(settings).timeLogCleanupThreshold || MAX_TIME_LOGS;
+  return updated.length > limit ? updated.slice(0, limit) : updated;
 }
 
 export function formatDuration(ms: number): string {

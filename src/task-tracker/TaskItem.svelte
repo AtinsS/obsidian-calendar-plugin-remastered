@@ -2,7 +2,7 @@
   import { createEventDispatcher } from "svelte";
   import type { App } from "obsidian";
   import type { ITask, TaskStatus } from "./types";
-  import { updateTask, updateTaskStatus, removeTask, projects, activeTab, calculateTaskEarnings, tasks } from "./stores";
+  import { updateTask, updateTaskStatus, removeTask, resetTaskTimer, projects, activeTab, calculateTaskEarnings, tasks } from "./stores";
   import { get } from "svelte/store";
   import { timerTick, getActiveTimer, formatDuration, formatEstimate } from "./TimerManager";
   import { TaskModal } from "./TaskModal";
@@ -105,6 +105,9 @@
   async function quickStatus(status: TaskStatus) {
     if (task.status === status) return;
     updateTaskStatus(task.id, status);
+    if (status === "todo") {
+      resetTaskTimer(task.id);
+    }
     // Синхронизируем заметку при смене статуса
     if (appInstance) {
       const { tasks: tasksStore } = await import("./stores");
@@ -383,9 +386,9 @@
             </button>
             <button
               class="task-actions-item"
-              on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+              on:click|stopPropagation={() => { resetTaskTimer(task.id); closeActionsMenu(); }}
             >
-              &#8634; Вернуть
+              &#8634; Сбросить таймер
             </button>
           {/if}
           {#if task.status === "paused"}
@@ -397,9 +400,9 @@
             </button>
             <button
               class="task-actions-item"
-              on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
+              on:click|stopPropagation={() => { resetTaskTimer(task.id); closeActionsMenu(); }}
             >
-              &#8634; Вернуть
+              &#8634; Сбросить таймер
             </button>
           {/if}
           {#if task.notePath}

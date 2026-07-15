@@ -72,6 +72,7 @@ function makeSettings(overrides: Partial<ISettings> = {}): ISettings {
     syncAllTasksToNotes: false,
     tasksFolderPath: "Tasks",
     autoCleanupThreshold: 180,
+    timeLogCleanupThreshold: 180,
     showHabitTracker: true,
     syncToVault: false,
     notificationsEnabled: true,

@@ -3,7 +3,7 @@
   import { get } from "svelte/store";
   import moment from "moment";
   import type { ITask, IProject } from "../task-tracker/types";
-  import { tasks, projects, updateTaskStatus, removeTask, updateTask } from "../task-tracker/stores";
+  import { tasks, projects, updateTaskStatus, removeTask, updateTask, resetTaskTimer } from "../task-tracker/stores";
   import { selectedDate } from "../task-tracker/stores";
   import { TaskModal } from "../task-tracker/TaskModal";
   import type CalendarPlugin from "../main";
@@ -148,7 +148,12 @@
   }
 
   function contextChangeStatus(status: "todo" | "progress" | "done" | "paused") {
-    if (contextMenuTask) updateTaskStatus(contextMenuTask.id, status);
+    if (contextMenuTask) {
+      updateTaskStatus(contextMenuTask.id, status);
+      if (status === "todo") {
+        resetTaskTimer(contextMenuTask.id);
+      }
+    }
     closeContextMenu();
   }
 
@@ -234,6 +239,13 @@
               <span class="ms-task-work-icon">💼</span>
             {/if}
             <span class="ms-task-title">{task.title}</span>
+            {#if task.status === "progress"}
+              <span class="ms-task-status ms-status-progress">В работе</span>
+            {:else if task.status === "paused"}
+              <span class="ms-task-status ms-status-paused">На паузе</span>
+            {:else if task.status === "done"}
+              <span class="ms-task-status ms-status-done">Готово</span>
+            {/if}
           </div>
           {#if task.description}
             <div class="ms-task-desc">{task.description}</div>
@@ -487,6 +499,30 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .ms-task-status {
+    font-size: 9px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 500;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .ms-status-progress {
+    background: rgba(214, 178, 108, 0.25);
+    color: rgba(225, 195, 130, 0.9);
+  }
+
+  .ms-status-paused {
+    background: rgba(180, 150, 100, 0.25);
+    color: rgba(200, 170, 110, 0.9);
+  }
+
+  .ms-status-done {
+    background: rgba(110, 190, 160, 0.2);
+    color: rgba(140, 205, 175, 0.85);
   }
 
   /* Context menu */

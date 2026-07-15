@@ -16,6 +16,7 @@
     updateTaskStatus,
     removeTask,
     addTask,
+    resetTaskTimer,
   } from "../task-tracker/stores";
   import { createNoteTask, deleteNoteTask, archiveNoteTask, shouldSyncTaskToNote, syncTaskToNote } from "../task-tracker/noteTasks";
   import { TaskModal } from "../task-tracker/TaskModal";
@@ -420,18 +421,22 @@
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const dateStr = `${year}-${month}-${day}`;
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const timeStr = `${hours}:${minutes}`;
     const viewType = calendar.view?.type || "";
-    const initialTime = viewType.startsWith("timeGrid") ? timeStr : undefined;
+    const isTimeView = viewType.startsWith("timeGrid");
 
-    // Calculate estimated time from selected range
+    let initialTime: string | undefined;
     let estimatedTime: number | undefined;
-    if (info.end && info.start.getTime() !== info.end.getTime()) {
-      const durationMin = Math.round((info.end.getTime() - info.start.getTime()) / 1000 / 60);
-      if (durationMin > 0) {
-        estimatedTime = Math.max(15, durationMin);
+
+    if (isTimeView) {
+      const hours = String(date.getHours()).padStart(2, "0");
+      const minutes = String(date.getMinutes()).padStart(2, "0");
+      initialTime = `${hours}:${minutes}`;
+
+      if (info.end && info.start.getTime() !== info.end.getTime()) {
+        const durationMin = Math.round((info.end.getTime() - info.start.getTime()) / 1000 / 60);
+        if (durationMin > 0) {
+          estimatedTime = Math.max(15, durationMin);
+        }
       }
     }
 
@@ -696,6 +701,9 @@
   function contextChangeStatus(newStatus: "todo" | "progress" | "done" | "paused"): void {
     if (contextMenuTask) {
       updateTaskStatus(contextMenuTask.id, newStatus);
+      if (newStatus === "todo") {
+        resetTaskTimer(contextMenuTask.id);
+      }
       if (newStatus === "done") {
         archiveNoteIfCompleted(contextMenuTask, newStatus);
       }

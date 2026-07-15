@@ -28,6 +28,7 @@ export interface ISettings {
   syncAllTasksToNotes: boolean;
   tasksFolderPath: string;
   autoCleanupThreshold: number;
+  timeLogCleanupThreshold: number;
 
   // Habit Tracker settings
   showHabitTracker: boolean;
@@ -87,6 +88,7 @@ export const defaultSettings = Object.freeze({
   syncAllTasksToNotes: false,
   tasksFolderPath: "Tasks",
   autoCleanupThreshold: 180,
+  timeLogCleanupThreshold: 180,
 
   showHabitTracker: true,
 
@@ -361,6 +363,25 @@ export class CalendarSettingsTab extends PluginSettingTab {
             const num = parseInt(value);
             if (!isNaN(num) && num >= 10) {
               await this.plugin.writeOptions({ autoCleanupThreshold: num });
+            }
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = "10";
+        text.inputEl.max = "10000";
+        text.inputEl.style.maxWidth = "100px";
+      });
+
+    new Setting(this.containerEl)
+      .setName("Лимит логов времени")
+      .setDesc("Максимальное количество записей логов времени. При превышении старые логи удаляются автоматически.")
+      .addText((text) => {
+        text
+          .setPlaceholder("180")
+          .setValue(String(this.plugin.options.timeLogCleanupThreshold || 180))
+          .onChange(async (value) => {
+            const num = parseInt(value);
+            if (!isNaN(num) && num >= 10) {
+              await this.plugin.writeOptions({ timeLogCleanupThreshold: num });
             }
           });
         text.inputEl.type = "number";

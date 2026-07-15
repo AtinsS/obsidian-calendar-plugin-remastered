@@ -72,7 +72,7 @@ export interface ITaskTrackerData {
 export type DateUID = string;
 
 export const TASK_TRACKER_DATA_VERSION = 6;
-export const MAX_TIME_LOGS = 30;
+export const MAX_TIME_LOGS = 180;
 
 export const DEFAULT_PROJECT_COLORS = [
   "#882e25",
