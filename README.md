@@ -123,6 +123,8 @@ priority: medium
 2. Поместите их в папку `.obsidian/plugins/calendar-plugin-remastered/` внутри вашего хранилища Obsidian.
 3. Включите плагин в настройках Obsidian (Settings → Community plugins).
 
+> Для использования уведомлений Github Actions скопируйте папку `.github` в корень хранилища.
+
 ---
 
 ## Технологический стек
