@@ -625,7 +625,21 @@ priority: medium
                 const proj = getProjectName(t.projectId);
                 const time = t.scheduledTime || "--:--";
                 const hour = parseInt(time.split(":")[0]) || 12;
-                const line = `${proj} ${t.title} ⏰ ${time}`;
+
+                // Include elapsed time for tasks in progress
+                let timerInfo = "";
+                if (t.status === "progress" && t.timerStartedAt) {
+                  const elapsed = (Date.now() - t.timerStartedAt) / 1000;
+                  if (elapsed > 0) {
+                    const hours = Math.floor(elapsed / 3600);
+                    const minutes = Math.floor((elapsed % 3600) / 60);
+                    timerInfo = hours > 0
+                      ? ` [в работе ${hours}ч ${minutes > 0 ? minutes + 'м' : ''}]`
+                      : ` [в работе ${minutes}м]`;
+                  }
+                }
+
+                const line = `${proj} ${t.title} ⏰ ${time}${timerInfo}`;
 
                 if (hour < 12) morning.push(line);
                 else if (hour < 17) afternoon.push(line);

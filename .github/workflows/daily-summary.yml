@@ -2,48 +2,69 @@ name: Daily Task Summary
 
 on:
   schedule:
-    # каждый час с 3:00 до 8:00 UTC (6:00-11:00 MSK)
-    - cron: '0 3-8 * * *'
+    # каждые 5 мин с 3:00 до 16:00 UTC (6:00-19:00 MSK)
+    - cron: '*/5 3-16 * * *'
   workflow_dispatch:
 
 jobs:
   notify:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check settings and send summary
+      - name: Send morning summary
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'Calendar_Remastered' }}
         run: |
           if [ ! -f "calendar-data.json" ]; then
-            echo "calendar-data.json not found, skipping"
+            echo "::warning::calendar-data.json not found in repo root. Make sure syncToVault is enabled and the file is committed."
             exit 0
           fi
 
-          python3 -c "
-          import json, os, subprocess
+          python3 << 'PYTHON_SCRIPT'
+          import json, os, subprocess, sys
           from datetime import datetime, timedelta, timezone
 
-          with open('calendar-data.json') as f:
-              data = json.load(f)
+          try:
+              with open('calendar-data.json') as f:
+                  data = json.load(f)
+          except json.JSONDecodeError as e:
+              print(f"::error::Failed to parse calendar-data.json: {e}")
+              sys.exit(1)
+          except FileNotFoundError:
+              print("::warning::calendar-data.json not found")
+              sys.exit(0)
 
           # Check if morning summary is enabled
           ns = data.get('notificationSync', {})
           if not ns.get('morningSummaryEnabled'):
               print('Morning summary disabled in settings, skipping')
-              exit(0)
+              sys.exit(0)
 
           # MSK = UTC+3
           msk = timezone(timedelta(hours=3))
           now = datetime.now(msk)
           summary_time = ns.get('morningSummaryTime', '06:00')
-          target_h, target_m = map(int, summary_time.split(':'))
 
+          try:
+              target_h, target_m = map(int, summary_time.split(':'))
+          except (ValueError, AttributeError):
+              print(f"::error::Invalid morningSummaryTime format: {summary_time}")
+              sys.exit(1)
+
+          # Exact hour match
           if now.hour != target_h:
-              print(f'Not the right time (target {summary_time}, current MSK {now.strftime(\"%H:%M\")}), skipping')
-              exit(0)
+              print(f'Not the right time (target {summary_time}, current MSK {now.strftime("%H:%M")}), skipping')
+              sys.exit(0)
+
+          # Prevent duplicate sends within the same hour
+          last_sent = ns.get('lastSummarySent', '')
+          today_prefix = now.strftime('%Y-%m-%d')
+          if last_sent.startswith(today_prefix) and last_sent.endswith(f'T{target_h:02d}'):
+              print(f'Already sent today at hour {target_h}, skipping')
+              sys.exit(0)
 
           topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
           tasks = data.get('taskTracker', {}).get('tasks', [])
@@ -63,7 +84,7 @@ jobs:
           def get_project_name(pid):
               for p in projects:
                   if p['id'] == pid:
-                      return f\" [{p['name']}]\"
+                      return f" [{p['name']}]"
               return ''
 
           for t in tasks:
@@ -95,7 +116,19 @@ jobs:
               title = t.get('title', 'Без названия')
               hour = int(sched.split(':')[0]) if sched and ':' in sched else 12
 
-              entry = {'title': title, 'project': proj, 'time': sched or '--:--', 'hour': hour}
+              # Include timer info if task is in progress
+              timer_info = ''
+              if status == 'progress' and t.get('timerStartedAt'):
+                  elapsed = (now.timestamp() * 1000 - t['timerStartedAt']) / 1000
+                  if elapsed > 0:
+                      hours = int(elapsed // 3600)
+                      minutes = int((elapsed % 3600) // 60)
+                      if hours > 0:
+                          timer_info = f" [в работе {hours}ч {minutes}м]"
+                      else:
+                          timer_info = f" [в работе {minutes}м]"
+
+              entry = {'title': title, 'project': proj, 'time': sched or '--:--', 'hour': hour, 'timer': timer_info}
 
               if hour < 12:
                   morning.append(entry)
@@ -122,25 +155,25 @@ jobs:
               for i, t in enumerate(unique_overdue, 1):
                   proj = get_project_name(t.get('projectId', ''))
                   sched = t.get('scheduledTime', '--:--')
-                  lines.append(f'{i}. {t[\"title\"]}{proj} {sched}')
+                  lines.append(f'{i}. {t["title"]}{proj} {sched}')
               lines.append('')
 
           if morning:
               lines.append(f'Утро ({len(morning)}):')
               for i, e in enumerate(morning, len(unique_overdue) + 1):
-                  lines.append(f'{i}. {e[\"title\"]}{e[\"project\"]} {e[\"time\"]}')
+                  lines.append(f'{i}. {e["title"]}{e["project"]} {e["time"]}{e["timer"]}')
               lines.append('')
 
           if afternoon:
               lines.append(f'День ({len(afternoon)}):')
               for i, e in enumerate(afternoon, len(unique_overdue) + len(morning) + 1):
-                  lines.append(f'{i}. {e[\"title\"]}{e[\"project\"]} {e[\"time\"]}')
+                  lines.append(f'{i}. {e["title"]}{e["project"]} {e["time"]}{e["timer"]}')
               lines.append('')
 
           if evening:
               lines.append(f'Вечер ({len(evening)}):')
               for i, e in enumerate(evening, len(unique_overdue) + len(morning) + len(afternoon) + 1):
-                  lines.append(f'{i}. {e[\"title\"]}{e[\"project\"]} {e[\"time\"]}')
+                  lines.append(f'{i}. {e["title"]}{e["project"]} {e["time"]}{e["timer"]}')
               lines.append('')
 
           lines.append('Статистика:')
@@ -153,11 +186,22 @@ jobs:
           msg = '\n'.join(lines)
           print(msg)
 
-          subprocess.run([
+          result = subprocess.run([
               'curl', '-s', '-d', msg,
               '-H', 'Title: Задачи на сегодня',
               '-H', 'Priority: high',
               '-H', 'Tags: calendar,clipboard',
               f'https://ntfy.sh/{topic}'
-          ])
-          "
+          ], capture_output=True, text=True)
+
+          if result.returncode != 0:
+              print(f"::error::Failed to send notification: {result.stderr}")
+              sys.exit(1)
+
+          # Update lastSummarySent to prevent duplicate sends
+          ns['lastSummarySent'] = now.strftime('%Y-%m-%dT%H:%M')
+          with open('calendar-data.json', 'w') as f:
+              json.dump(data, f, indent=2)
+
+          print("Notification sent successfully")
+          PYTHON_SCRIPT

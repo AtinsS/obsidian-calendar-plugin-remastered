@@ -1,7 +1,7 @@
 import { get } from "svelte/store";
 import moment from "moment";
 import type CalendarPlugin from "src/main";
-import { tasks } from "src/task-tracker/stores";
+import { tasks, projects } from "src/task-tracker/stores";
 import type { ITask } from "src/task-tracker/types";
 import type { ISettings } from "src/settings";
 
@@ -31,13 +31,16 @@ export const defaultNotificationSettings: NotificationSettings = {
 export class NotificationService {
   private plugin: CalendarPlugin;
   private timer: ReturnType<typeof setInterval> | null = null;
-  private firedReminders = new Set<string>(); // track which reminders already fired
+  private ntfyAbortController: AbortController | null = null;
+  private firedReminders = new Set<string>();
   private firedOverdue = new Set<string>();
   private firedDeadline = new Set<string>();
   private firedEstimateExceeded = new Set<string>();
+  private lastSummaryDate = "";
 
   constructor(plugin: CalendarPlugin) {
     this.plugin = plugin;
+    this.loadFiredState();
   }
 
   start(): void {
@@ -46,6 +49,7 @@ export class NotificationService {
     this.requestPermission();
     this.timer = setInterval(() => this.check(), this.getSettings().checkIntervalMs);
     this.check(); // run immediately
+    this.startNtfyListener();
   }
 
   stop(): void {
@@ -53,6 +57,7 @@ export class NotificationService {
       clearInterval(this.timer);
       this.timer = null;
     }
+    this.stopNtfyListener();
     this.firedReminders.clear();
     this.firedOverdue.clear();
     this.firedDeadline.clear();
@@ -193,6 +198,33 @@ export class NotificationService {
     }
 
     this.cleanupFiredKeys(allTasks);
+    this.checkScheduledSummary();
+  }
+
+  private checkScheduledSummary(): void {
+    const opts = this.plugin.options as ISettings;
+    if (!opts.morningSummaryEnabled || !opts.ntfyEnabled || !opts.ntfyTopic) return;
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    // Reset on new day
+    if (this.lastSummaryDate && this.lastSummaryDate !== todayStr) {
+      this.lastSummaryDate = "";
+    }
+
+    // Already sent today
+    if (this.lastSummaryDate === todayStr) return;
+
+    const summaryTime = opts.morningSummaryTime || "08:00";
+    const [targetH, targetM] = summaryTime.split(":").map(Number);
+
+    // Check if current time matches target (within 1-minute window)
+    if (now.getHours() === targetH && now.getMinutes() === targetM) {
+      this.lastSummaryDate = todayStr;
+      this.sendMorningSummary();
+    }
   }
 
   private getScheduledMoment(task: ITask): moment.Moment | null {
@@ -232,6 +264,166 @@ export class NotificationService {
     }).catch((e) => console.warn("[ntfy] send failed:", e));
   }
 
+  private ntfyPollTimer: ReturnType<typeof setInterval> | null = null;
+  private ntfyLastId = "";
+
+  private startNtfyListener(): void {
+    const opts = this.plugin.options as ISettings;
+    if (!opts.ntfyEnabled || !opts.ntfyTopic) return;
+
+    this.stopNtfyListener();
+
+    const topic = opts.ntfyTopic;
+
+    // Poll ntfy every 30 seconds for new messages
+    this.ntfyPollTimer = setInterval(async () => {
+      try {
+        const sinceParam = this.ntfyLastId ? `&since=${this.ntfyLastId}` : "&since=5m";
+        const url = `https://ntfy.sh/${topic}/json?poll=1${sinceParam}`;
+        const response = await fetch(url);
+        if (!response.ok) return;
+
+        const text = await response.text();
+        if (!text.trim()) return;
+
+        const lines = text.split("\n").filter((l) => l.trim().startsWith("{"));
+
+        for (const line of lines) {
+          try {
+            const event = JSON.parse(line.trim());
+            if (event.id) this.ntfyLastId = event.id;
+            if (event.message && event.event === "message") {
+              this.handleNtfyCommand(event.message);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        }
+      } catch (e) {
+        console.warn("[ntfy] poll error:", e);
+      }
+    }, 30_000);
+  }
+
+  private stopNtfyListener(): void {
+    if (this.ntfyPollTimer) {
+      clearInterval(this.ntfyPollTimer);
+      this.ntfyPollTimer = null;
+    }
+    if (this.ntfyAbortController) {
+      this.ntfyAbortController.abort();
+      this.ntfyAbortController = null;
+    }
+  }
+
+  private handleNtfyCommand(message: string): void {
+    const text = message.trim().toLowerCase();
+
+    if (text === "утренняя сводка" || text === "сводка") {
+      this.sendMorningSummary();
+    }
+  }
+
+  private sendMorningSummary(): void {
+    const opts = this.plugin.options as ISettings;
+    if (!opts.ntfyEnabled || !opts.ntfyTopic) return;
+
+    const allTasks = get(tasks);
+    const allProjects = get(projects);
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+    const yesterdayStr = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
+
+    const getProjectName = (pid: string) => {
+      const p = allProjects.find((pr: any) => pr.id === pid);
+      return p ? ` [${p.name}]` : "";
+    };
+
+    const overdue: string[] = [];
+    const morning: string[] = [];
+    const afternoon: string[] = [];
+    const evening: string[] = [];
+    let doneYesterday = 0;
+
+    for (const t of allTasks) {
+      if (t.status === "done" || t.completed) {
+        const d = t.dateUID || "";
+        if (d.includes(yesterdayStr)) doneYesterday++;
+        continue;
+      }
+
+      const dateUID = t.dateUID || "";
+      if (!dateUID.includes(todayStr)) {
+        const schedDate = dateUID.replace("day-", "");
+        if (schedDate && schedDate < todayStr) {
+          overdue.push(`${getProjectName(t.projectId)} ${t.title} (${t.scheduledTime || "нет времени"})`);
+        }
+        continue;
+      }
+
+      const proj = getProjectName(t.projectId);
+      const time = t.scheduledTime || "--:--";
+      const hour = parseInt(time.split(":")[0]) || 12;
+
+      let timerInfo = "";
+      if (t.status === "progress" && t.timerStartedAt) {
+        const elapsed = (Date.now() - t.timerStartedAt) / 1000;
+        if (elapsed > 0) {
+          const hours = Math.floor(elapsed / 3600);
+          const minutes = Math.floor((elapsed % 3600) / 60);
+          timerInfo = hours > 0
+            ? ` [в работе ${hours}ч ${minutes > 0 ? minutes + 'м' : ''}]`
+            : ` [в работе ${minutes}м]`;
+        }
+      }
+
+      const line = `${proj} ${t.title} ⏰ ${time}${timerInfo}`;
+
+      if (hour < 12) morning.push(line);
+      else if (hour < 17) afternoon.push(line);
+      else evening.push(line);
+    }
+
+    const total = overdue.length + morning.length + afternoon.length + evening.length;
+    const lines = [`📋 Задачи на сегодня (${total})`, ""];
+
+    if (overdue.length) {
+      lines.push(`🔥 Просроченные (${overdue.length}):`);
+      overdue.forEach((l, i) => lines.push(`${i + 1}. 🔴 ${l}`));
+      lines.push("");
+    }
+    if (morning.length) {
+      lines.push(`⏰ Утро (${morning.length}):`);
+      morning.forEach((l, i) => lines.push(`${i + overdue.length + 1}. 🟡 ${l}`));
+      lines.push("");
+    }
+    if (afternoon.length) {
+      lines.push(`🌆 День (${afternoon.length}):`);
+      afternoon.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + 1}. 🔴 ${l}`));
+      lines.push("");
+    }
+    if (evening.length) {
+      lines.push(`🌙 Вечер (${evening.length}):`);
+      evening.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + afternoon.length + 1}. 🟣 ${l}`));
+      lines.push("");
+    }
+
+    lines.push("📊 Статистика:");
+    lines.push(`✅ Вчера выполнено: ${doneYesterday}`);
+    lines.push(`📝 Сегодня осталось: ${total}`);
+
+    if (total === 0) {
+      lines.length = 0;
+      lines.push("📋 Задач на сегодня нет", "", "Отдыхай!");
+    }
+
+    const msg = lines.join("\n");
+    this.sendNtfy(msg);
+  }
+
   private cleanupFiredKeys(activeTasks: ITask[]): void {
     const activeIds = new Set(activeTasks.map((t) => t.id));
     for (const key of this.firedReminders) {
@@ -258,5 +450,32 @@ export class NotificationService {
         this.firedEstimateExceeded.delete(key);
       }
     }
+    this.saveFiredState();
+  }
+
+  private async loadFiredState(): Promise<void> {
+    try {
+      const data = await this.plugin.loadData();
+      const fired = data?.firedNotifications || {};
+      this.firedReminders = new Set(fired.reminders || []);
+      this.firedOverdue = new Set(fired.overdue || []);
+      this.firedDeadline = new Set(fired.deadline || []);
+      this.firedEstimateExceeded = new Set(fired.estimateExceeded || []);
+    } catch {
+      // ignore
+    }
+  }
+
+  private saveFiredState(): void {
+    const data = {
+      reminders: [...this.firedReminders],
+      overdue: [...this.firedOverdue],
+      deadline: [...this.firedDeadline],
+      estimateExceeded: [...this.firedEstimateExceeded],
+    };
+    this.plugin.loadData().then((existing) => {
+      const updated = { ...(existing || {}), firedNotifications: data };
+      this.plugin.saveData(updated);
+    }).catch(() => { /* ignore */ });
   }
 }

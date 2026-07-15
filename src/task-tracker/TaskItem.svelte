@@ -289,12 +289,6 @@
     </span>
   {/if}
 
-  {#if task.status === "progress" && task.timerStartedAt}
-    <span class="task-work-started" title="Работа начата">
-      &#9654; Работа начата
-    </span>
-  {/if}
-
   {#if task.status === "paused"}
     <span class="task-work-paused" title="Работа на паузе">
       &#9208; Работа на паузе
