@@ -427,11 +427,12 @@
     const dateStr = `${year}-${month}-${day}`;
     const viewType = calendar.view?.type || "";
     const isTimeView = viewType.startsWith("timeGrid");
+    const isAllDay = info.allDay === true;
 
     let initialTime: string | undefined;
     let estimatedTime: number | undefined;
 
-    if (isTimeView) {
+    if (isTimeView && !isAllDay) {
       const hours = String(date.getHours()).padStart(2, "0");
       const minutes = String(date.getMinutes()).padStart(2, "0");
       initialTime = `${hours}:${minutes}`;

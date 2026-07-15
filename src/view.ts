@@ -42,6 +42,7 @@ export default class CalendarView extends ItemView {
   private settings: ISettings;
   private plugin: CalendarPlugin;
   private goalsContainer: HTMLElement;
+  private panelsContainer: HTMLElement;
   private goalsUnsub: (() => void) | null = null;
   private currentMonthKey = "";
   private isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
@@ -87,9 +88,9 @@ export default class CalendarView extends ItemView {
       if (val.showTaskTracker === false && this.taskPanel) {
         this.taskPanel.$destroy();
         this.taskPanel = null;
-      } else if (val.showTaskTracker !== false && !this.taskPanel && this.contentEl) {
+      } else if (val.showTaskTracker !== false && !this.taskPanel && this.panelsContainer) {
         this.taskPanel = new TaskPanel({
-          target: this.contentEl,
+          target: this.panelsContainer,
           props: {
             appInstance: this.app,
           },
@@ -100,9 +101,9 @@ export default class CalendarView extends ItemView {
       if (val.showHabitTracker === false && this.habitPanel) {
         this.habitPanel.$destroy();
         this.habitPanel = null;
-      } else if (val.showHabitTracker !== false && !this.habitPanel && this.contentEl) {
+      } else if (val.showHabitTracker !== false && !this.habitPanel && this.panelsContainer) {
         this.habitPanel = new HabitPanel({
-          target: this.contentEl,
+          target: this.panelsContainer,
           props: {
             appInstance: this.app,
           },
@@ -192,23 +193,22 @@ export default class CalendarView extends ItemView {
       },
     });
 
-    // Create task panel below calendar
-    if (this.settings?.showTaskTracker !== false) {
+    // Container for task & habit panels — always below the calendar
+    this.panelsContainer = this.contentEl.createDiv({ cls: "panels-container" });
+
+    // Create panels now that panelsContainer exists
+    // (settings.subscribe() in the constructor ran before panelsContainer was created)
+    const currentSettings = get(settings);
+    if (currentSettings.showTaskTracker !== false) {
       this.taskPanel = new TaskPanel({
-        target: this.contentEl,
-        props: {
-          appInstance: this.app,
-        },
+        target: this.panelsContainer,
+        props: { appInstance: this.app },
       });
     }
-
-    // Create habit panel below task panel
-    if (this.settings?.showHabitTracker !== false) {
+    if (currentSettings.showHabitTracker !== false) {
       this.habitPanel = new HabitPanel({
-        target: this.contentEl,
-        props: {
-          appInstance: this.app,
-        },
+        target: this.panelsContainer,
+        props: { appInstance: this.app },
       });
     }
 
