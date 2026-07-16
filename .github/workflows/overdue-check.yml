@@ -22,7 +22,7 @@ jobs:
           fi
 
           python3 -c "
-          import json, os, subprocess
+          import json, os, subprocess, sys
           from datetime import datetime, timedelta, timezone
 
           with open('calendar-data.json') as f:
@@ -32,7 +32,7 @@ jobs:
           ns = data.get('notificationSync', {})
           if not ns.get('overdueCheckEnabled'):
               print('Overdue check disabled in settings, skipping')
-              exit(0)
+              sys.exit(0)
 
           topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
           tasks = data.get('taskTracker', {}).get('tasks', [])
@@ -44,6 +44,12 @@ jobs:
           now_str = now.strftime('%H:%M')
           tomorrow = (now + timedelta(days=1)).strftime('%Y-%m-%d')
 
+          # Anti-duplicate: track which notifications were already sent today
+          last_check = ns.get('lastOverdueCheck', '')
+          today_checks = ns.get('overdueChecksToday', [])
+          if not last_check.startswith(today):
+              today_checks = []
+
           notifications = []
 
           for t in tasks:
@@ -54,34 +60,45 @@ jobs:
                   continue
 
               title = t.get('title', 'Задача')
+              tid = t.get('id', title)
               sched = t.get('scheduledTime', '')
               date_uid = t.get('dateUID', '')
 
               # Overdue: scheduled time passed today
+              check_key = f'overdue:{tid}'
               if sched and today in date_uid:
-                  if sched < now_str and status == 'todo':
+                  if sched <= now_str and status == 'todo' and check_key not in today_checks:
                       notifications.append(f'Просрочено: {title} (было в {sched})')
+                      today_checks.append(check_key)
 
               # Deadline today
               deadline = t.get('deadline', '')
               deadline_time = t.get('deadlineTime', '')
+              dl_key = f'dl-today:{tid}'
               if deadline and today in deadline:
-                  if deadline_time and deadline_time <= now_str:
+                  if deadline_time and deadline_time <= now_str and dl_key not in today_checks:
                       notifications.append(f'Дедлайн истёк: {title} ({deadline_time})')
-                  elif not deadline_time:
+                      today_checks.append(dl_key)
+                  elif not deadline_time and dl_key not in today_checks:
                       notifications.append(f'Дедлайн сегодня: {title}')
+                      today_checks.append(dl_key)
 
-              # Deadline tomorrow
+              # Deadline tomorrow (only notify once per day)
+              dl_tomorrow_key = f'dl-tomorrow:{tid}'
               if deadline and tomorrow in deadline:
-                  time_part = f' в {deadline_time}' if deadline_time else ''
-                  notifications.append(f'Дедлайн завтра: {title}{time_part}')
+                  if dl_tomorrow_key not in today_checks:
+                      time_part = f' в {deadline_time}' if deadline_time else ''
+                      notifications.append(f'Дедлайн завтра: {title}{time_part}')
+                      today_checks.append(dl_tomorrow_key)
 
-              # Estimate exceeded
+              # Estimate exceeded (only notify once per task)
+              est_key = f'est:{tid}'
               est = t.get('estimatedTime', 0)
               work = t.get('totalWorkTime', 0)
               if est > 0 and work > 0 and status == 'progress':
-                  if work > est * 60 * 1000:
+                  if work > est * 60 * 1000 and est_key not in today_checks:
                       notifications.append(f'Превышен лимит: {title} (заявлено {est}м)')
+                      today_checks.append(est_key)
 
           if notifications:
               msg = '\n'.join(notifications)
@@ -95,4 +112,10 @@ jobs:
               ])
           else:
               print('No overdue tasks')
+
+          # Save dedup state
+          ns['lastOverdueCheck'] = now.strftime('%Y-%m-%dT%H:%M')
+          ns['overdueChecksToday'] = today_checks[-100:]
+          with open('calendar-data.json', 'w') as f:
+              json.dump(data, f, indent=2)
           "

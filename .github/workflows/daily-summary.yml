@@ -6,6 +6,9 @@ on:
     - cron: '*/5 3-16 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   notify:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -46,24 +49,12 @@ jobs:
           # MSK = UTC+3
           msk = timezone(timedelta(hours=3))
           now = datetime.now(msk)
-          summary_time = ns.get('morningSummaryTime', '06:00')
-
-          try:
-              target_h, target_m = map(int, summary_time.split(':'))
-          except (ValueError, AttributeError):
-              print(f"::error::Invalid morningSummaryTime format: {summary_time}")
-              sys.exit(1)
-
-          # Exact hour match
-          if now.hour != target_h:
-              print(f'Not the right time (target {summary_time}, current MSK {now.strftime("%H:%M")}), skipping')
-              sys.exit(0)
-
-          # Prevent duplicate sends within the same hour
-          last_sent = ns.get('lastSummarySent', '')
           today_prefix = now.strftime('%Y-%m-%d')
-          if last_sent.startswith(today_prefix) and last_sent.endswith(f'T{target_h:02d}'):
-              print(f'Already sent today at hour {target_h}, skipping')
+
+          # Prevent duplicate sends per day (check date, not hour)
+          last_sent = ns.get('lastSummarySent', '')
+          if last_sent.startswith(today_prefix):
+              print(f'Already sent today ({last_sent}), skipping')
               sys.exit(0)
 
           topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
@@ -205,3 +196,12 @@ jobs:
 
           print("Notification sent successfully")
           PYTHON_SCRIPT
+
+      - name: Commit updated calendar-data.json
+        if: success()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add calendar-data.json
+          git diff --staged --quiet || git commit -m "Update lastSummarySent after morning summary"
+          git push
