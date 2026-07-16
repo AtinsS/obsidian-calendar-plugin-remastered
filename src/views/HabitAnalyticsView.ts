@@ -1,8 +1,10 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
+import { get } from "svelte/store";
 
 import { VIEW_TYPE_HABIT_ANALYTICS } from "../constants";
 import type CalendarPlugin from "../main";
 import HabitAnalytics from "../components/HabitAnalytics.svelte";
+import { settings } from "../ui/stores";
 
 export default class HabitAnalyticsView extends ItemView {
   private plugin: CalendarPlugin;
@@ -30,9 +32,13 @@ export default class HabitAnalyticsView extends ItemView {
     container.empty();
     container.addClass("habit-analytics-view-container");
 
+    const currentSettings = get(settings);
+    const habitsHidden = currentSettings.showHabitTracker === false;
+
     this.svelteComponent = new HabitAnalytics({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       target: container as any,
+      props: { habitsHidden },
     });
   }
 

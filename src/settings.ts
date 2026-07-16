@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
-import type { ILocaleOverride, IWeekStartOption } from "obsidian-calendar-ui";
+import type { ILocaleOverride } from "obsidian-calendar-ui";
+import { get } from "svelte/store";
 
 import { DEFAULT_WORDS_PER_DOT } from "src/constants";
 import { FolderSuggestModal } from "./modals/FolderSuggestModal";
@@ -9,7 +10,6 @@ import type CalendarPlugin from "./main";
 
 export interface ISettings {
   wordsPerDot: number;
-  weekStart: IWeekStartOption;
   shouldConfirmBeforeCreate: boolean;
 
   // Weekly Note settings
@@ -58,21 +58,17 @@ export interface ISettings {
   // Work task settings
   defaultPaymentType: "hour" | "day";
   defaultRate: number;
-}
 
-const weekdays = [
-  "sunday",
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-];
+  // GitHub Gist sync settings
+  githubToken?: string;
+  gistId?: string;
+  gistUrl?: string;
+  gistRawUrl?: string;
+  gistAutoSync?: boolean;
+}
 
 export const defaultSettings = Object.freeze({
   shouldConfirmBeforeCreate: true,
-  weekStart: "locale" as IWeekStartOption,
 
   wordsPerDot: DEFAULT_WORDS_PER_DOT,
 
@@ -146,11 +142,6 @@ export class CalendarSettingsTab extends PluginSettingTab {
     }
 
     this.containerEl.createEl("h3", {
-      text: "Основные настройки",
-    });
-    this.addWeekStartSetting();
-
-    this.containerEl.createEl("h3", {
       text: "Панели",
     });
     this.addShowTaskTrackerSetting();
@@ -176,32 +167,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
       text: "Рабочие задачи",
     });
     this.addWorkTaskSettings();
-  }
 
-  addWeekStartSetting(): void {
-    const { moment } = window;
-
-    const localizedWeekdays = moment.weekdays();
-    const localeWeekStartNum = window._bundledLocaleWeekSpec?.dow ?? 0;
-    const localeWeekStart = moment.weekdays()[localeWeekStartNum];
-
-    new Setting(this.containerEl)
-      .setName("Начало недели:")
-      .setDesc(
-        "Выберите день начала недели. «По умолчанию» использует настройки moment.js"
-      )
-      .addDropdown((dropdown) => {
-        dropdown.addOption("locale", `По умолчанию (${localeWeekStart})`);
-        localizedWeekdays.forEach((day, i) => {
-          dropdown.addOption(weekdays[i], day);
-        });
-        dropdown.setValue(this.plugin.options.weekStart);
-        dropdown.onChange(async (value) => {
-          this.plugin.writeOptions({
-            weekStart: value as IWeekStartOption,
-          });
-        });
-      });
+    this.addGitHubGistSettings();
   }
 
   addShowTaskTrackerSetting(): void {
@@ -219,8 +186,8 @@ export class CalendarSettingsTab extends PluginSettingTab {
   private getVaultFolders(): string[] {
     const folders: string[] = [];
     const root = this.app.vault.getRoot();
-    const walk = (folder: { children?: Array<{ children?: unknown[]; path: string }>; path: string }) => {
-      for (const child of folder.children) {
+    const walk = (folder: any) => {
+      for (const child of folder.children || []) {
         if (child.children) {
           folders.push(child.path);
           walk(child);
@@ -778,5 +745,118 @@ priority: medium
         text.inputEl.min = "0";
         text.inputEl.style.maxWidth = "120px";
       });
+  }
+
+  addGitHubGistSettings(): void {
+    this.containerEl.createEl("h3", {
+      text: "GitHub Gist — синхронизация календаря",
+    });
+
+    const desc = document.createElement("div");
+    desc.addClass("setting-item-description");
+    desc.style.marginBottom = "8px";
+    desc.innerHTML = `
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        Публикуйте календарь задач в GitHub Gist как .ics файл.
+        Подпишитесь на него в Google Calendar или любом другом календаре.
+      </p>
+      <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
+        <b>Как получить токен:</b><br>
+        1. GitHub → Settings → Credentials<br>
+        2. Personal access tokens → Tokens (classic)<br>
+        3. Generate new token → поставьте галочку <code>gist</code> → Generate<br>
+        4. Скопируйте токен и вставьте выше
+      </p>
+    `;
+    this.containerEl.appendChild(desc);
+
+    new Setting(this.containerEl)
+      .setName("GitHub токен")
+      .setDesc("Personal access token для доступа к Gist")
+      .addText((text) => {
+        text
+          .setPlaceholder("ghp_...")
+          .setValue(this.plugin.options.githubToken || "")
+          .onChange(async (value) => {
+            await this.plugin.writeOptions({ githubToken: value });
+          });
+        text.inputEl.type = "password";
+        text.inputEl.style.maxWidth = "300px";
+      });
+
+    new Setting(this.containerEl)
+      .setName("Синхронизировать с Gist")
+      .setDesc("Экспортировать задачи (даты, время, дедлайны) в .ics файл на GitHub Gist")
+      .addButton((btn) =>
+        btn
+          .setButtonText("Синхронизировать")
+          .setCta()
+          .onClick(async () => {
+            const { syncToGist, gistSyncStatus, connectGist } = await import("./services/GistSyncService");
+            const token = this.plugin.options.githubToken;
+
+            if (!token) {
+              alert("Сначала введите GitHub токен выше.");
+              return;
+            }
+
+            // Check token permissions first
+            const connectResult = await connectGist(token);
+            if (connectResult.warning) {
+              alert(connectResult.warning);
+              return;
+            }
+            if (!connectResult.success) {
+              alert(`Ошибка: ${connectResult.error}`);
+              return;
+            }
+
+            const result = await syncToGist();
+            if (result.success) {
+              const status = get(gistSyncStatus);
+              // Re-render settings to show the URL field
+              this.display();
+              alert(`Синхронизация завершена!\n\nURL для подписки:\n${status.rawUrl}\n\nДобавьте этот URL в Google Calendar (Settings → Subscribe to calendar).`);
+            } else {
+              alert(`Ошибка: ${result.error}`);
+            }
+          })
+      );
+
+    new Setting(this.containerEl)
+      .setName("Автоматическая синхронизация")
+      .setDesc("Автоматически обновлять Gist при изменении задач (debounce 5 сек)")
+      .addToggle((toggle) => {
+        toggle.setValue(!!this.plugin.options.gistAutoSync);
+        toggle.onChange(async (value) => {
+          const { setAutoSync } = await import("./services/GistSyncService");
+          await this.plugin.writeOptions({ gistAutoSync: value });
+          setAutoSync(value);
+          if (value) {
+            // Show status
+            const statusEl = document.getElementById("gist-auto-sync-status");
+            if (statusEl) statusEl.textContent = "✓ Автосинхронизация включена. Измените задачу для проверки.";
+          }
+        });
+      });
+
+    // Auto-sync status indicator
+    const statusDesc = document.createElement("div");
+    statusDesc.id = "gist-auto-sync-status";
+    statusDesc.style.cssText = "font-size: 11px; color: var(--text-faint); margin-top: 4px; padding: 4px 0;";
+    statusDesc.textContent = this.plugin.options.gistAutoSync
+      ? "✓ Автосинхронизация включена. Измените задачу для проверки."
+      : "Выключена. Включите для автоматического обновления календаря.";
+    this.containerEl.querySelector(".setting-item:last-child")?.appendChild(statusDesc);
+
+    if (this.plugin.options.gistRawUrl) {
+      new Setting(this.containerEl)
+        .setName("URL календаря")
+        .setDesc("Добавьте этот URL в Google Calendar или другой календарь")
+        .addText((text) => {
+          text.setValue(this.plugin.options.gistRawUrl || "").setDisabled(true);
+          text.inputEl.style.maxWidth = "500px";
+        });
+    }
   }
 }

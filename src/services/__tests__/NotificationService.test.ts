@@ -59,7 +59,6 @@ function makeTask(overrides: Partial<ITask> = {}): ITask {
 
 function makeSettings(overrides: Partial<ISettings> = {}): ISettings {
   return {
-    weekStart: "monday",
     shouldConfirmBeforeCreate: false,
     wordsPerDot: 250,
     showWeeklyNote: false,
@@ -74,6 +73,7 @@ function makeSettings(overrides: Partial<ISettings> = {}): ISettings {
     autoCleanupThreshold: 180,
     timeLogCleanupThreshold: 180,
     showHabitTracker: true,
+    habitLogCleanupThreshold: 1000,
     syncToVault: false,
     notificationsEnabled: true,
     reminderMinutesBefore: 5,

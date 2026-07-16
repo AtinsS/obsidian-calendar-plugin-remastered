@@ -33,6 +33,16 @@
   let manualIncome = 0;
   let recalcTimeout: ReturnType<typeof setTimeout> | null = null;
   let editingRules = false;
+
+  // Debounce map for update functions
+  const _debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+  function debouncedUpdate(key: string, fn: () => void, delay = 150): void {
+    if (_debounceTimers[key]) clearTimeout(_debounceTimers[key]);
+    _debounceTimers[key] = setTimeout(() => {
+      delete _debounceTimers[key];
+      fn();
+    }, delay);
+  }
   let editingGoalId: string | null = null;
   let editingMainCatId: string | null = null;
   let editingSavingsId: string | null = null;
@@ -174,12 +184,15 @@
   }
 
   function updateMainCategory(id: string, changes: Partial<FinanceCategory>) {
-    updateMonthData(monthKey, {
-      mainAccountCategories: monthData.mainAccountCategories.map(c =>
-        c.id === id ? { ...c, ...changes } : c
-      ),
+    monthData.mainAccountCategories = monthData.mainAccountCategories.map(c =>
+      c.id === id ? { ...c, ...changes } : c
+    );
+    debouncedUpdate(`main-${id}`, () => {
+      updateMonthData(monthKey, {
+        mainAccountCategories: monthData.mainAccountCategories,
+      });
+      monthData = getMonthData(monthKey);
     });
-    monthData = getMonthData(monthKey);
   }
 
   // ── Goals ──
@@ -205,12 +218,15 @@
   }
 
   function updateGoal(id: string, changes: Partial<MonthGoal>) {
-    updateMonthData(monthKey, {
-      monthGoals: (monthData.monthGoals || []).map(g =>
-        g.id === id ? { ...g, ...changes } : g
-      ),
+    monthData.monthGoals = (monthData.monthGoals || []).map(g =>
+      g.id === id ? { ...g, ...changes } : g
+    );
+    debouncedUpdate(`goal-${id}`, () => {
+      updateMonthData(monthKey, {
+        monthGoals: monthData.monthGoals,
+      });
+      monthData = getMonthData(monthKey);
     });
-    monthData = getMonthData(monthKey);
   }
 
   // ── Savings ──
@@ -238,12 +254,15 @@
   }
 
   function updateSavingsCategory(id: string, changes: Partial<SavingsCategory>) {
-    updateMonthData(monthKey, {
-      savingsCategories: monthData.savingsCategories.map(c =>
-        c.id === id ? { ...c, ...changes } : c
-      ),
+    monthData.savingsCategories = monthData.savingsCategories.map(c =>
+      c.id === id ? { ...c, ...changes } : c
+    );
+    debouncedUpdate(`savings-${id}`, () => {
+      updateMonthData(monthKey, {
+        savingsCategories: monthData.savingsCategories,
+      });
+      monthData = getMonthData(monthKey);
     });
-    monthData = getMonthData(monthKey);
   }
 
   // ── Rules ──
@@ -432,9 +451,9 @@
       {#each monthData.mainAccountCategories as cat (cat.id)}
         {#if editingMainCatId === cat.id}
           <div class="category-row editing">
-            <input type="text" value={cat.icon} on:change={(e) => updateMainCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
-            <input type="text" value={cat.name} on:change={(e) => updateMainCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
-            <input type="number" value={cat.amount} on:change={(e) => updateMainCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 })} min="0" class="cat-edit-amount" />
+            <input type="text" value={cat.icon} on:input={(e) => updateMainCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
+            <input type="text" value={cat.name} on:input={(e) => updateMainCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
+            <input type="number" value={cat.amount} on:input={(e) => updateMainCategory(cat.id, { amount: parseFloat(inputVal(e)) || 0 })} min="0" class="cat-edit-amount" />
             <button class="goal-done-btn" on:click={() => editingMainCatId = null}>✓</button>
           </div>
         {:else}
@@ -460,13 +479,13 @@
       {#each (monthData.monthGoals || []) as goal (goal.id)}
         {#if editingGoalId === goal.id}
           <div class="goal-row editing">
-            <input type="text" value={goal.icon} on:change={(e) => updateGoal(goal.id, { icon: inputVal(e) })} class="goal-edit-icon" maxlength="2" />
+            <input type="text" value={goal.icon} on:input={(e) => updateGoal(goal.id, { icon: inputVal(e) })} class="goal-edit-icon" maxlength="2" />
             <div class="goal-info">
               <div class="goal-edit-row">
-                <input type="text" value={goal.name} on:change={(e) => updateGoal(goal.id, { name: inputVal(e) })} class="goal-edit-name" placeholder="Название" />
-                <input type="number" value={goal.currentAmount} on:change={(e) => updateGoal(goal.id, { currentAmount: parseFloat(inputVal(e)) || 0 })} min="0" class="goal-edit-amount" placeholder="Накоплено" />
+                <input type="text" value={goal.name} on:input={(e) => updateGoal(goal.id, { name: inputVal(e) })} class="goal-edit-name" placeholder="Название" />
+                <input type="number" value={goal.currentAmount} on:input={(e) => updateGoal(goal.id, { currentAmount: parseFloat(inputVal(e)) || 0 })} min="0" class="goal-edit-amount" placeholder="Накоплено" />
                 <span class="goal-edit-sep">/</span>
-                <input type="number" value={goal.targetAmount} on:change={(e) => updateGoal(goal.id, { targetAmount: parseFloat(inputVal(e)) || 0 })} min="0" class="goal-edit-amount" placeholder="Цель" />
+                <input type="number" value={goal.targetAmount} on:input={(e) => updateGoal(goal.id, { targetAmount: parseFloat(inputVal(e)) || 0 })} min="0" class="goal-edit-amount" placeholder="Цель" />
               </div>
             </div>
             <button class="goal-done-btn" on:click={() => editingGoalId = null}>✓</button>
@@ -505,17 +524,17 @@
       {#each monthData.savingsCategories as cat (cat.id)}
         {#if editingSavingsId === cat.id}
           <div class="category-row editing">
-            <input type="text" value={cat.icon} on:change={(e) => updateSavingsCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
-            <input type="text" value={cat.name} on:change={(e) => updateSavingsCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
+            <input type="text" value={cat.icon} on:input={(e) => updateSavingsCategory(cat.id, { icon: inputVal(e) })} class="cat-edit-icon" maxlength="2" />
+            <input type="text" value={cat.name} on:input={(e) => updateSavingsCategory(cat.id, { name: inputVal(e) })} class="cat-edit-name" />
             <div class="savings-edit-fields">
               <div class="savings-field">
                 <span class="savings-field-label">Сумма</span>
-                <input type="number" value={cat.amount} on:change={(e) => { const amount = parseFloat(inputVal(e)) || 0; const percent = monthData.monthlyIncome > 0 ? Math.round((amount / monthData.monthlyIncome) * 100) : 0; updateSavingsCategory(cat.id, { amount, percent }); }} min="0" class="savings-field-input" />
+                <input type="number" value={cat.amount} on:input={(e) => { const amount = parseFloat(inputVal(e)) || 0; const percent = balance > 0 ? Math.round((amount / balance) * 100) : 0; updateSavingsCategory(cat.id, { amount, percent }); }} min="0" class="savings-field-input" />
                 <span class="savings-field-unit">₽</span>
               </div>
               <div class="savings-field">
                 <span class="savings-field-label">Процент</span>
-                <input type="number" value={cat.percent} on:change={(e) => { const percent = parseFloat(inputVal(e)) || 0; const amount = Math.round(monthData.monthlyIncome * percent / 100); updateSavingsCategory(cat.id, { amount, percent }); }} min="0" max="100" class="savings-field-input" />
+                <input type="number" value={cat.percent} on:input={(e) => { const percent = parseFloat(inputVal(e)) || 0; const amount = Math.round(balance * percent / 100); updateSavingsCategory(cat.id, { amount, percent }); }} min="0" max="100" class="savings-field-input" />
                 <span class="savings-field-unit">%</span>
               </div>
             </div>

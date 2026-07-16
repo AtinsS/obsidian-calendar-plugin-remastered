@@ -338,3 +338,74 @@ export function getHabitStats(habitId: string): HabitStats {
     lastCompleted,
   };
 }
+
+// --- Day-of-week productivity analysis ---
+
+export interface DayOfWeekStats {
+  dayIndex: number; // 0=Mon, 6=Sun
+  dayName: string;
+  completions: number;
+  totalDays: number;
+  productivityRate: number; // 0-100
+}
+
+const DAY_NAMES_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+export function getDayOfWeekProductivity(): DayOfWeekStats[] {
+  const today = moment().startOf("day");
+  const yearAgo = today.clone().subtract(1, "year");
+
+  // Count completions per day of week
+  const completionsByDay = new Map<number, number>();
+  const totalDaysByDay = new Map<number, number>();
+
+  // Count unique dates per day of week
+  const uniqueDates = new Map<number, Set<string>>();
+
+  for (const log of cachedLogs) {
+    if (!log.completed) continue;
+    const logDate = moment(log.date, "YYYY-MM-DD");
+    if (logDate.isBefore(yearAgo)) continue;
+    const dayIndex = (logDate.day() + 6) % 7; // Convert to Mon=0
+    completionsByDay.set(dayIndex, (completionsByDay.get(dayIndex) || 0) + 1);
+    if (!uniqueDates.has(dayIndex)) uniqueDates.set(dayIndex, new Set());
+    uniqueDates.get(dayIndex).add(log.date);
+  }
+
+  // Count total occurrences of each day of week in the year
+  const day = yearAgo.clone();
+  while (day.isSameOrBefore(today)) {
+    const dayIndex = (day.day() + 6) % 7;
+    totalDaysByDay.set(dayIndex, (totalDaysByDay.get(dayIndex) || 0) + 1);
+    day.add(1, "day");
+  }
+
+  const result: DayOfWeekStats[] = [];
+  for (let i = 0; i < 7; i++) {
+    const completions = completionsByDay.get(i) || 0;
+    const totalDays = totalDaysByDay.get(i) || 1;
+    const activeDays = uniqueDates.get(i)?.size || 0;
+    const productivityRate = totalDays > 0 ? Math.round((activeDays / totalDays) * 100) : 0;
+    result.push({
+      dayIndex: i,
+      dayName: DAY_NAMES_RU[i],
+      completions,
+      totalDays,
+      productivityRate,
+    });
+  }
+
+  return result;
+}
+
+export function getProductiveDays(): DayOfWeekStats[] {
+  return getDayOfWeekProductivity()
+    .filter((d) => d.productivityRate > 0)
+    .sort((a, b) => b.productivityRate - a.productivityRate);
+}
+
+export function getProcrastinationDays(): DayOfWeekStats[] {
+  return getDayOfWeekProductivity()
+    .filter((d) => d.productivityRate === 0 || d.completions === 0)
+    .sort((a, b) => a.productivityRate - b.productivityRate);
+}

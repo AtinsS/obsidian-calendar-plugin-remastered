@@ -16,67 +16,62 @@
   import { getDateUID } from "obsidian-daily-notes-interface";
 
   let today: Moment = window.moment();
-  let lastWeekStart: string = null;
 
   // When tasks or habits change, re-render calendar so badges update
   const unsubTasks = tasks.subscribe(() => { today = window.moment(); });
   const unsubHabits = habitLogs.subscribe(() => { today = window.moment(); });
 
+  // Initialize Russian locale with Monday as first day
   $: {
-    const ws = $settings.weekStart;
-    if (ws !== lastWeekStart) {
-      lastWeekStart = ws;
-      configureGlobalMomentLocale("ru", ws);
-      // Override Russian locale calendar format to remove comma after "Сегодня"
-      window.moment.updateLocale("ru", {
-        calendar: {
-          sameDay: "[Сегодня в] LT",
-          nextDay: "[Завтра в] LT",
-          lastDay: "[Вчера в] LT",
-          nextWeek: function (now: moment.Moment) {
-            if (now.week() !== this.week()) {
-              switch (this.day()) {
-                case 0:
-                  return "[В следующее] dddd, [в] LT";
-                case 1:
-                case 2:
-                case 4:
-                  return "[В следующий] dddd, [в] LT";
-                case 3:
-                case 5:
-                  return "[В следующую] dddd, [в] LT";
-                case 6:
-                  return "[В следующую субботу, в] LT";
-                default:
-                  return "[В] dddd, [в] LT";
-              }
-            }
-            return "[В] dddd, [в] LT";
-          },
-          lastWeek: function () {
+    configureGlobalMomentLocale("ru", "monday");
+    window.moment.updateLocale("ru", {
+      calendar: {
+        sameDay: "[Сегодня в] LT",
+        nextDay: "[Завтра в] LT",
+        lastDay: "[Вчера в] LT",
+        nextWeek: function (now: moment.Moment) {
+          if (now.week() !== this.week()) {
             switch (this.day()) {
               case 0:
-                return "[В прошлое] dddd, [в] LT";
+                return "[В следующее] dddd, [в] LT";
               case 1:
               case 2:
               case 4:
-                return "[В прошлый] dddd, [в] LT";
+                return "[В следующий] dddd, [в] LT";
               case 3:
               case 5:
-                return "[В прошлую] dddd, [в] LT";
+                return "[В следующую] dddd, [в] LT";
               case 6:
-                return "[В прошлую субботу, в] LT";
+                return "[В следующую субботу, в] LT";
               default:
                 return "[В] dddd, [в] LT";
             }
-          },
-          sameElse: "L",
+          }
+          return "[В] dddd, [в] LT";
         },
-      });
-      dailyNotes.reindex();
-      weeklyNotes.reindex();
-      today = window.moment();
-    }
+        lastWeek: function () {
+          switch (this.day()) {
+            case 0:
+              return "[В прошлое] dddd, [в] LT";
+            case 1:
+            case 2:
+            case 4:
+              return "[В прошлый] dddd, [в] LT";
+            case 3:
+            case 5:
+              return "[В прошлую] dddd, [в] LT";
+            case 6:
+              return "[В прошлую субботу, в] LT";
+            default:
+              return "[В] dddd, [в] LT";
+          }
+        },
+        sameElse: "L",
+      },
+    });
+    dailyNotes.reindex();
+    weeklyNotes.reindex();
+    today = window.moment();
   }
 
   export let displayedMonth: Moment = today;

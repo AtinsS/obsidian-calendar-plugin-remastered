@@ -6,8 +6,12 @@
   import {
     financialAnalyticsData,
     addManualIncomeSource,
+    updateManualIncomeSource,
     removeManualIncomeSource,
     getTotalManualIncome,
+    getIncomeCategories,
+    addIncomeCategory,
+    removeIncomeCategory,
   } from "./financialAnalyticsStorage";
 
   let filterTab: "all" | "done" | "todo" = "all";
@@ -15,8 +19,19 @@
   let newIncomeName = "";
   let newIncomeAmount = 0;
   let newIncomeDate = new Date().toISOString().split("T")[0];
+  let newIncomeCategory = "";
   let collapsedProjects: Record<string, boolean> = {};
   let collapseVersion = 0;
+  let categoryFilter: string = "all";
+  let showManageCategories = false;
+  let newCategoryName = "";
+
+  // Edit state
+  let editingSourceId: string | null = null;
+  let editName = "";
+  let editAmount = 0;
+  let editDate = "";
+  let editCategory = "";
 
   const now = new Date();
   let selectedYear = now.getFullYear();
@@ -49,6 +64,14 @@
     : 0;
 
   $: grandTotal = totalTaskEarnings + totalManualIncome;
+
+  $: incomeCategories = $financialAnalyticsData?.incomeCategories || [];
+
+  $: filteredManualSources = (() => {
+    const sources = $financialAnalyticsData.manualIncomeSources;
+    if (categoryFilter === "all") return sources;
+    return sources.filter((s) => s.category === categoryFilter);
+  })();
 
   interface ProjectGroup {
     projectId: string | null;
@@ -129,24 +152,60 @@
   }
 
   function addIncomeSource(): void {
-    if (!newIncomeName.trim() || newIncomeAmount <= 0) return;
+    if (!newIncomeName.trim() || newIncomeAmount <= 0 || !newIncomeCategory) return;
 
     addManualIncomeSource({
       name: newIncomeName.trim(),
       amount: newIncomeAmount,
       date: newIncomeDate,
+      category: newIncomeCategory,
     });
 
     newIncomeName = "";
     newIncomeAmount = 0;
     newIncomeDate = new Date().toISOString().split("T")[0];
+    newIncomeCategory = "";
     showAddIncome = false;
+  }
+
+  function handleAddCategory(): void {
+    if (!newCategoryName.trim()) return;
+    addIncomeCategory(newCategoryName.trim());
+    newCategoryName = "";
+  }
+
+  function handleRemoveCategory(cat: string): void {
+    removeIncomeCategory(cat);
+    if (categoryFilter === cat) categoryFilter = "all";
   }
 
   function deleteIncomeSource(id: string): void {
     if (confirm("Удалить источник дохода?")) {
       removeManualIncomeSource(id);
     }
+  }
+
+  function startEditSource(source: { id: string; name: string; amount: number; date: string; category: string }): void {
+    editingSourceId = source.id;
+    editName = source.name;
+    editAmount = source.amount;
+    editDate = source.date;
+    editCategory = source.category || "Другое";
+  }
+
+  function saveEditSource(): void {
+    if (!editingSourceId || !editName.trim()) return;
+    updateManualIncomeSource(editingSourceId, {
+      name: editName.trim(),
+      amount: editAmount,
+      date: editDate,
+      category: editCategory,
+    });
+    editingSourceId = null;
+  }
+
+  function cancelEditSource(): void {
+    editingSourceId = null;
   }
 
   function formatDate(dateStr: string): string {
@@ -324,28 +383,96 @@
     </div>
 
     {#if showAddIncome}
-      <div class="fa-add-form">
-        <input
-          type="text"
-          bind:value={newIncomeName}
-          placeholder="Название источника"
-          class="fa-input"
-        />
-        <input
-          type="number"
-          bind:value={newIncomeAmount}
-          placeholder="Сумма"
-          min="0"
-          class="fa-input fa-input-amount"
-        />
-        <input
-          type="date"
-          bind:value={newIncomeDate}
-          class="fa-input"
-        />
-        <button class="fa-submit-btn" on:click={addIncomeSource}>
-          Добавить
-        </button>
+      {#if incomeCategories.length === 0}
+        <div class="fa-empty">Сначала добавьте хотя бы одну категорию ниже</div>
+      {:else}
+        <div class="fa-add-form">
+          <input
+            type="text"
+            bind:value={newIncomeName}
+            placeholder="Название источника"
+            class="fa-input"
+          />
+          <input
+            type="number"
+            bind:value={newIncomeAmount}
+            placeholder="Сумма"
+            min="0"
+            class="fa-input fa-input-amount"
+          />
+          <select bind:value={newIncomeCategory} class="fa-input fa-category-select">
+            <option value="">Категория...</option>
+            {#each incomeCategories as cat}
+              <option value={cat}>{cat}</option>
+            {/each}
+          </select>
+          <input
+            type="date"
+            bind:value={newIncomeDate}
+            class="fa-input"
+          />
+          <button class="fa-submit-btn" on:click={addIncomeSource} disabled={!newIncomeCategory}>
+            Добавить
+          </button>
+        </div>
+      {/if}
+    {/if}
+
+    <!-- Category management -->
+    <div class="fa-manage-categories">
+      <div class="fa-manage-header">
+        {#if incomeCategories.length === 0}
+          Добавьте категории для источников дохода
+        {:else}
+          Категории ({incomeCategories.length})
+          <button
+            class="fa-cat-toggle-btn"
+            on:click={() => showManageCategories = !showManageCategories}
+          >{showManageCategories ? "Скрыть" : "Редактировать"}</button>
+        {/if}
+      </div>
+
+      {#if incomeCategories.length === 0 || showManageCategories}
+        <div class="fa-add-category-row">
+          <input
+            type="text"
+            bind:value={newCategoryName}
+            placeholder="Название категории"
+            class="fa-input"
+            on:keydown={(e) => { if (e.key === 'Enter') handleAddCategory(); }}
+          />
+          <button class="fa-submit-btn" on:click={handleAddCategory}>Добавить</button>
+        </div>
+        {#if incomeCategories.length > 0}
+          <div class="fa-category-tags">
+            {#each incomeCategories as cat}
+              <span class="fa-category-tag">
+                {cat}
+                <button class="fa-tag-remove" on:click={() => handleRemoveCategory(cat)} title="Удалить категорию">✕</button>
+              </span>
+            {/each}
+          </div>
+        {/if}
+      {/if}
+    </div>
+
+    <!-- Category filter -->
+    {#if incomeCategories.length > 0 && $financialAnalyticsData.manualIncomeSources.length > 0}
+      <div class="fa-category-filter">
+        <button
+          class="fa-cat-btn"
+          class:active={categoryFilter === "all"}
+          on:click={() => categoryFilter = "all"}
+        >Все</button>
+        {#each incomeCategories as cat}
+          {#if $financialAnalyticsData.manualIncomeSources.some(s => s.category === cat)}
+            <button
+              class="fa-cat-btn"
+              class:active={categoryFilter === cat}
+              on:click={() => categoryFilter = cat}
+            >{cat}</button>
+          {/if}
+        {/each}
       </div>
     {/if}
 
@@ -353,23 +480,44 @@
       <div class="fa-empty">Нет дополнительных источников дохода</div>
     {:else}
       <div class="fa-income-list">
-        {#each $financialAnalyticsData.manualIncomeSources as source (source.id)}
-          <div class="fa-income-item">
-            <div class="fa-income-info">
-              <div class="fa-income-name">{source.name}</div>
-              <div class="fa-income-date">{formatDate(source.date)}</div>
+        {#each filteredManualSources as source (source.id)}
+          {#if editingSourceId === source.id}
+            <div class="fa-income-item fa-income-editing">
+              <div class="fa-edit-fields">
+                <input type="text" bind:value={editName} placeholder="Название" class="fa-input fa-edit-name" />
+                <input type="number" bind:value={editAmount} min="0" class="fa-input fa-edit-amount" />
+                <select bind:value={editCategory} class="fa-input fa-edit-category">
+                  {#each incomeCategories as cat}
+                    <option value={cat}>{cat}</option>
+                  {/each}
+                </select>
+                <input type="date" bind:value={editDate} class="fa-input fa-edit-date" />
+              </div>
+              <div class="fa-edit-actions">
+                <button class="fa-save-btn" on:click={saveEditSource}>✓</button>
+                <button class="fa-cancel-btn" on:click={cancelEditSource}>✕</button>
+              </div>
             </div>
-            <div class="fa-income-right">
-              <span class="fa-income-amount">{formatMoney(source.amount)} ₽</span>
-              <button
-                class="fa-delete-btn"
-                on:click={() => deleteIncomeSource(source.id)}
-              >
-                ✕
-              </button>
+          {:else}
+            <div class="fa-income-item">
+              <div class="fa-income-info">
+                <div class="fa-income-name">{source.name}</div>
+                <div class="fa-income-meta">
+                  <span class="fa-income-category">{source.category || "Другое"}</span>
+                  <span class="fa-income-date">{formatDate(source.date)}</span>
+                </div>
+              </div>
+              <div class="fa-income-right">
+                <span class="fa-income-amount">{formatMoney(source.amount)} ₽</span>
+                <button class="fa-edit-btn" on:click={() => startEditSource(source)} title="Редактировать">✎</button>
+                <button class="fa-delete-btn" on:click={() => deleteIncomeSource(source.id)} title="Удалить">✕</button>
+              </div>
             </div>
-          </div>
+          {/if}
         {/each}
+        {#if filteredManualSources.length === 0}
+          <div class="fa-empty">Нет записей в этой категории</div>
+        {/if}
       </div>
     {/if}
   </div>
@@ -761,7 +909,7 @@
 
   .fa-add-form {
     display: grid;
-    grid-template-columns: 1fr 120px 140px auto;
+    grid-template-columns: 1fr 120px 140px 140px auto;
     gap: 10px;
     margin-bottom: 14px;
     padding: 16px;
@@ -771,7 +919,6 @@
   }
 
   .fa-input {
-    padding: 10px 14px;
     border: 1px solid var(--mcp-glass-border);
     border-radius: var(--mcp-radius-sm);
     background: var(--background-primary);
@@ -804,9 +951,14 @@
     transition: all 0.2s ease;
   }
 
-  .fa-submit-btn:hover {
+  .fa-submit-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px var(--mcp-accent-dim);
+  }
+
+  .fa-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .fa-income-list {
@@ -842,6 +994,23 @@
     margin-bottom: 4px;
   }
 
+  .fa-income-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fa-income-category {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--mcp-accent);
+    background: var(--mcp-accent-dim, rgba(95, 153, 225, 0.15));
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
   .fa-income-date {
     font-size: 11px;
     color: var(--mcp-text-muted);
@@ -851,6 +1020,213 @@
     display: flex;
     align-items: center;
     gap: 12px;
+  }
+
+  .fa-edit-btn {
+    background: none;
+    border: none;
+    color: var(--mcp-text-muted);
+    cursor: pointer;
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: var(--mcp-radius-sm);
+    opacity: 0.4;
+    transition: all 0.2s ease;
+  }
+
+  .fa-income-item:hover .fa-edit-btn {
+    opacity: 1;
+  }
+
+  .fa-edit-btn:hover {
+    color: var(--mcp-accent);
+    background: var(--mcp-accent-dim);
+  }
+
+  .fa-income-editing {
+    background: var(--mcp-glass-highlight);
+    border-color: var(--mcp-accent);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .fa-edit-fields {
+    display: grid;
+    grid-template-columns: 1fr 100px 120px 130px;
+    gap: 8px;
+  }
+
+  .fa-edit-fields .fa-input {
+    padding: 8px 10px;
+  }
+
+  .fa-edit-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .fa-save-btn, .fa-cancel-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: var(--mcp-radius-sm);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .fa-save-btn {
+    background: var(--mcp-success);
+    color: #fff;
+  }
+
+  .fa-save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px var(--mcp-success-dim);
+  }
+
+  .fa-cancel-btn {
+    background: transparent;
+    border: 1px solid var(--mcp-glass-border);
+    color: var(--mcp-text-muted);
+  }
+
+  .fa-cancel-btn:hover {
+    border-color: var(--mcp-danger);
+    color: var(--mcp-danger);
+  }
+
+  /* ── Category Filter ─────────────────────────────────── */
+  .fa-category-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .fa-cat-btn {
+    padding: 5px 12px;
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--mcp-text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .fa-cat-btn:hover {
+    border-color: var(--mcp-accent);
+    color: var(--mcp-accent);
+  }
+
+  .fa-cat-btn.active {
+    background: var(--mcp-accent);
+    color: var(--text-on-accent, #fff);
+    border-color: var(--mcp-accent);
+  }
+
+  .fa-cat-manage-btn {
+    padding: 5px 10px;
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: 16px;
+    background: transparent;
+    color: var(--mcp-text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+  }
+
+  .fa-cat-manage-btn:hover {
+    border-color: var(--mcp-accent);
+    color: var(--mcp-accent);
+  }
+
+  .fa-manage-categories {
+    margin-bottom: 14px;
+    padding: 14px;
+    background: var(--mcp-glass-highlight);
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: var(--mcp-radius-sm);
+  }
+
+  .fa-manage-header {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--mcp-text);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .fa-cat-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--mcp-accent);
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .fa-cat-toggle-btn:hover {
+    background: var(--mcp-accent-dim);
+  }
+
+  .fa-add-category-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .fa-add-category-row .fa-input {
+    flex: 1;
+  }
+
+  .fa-category-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .fa-category-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background: var(--mcp-glass-bg);
+    border: 1px solid var(--mcp-glass-border);
+    border-radius: 12px;
+    font-size: 11px;
+    color: var(--mcp-text);
+  }
+
+  .fa-tag-remove {
+    background: none;
+    border: none;
+    color: var(--mcp-text-muted);
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 10px;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+  }
+
+  .fa-tag-remove:hover {
+    opacity: 1;
+    color: var(--mcp-danger);
+  }
+
+  .fa-category-select {
+    min-width: 120px;
   }
 
   .fa-income-amount {

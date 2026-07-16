@@ -7,15 +7,18 @@ export interface ManualIncomeSource {
   name: string;
   amount: number;
   date: string;
+  category: string;
   createdAt: number;
 }
 
 export interface IFinancialAnalyticsData {
   manualIncomeSources: ManualIncomeSource[];
+  incomeCategories: string[];
 }
 
 export const financialAnalyticsData = writable<IFinancialAnalyticsData>({
   manualIncomeSources: [],
+  incomeCategories: [],
 });
 
 let pluginInstance: CalendarPlugin = null;
@@ -37,7 +40,12 @@ async function loadFinancialAnalyticsData(): Promise<void> {
   // Always uses vaultStorage (calendar-data.json)
   const vaultData = await loadVaultData(pluginInstance.app);
   if (vaultData.financialAnalytics) {
-    financialAnalyticsData.set(vaultData.financialAnalytics as IFinancialAnalyticsData);
+    const savedData = vaultData.financialAnalytics as IFinancialAnalyticsData;
+    // Ensure incomeCategories always exists (migration from old format)
+    financialAnalyticsData.set({
+      manualIncomeSources: savedData.manualIncomeSources || [],
+      incomeCategories: savedData.incomeCategories || [],
+    });
   }
   loaded = true;
 }
@@ -102,4 +110,42 @@ export function removeManualIncomeSource(id: string): void {
 export function getTotalManualIncome(): number {
   const data = get(financialAnalyticsData);
   return data.manualIncomeSources.reduce((sum, s) => sum + s.amount, 0);
+}
+
+export function getIncomeCategories(): string[] {
+  const data = get(financialAnalyticsData);
+  return data.incomeCategories || [];
+}
+
+export function addIncomeCategory(category: string): void {
+  const trimmed = category.trim();
+  if (!trimmed) return;
+  financialAnalyticsData.update((current) => {
+    const cats = current.incomeCategories || [];
+    if (cats.includes(trimmed)) return current;
+    return { ...current, incomeCategories: [...cats, trimmed] };
+  });
+  // Save immediately so categories persist without delay
+  immediateAnalyticsSave();
+}
+
+export function removeIncomeCategory(category: string): void {
+  financialAnalyticsData.update((current) => {
+    const cats = current.incomeCategories || [];
+    return { ...current, incomeCategories: cats.filter((c) => c !== category) };
+  });
+  // Save immediately so categories persist without delay
+  immediateAnalyticsSave();
+}
+
+export function getManualIncomeByCategory(): Map<string, ManualIncomeSource[]> {
+  const data = get(financialAnalyticsData);
+  const map = new Map<string, ManualIncomeSource[]>();
+  for (const source of data.manualIncomeSources) {
+    const cat = source.category || "Другое";
+    const list = map.get(cat);
+    if (list) list.push(source);
+    else map.set(cat, [source]);
+  }
+  return map;
 }

@@ -81,7 +81,7 @@ function getParsedVault(): Record<string, any> {
 beforeEach(() => {
   vaultStore = {};
   financeData.set({});
-  financialAnalyticsData.set({ manualIncomeSources: [] });
+  financialAnalyticsData.set({ manualIncomeSources: [], incomeCategories: [] });
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -599,7 +599,7 @@ describe("Financial Analytics — full lifecycle", () => {
     const data = get(financialAnalyticsData);
     expect(data.manualIncomeSources[0].name).toBe("Фриланс");
 
-    addManualIncomeSource({ name: "Консультации", amount: 15000, date: "2026-07-03" });
+    addManualIncomeSource({ name: "Консультации", amount: 15000, date: "2026-07-03", category: "Фриланс" });
     await flushDebounce();
 
     expect(getTotalManualIncome()).toBe(60000);
@@ -608,7 +608,7 @@ describe("Financial Analytics — full lifecycle", () => {
     expect(vault.financialAnalytics.manualIncomeSources).toHaveLength(2);
     expect(vault.financialAnalytics.manualIncomeSources[1].name).toBe("Консультации");
 
-    financialAnalyticsData.set({ manualIncomeSources: [] });
+    financialAnalyticsData.set({ manualIncomeSources: [], incomeCategories: [] });
     reloadFinancialAnalyticsStores();
     await flushDebounce();
 
@@ -641,6 +641,79 @@ describe("Financial Analytics — full lifecycle", () => {
 
     vault = getParsedVault();
     expect(vault.financialAnalytics.manualIncomeSources).toHaveLength(0);
+  });
+
+  it("should add income source with category and persist it", async () => {
+    vaultStore["calendar-data.json"] = JSON.stringify({
+      taskTracker: {},
+      financialAnalytics: { manualIncomeSources: [] },
+    });
+
+    const plugin = createMockPlugin();
+    initFinancialAnalyticsStores(plugin);
+    await flushDebounce();
+
+    addManualIncomeSource({ name: "Фриланс проект", amount: 50000, date: "2026-07-15", category: "Фриланс" });
+    await flushDebounce();
+
+    const vault = getParsedVault();
+    expect(vault.financialAnalytics.manualIncomeSources).toHaveLength(1);
+    expect(vault.financialAnalytics.manualIncomeSources[0].category).toBe("Фриланс");
+  });
+
+  it("should update category of income source", async () => {
+    vaultStore["calendar-data.json"] = JSON.stringify({
+      taskTracker: {},
+      financialAnalytics: {
+        manualIncomeSources: [
+          { id: "mi-1", name: "Доход", amount: 10000, date: "2026-07-01", category: "Подработка", createdAt: 1000 },
+        ],
+      },
+    });
+
+    const plugin = createMockPlugin();
+    initFinancialAnalyticsStores(plugin);
+    await flushDebounce();
+
+    updateManualIncomeSource("mi-1", { category: "Инвестиции" });
+    await flushDebounce();
+
+    const vault = getParsedVault();
+    expect(vault.financialAnalytics.manualIncomeSources[0].category).toBe("Инвестиции");
+  });
+
+  it("should get income sources grouped by category", async () => {
+    const { getManualIncomeByCategory } = await import("../financialAnalyticsStorage");
+    financialAnalyticsData.set({
+      manualIncomeSources: [
+        { id: "mi-1", name: "Проект 1", amount: 30000, date: "2026-07-01", category: "Фриланс", createdAt: 1000 },
+        { id: "mi-2", name: "Проект 2", amount: 20000, date: "2026-07-02", category: "Фриланс", createdAt: 1001 },
+        { id: "mi-3", name: "Аренда", amount: 15000, date: "2026-07-03", category: "Аренда", createdAt: 1002 },
+      ],
+      incomeCategories: ["Фриланс", "Аренда"],
+    });
+
+    const grouped = getManualIncomeByCategory();
+    expect(grouped.size).toBe(2);
+    expect(grouped.get("Фриланс")).toHaveLength(2);
+    expect(grouped.get("Аренда")).toHaveLength(1);
+  });
+
+  it("should add and remove income categories", async () => {
+    const { addIncomeCategory, removeIncomeCategory, getIncomeCategories } = await import("../financialAnalyticsStorage");
+    financialAnalyticsData.set({ manualIncomeSources: [], incomeCategories: [] });
+
+    addIncomeCategory("Фриланс");
+    addIncomeCategory("Подработка");
+    expect(getIncomeCategories()).toContain("Фриланс");
+    expect(getIncomeCategories()).toContain("Подработка");
+
+    addIncomeCategory("Фриланс"); // duplicate should be ignored
+    expect(getIncomeCategories().filter(c => c === "Фриланс")).toHaveLength(1);
+
+    removeIncomeCategory("Подработка");
+    expect(getIncomeCategories()).not.toContain("Подработка");
+    expect(getIncomeCategories()).toContain("Фриланс");
   });
 });
 

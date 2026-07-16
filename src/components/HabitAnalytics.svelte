@@ -5,6 +5,7 @@
     habitLogs,
     getWeeklyStats,
     getHabitStats,
+    getDayOfWeekProductivity,
   } from "../habit-tracker/stores";
   import HabitCard from "./HabitCard.svelte";
   import BarChart from "./BarChart.svelte";
@@ -29,6 +30,8 @@
   } from "../finance/financialAnalyticsStorage";
   import { VIEW_TYPE_FINANCIAL_ANALYTICS } from "../constants";
 
+  export let habitsHidden: boolean = false;
+
   let weeklyStats = getWeeklyStats(12);
 
   // Period selector for "Время и проекты"
@@ -42,6 +45,15 @@
   }
 
   $: activeHabits = $habits.filter((h) => !h.archived);
+
+  // Day-of-week productivity stats
+  $: {
+    $habitLogs;
+    dayOfWeekStats = getDayOfWeekProductivity();
+    maxProductivity = Math.max(...dayOfWeekStats.map((d) => d.productivityRate), 1);
+  }
+  let dayOfWeekStats: { dayIndex: number; dayName: string; completions: number; productivityRate: number }[] = [];
+  let maxProductivity = 1;
 
   // Calculate weekly earnings
   $: weeklyEarnings = weeklyStats.map((week) => {
@@ -204,7 +216,7 @@
   </div>
 
   <!-- Summary Cards -->
-  {#if activeHabits.length > 0}
+  {#if !habitsHidden && activeHabits.length > 0}
     <h2>Привычки</h2>
     <div class="habit-analytics-summary">
       <div class="summary-card">
@@ -241,6 +253,37 @@
         {/each}
       </div>
     </div>
+
+    <!-- Day of week productivity -->
+    {#if !habitsHidden}
+    <div class="habit-analytics-section">
+      <h3>Продуктивность по дням</h3>
+      <div class="day-chart">
+        {#each dayOfWeekStats as day}
+          <div class="day-bar-wrapper">
+            <div class="day-bar-info">
+              <span class="day-bar-rate">{day.productivityRate}%</span>
+            </div>
+            <div
+              class="day-bar"
+              class:productive={day.productivityRate >= 50}
+              class:neutral={day.productivityRate >= 20 && day.productivityRate < 50}
+              class:lazy={day.productivityRate < 20}
+              style="height: {day.productivityRate > 0 ? Math.max((day.productivityRate / maxProductivity) * 100, 6) : 0}%"
+              title="{day.dayName}: {day.completions} выполнений, {day.productivityRate}% активных дней"
+            ></div>
+            <span class="day-bar-label">{day.dayName}</span>
+            <span class="day-bar-count">{day.completions}</span>
+          </div>
+        {/each}
+      </div>
+      <div class="day-legend">
+        <span class="legend-item"><span class="legend-dot productive"></span> Продуктивный (50%+)</span>
+        <span class="legend-item"><span class="legend-dot neutral"></span> Средний (20-50%)</span>
+        <span class="legend-item"><span class="legend-dot lazy"></span> Прокрастинация (&lt;20%)</span>
+      </div>
+    </div>
+    {/if}
   {/if}
 
   <!-- Time & Projects — unified section -->
@@ -574,6 +617,120 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 12px;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -8px 0 16px;
+    font-weight: 400;
+  }
+
+  /* Day of week chart */
+  .day-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 160px;
+    padding: 16px 8px 0;
+    border-radius: var(--mcp-radius-sm);
+    background: var(--mcp-glass-highlight);
+  }
+
+  .day-bar-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+  }
+
+  .day-bar-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 4px;
+    min-height: 20px;
+  }
+
+  .day-bar-rate {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-accent);
+    white-space: nowrap;
+  }
+
+  .day-bar {
+    width: 100%;
+    max-width: 40px;
+    border-radius: 4px 4px 0 0;
+    min-height: 0;
+    transition: height 0.3s ease, opacity 0.2s ease;
+  }
+
+  .day-bar.productive {
+    background: linear-gradient(180deg, var(--mcp-success, rgba(34, 197, 94, 0.9)), color-mix(in srgb, var(--mcp-success, rgba(34, 197, 94, 0.5)) 60%, transparent));
+  }
+
+  .day-bar.neutral {
+    background: linear-gradient(180deg, var(--mcp-warning, rgba(220, 190, 130, 0.9)), color-mix(in srgb, var(--mcp-warning, rgba(220, 190, 130, 0.5)) 60%, transparent));
+  }
+
+  .day-bar.lazy {
+    background: linear-gradient(180deg, var(--mcp-danger, rgba(220, 150, 150, 0.9)), color-mix(in srgb, var(--mcp-danger, rgba(220, 150, 150, 0.5)) 60%, transparent));
+  }
+
+  .day-bar:hover {
+    opacity: 0.85;
+  }
+
+  .day-bar-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .day-bar-count {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-weight: 400;
+  }
+
+  .day-legend {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .legend-dot.productive {
+    background: var(--mcp-success, rgba(34, 197, 94, 0.9));
+  }
+
+  .legend-dot.neutral {
+    background: var(--mcp-warning, rgba(220, 190, 130, 0.9));
+  }
+
+  .legend-dot.lazy {
+    background: var(--mcp-danger, rgba(220, 150, 150, 0.9));
   }
 
   /* Time Logs */

@@ -37,6 +37,7 @@ import { setSyncEnabled as setHabitSync } from "./habit-tracker/storage";
 import { initFinanceStores, reloadFinanceStores, immediateFinanceSave } from "./finance/storage";
 import { initFinancialAnalyticsStores, reloadFinancialAnalyticsStores, immediateAnalyticsSave } from "./finance/financialAnalyticsStorage";
 import { NotificationService } from "./services/NotificationService";
+import { initGistSync } from "./services/GistSyncService";
 
 declare global {
   interface Window {
@@ -212,6 +213,9 @@ export default class CalendarPlugin extends Plugin {
 
     // Initialize financial analytics
     initFinancialAnalyticsStores(this);
+
+    // Initialize GitHub Gist sync
+    initGistSync(this);
 
     // Initialize notification service
     this.notificationService = new NotificationService(this);

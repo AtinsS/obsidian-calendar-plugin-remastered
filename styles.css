@@ -520,7 +520,7 @@ content: attr(data-task-count);
 
 .habit-tracker-panel {
   position: relative;
-  z-index: 1;
+  z-index: 0;
 }
 
 /* ============================================

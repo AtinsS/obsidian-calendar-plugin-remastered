@@ -33,8 +33,8 @@ export class FolderSuggestModal extends SuggestModal<FolderSuggestion> {
   private getVaultFolders(): string[] {
     const folders: string[] = [];
     const root = this.app.vault.getRoot();
-    const walk = (folder: { children?: Array<{ children?: unknown[]; path: string }>; path: string }) => {
-      for (const child of folder.children) {
+    const walk = (folder: any) => {
+      for (const child of folder.children || []) {
         if (child.children) {
           folders.push(child.path);
           walk(child);
