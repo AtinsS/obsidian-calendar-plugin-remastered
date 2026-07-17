@@ -30,8 +30,6 @@
   } from "../finance/financialAnalyticsStorage";
   import { VIEW_TYPE_FINANCIAL_ANALYTICS } from "../constants";
 
-  export let habitsHidden: boolean = false;
-
   let weeklyStats = getWeeklyStats(12);
 
   // Period selector for "Время и проекты"
@@ -216,7 +214,7 @@
   </div>
 
   <!-- Summary Cards -->
-  {#if !habitsHidden && activeHabits.length > 0}
+  {#if activeHabits.length > 0}
     <h2>Привычки</h2>
     <div class="habit-analytics-summary">
       <div class="summary-card">
@@ -255,9 +253,8 @@
     </div>
 
     <!-- Day of week productivity -->
-    {#if !habitsHidden}
     <div class="habit-analytics-section">
-      <h3>Продуктивность по дням</h3>
+      <h3>Продуктивность по дням недели</h3>
       <div class="day-chart">
         {#each dayOfWeekStats as day}
           <div class="day-bar-wrapper">
@@ -283,7 +280,6 @@
         <span class="legend-item"><span class="legend-dot lazy"></span> Прокрастинация (&lt;20%)</span>
       </div>
     </div>
-    {/if}
   {/if}
 
   <!-- Time & Projects — unified section -->

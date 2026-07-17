@@ -136,7 +136,15 @@ function tasksToIcsEvents(): IcsEvent[] {
       .filter(Boolean)
       .join("\\n");
 
-    const summary = project ? `[${project.name}] ${task.title}` : task.title;
+    const statusLabel: Record<string, string> = {
+      todo: "\u27A1\uFE0F",
+      progress: "\uD83D\uDD04",
+      paused: "\u23F8\uFE0F",
+    };
+    const statusIcon = statusLabel[task.status] || "";
+    const summary = project
+      ? `${statusIcon} [${project.name}] ${task.title}`
+      : `${statusIcon} ${task.title}`;
 
     if (task.scheduledTime) {
       const [hours, minutes] = task.scheduledTime.split(":").map(Number);

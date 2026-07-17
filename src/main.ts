@@ -38,6 +38,7 @@ import { initFinanceStores, reloadFinanceStores, immediateFinanceSave } from "./
 import { initFinancialAnalyticsStores, reloadFinancialAnalyticsStores, immediateAnalyticsSave } from "./finance/financialAnalyticsStorage";
 import { NotificationService } from "./services/NotificationService";
 import { initGistSync } from "./services/GistSyncService";
+import { syncNotificationSettingsOnLoad } from "./io/vaultStorage";
 
 declare global {
   interface Window {
@@ -198,6 +199,15 @@ export default class CalendarPlugin extends Plugin {
     });
 
     await this.loadOptions();
+
+    // Sync notification settings to vault on load so GitHub Actions always has current data
+    syncNotificationSettingsOnLoad(this.app, {
+      syncToVault: !!this.options.syncToVault,
+      morningSummaryEnabled: !!this.options.morningSummaryEnabled,
+      morningSummaryTime: this.options.morningSummaryTime || "06:00",
+      overdueCheckEnabled: !!this.options.overdueCheckEnabled,
+      ntfyTopic: this.options.ntfyTopic || "Calendar_Remastered",
+    }).catch((e) => console.warn("[Calendar] Failed to sync notification settings to vault:", e));
 
     // Initialize task tracker
     initTaskStores(this);

@@ -79,5 +79,33 @@ export async function saveNotificationSyncSettings(
   app: App,
   settings: NotificationSyncSettings
 ): Promise<void> {
-  await saveVaultKey(app, "notificationSync", settings);
+  // Merge with existing notificationSync to preserve fields set by GitHub Actions
+  // (e.g. lastSummarySent) that the plugin doesn't manage
+  await enqueueWrite(async () => {
+    const vaultData = await loadVaultData(app);
+    const existing = (vaultData["notificationSync"] as Record<string, unknown>) || {};
+    vaultData["notificationSync"] = { ...existing, ...settings };
+    await saveVaultData(app, vaultData);
+  });
+}
+
+/**
+ * Sync notification settings to vault on plugin load.
+ * This ensures calendar-data.json always has the latest settings
+ * for GitHub Actions workflows.
+ */
+export async function syncNotificationSettingsOnLoad(app: App, options: {
+  syncToVault: boolean;
+  morningSummaryEnabled: boolean;
+  morningSummaryTime: string;
+  overdueCheckEnabled: boolean;
+  ntfyTopic: string;
+}): Promise<void> {
+  if (!options.syncToVault) return;
+  await saveNotificationSyncSettings(app, {
+    morningSummaryEnabled: options.morningSummaryEnabled,
+    morningSummaryTime: options.morningSummaryTime,
+    overdueCheckEnabled: options.overdueCheckEnabled,
+    ntfyTopic: options.ntfyTopic || "Calendar_Remastered",
+  });
 }

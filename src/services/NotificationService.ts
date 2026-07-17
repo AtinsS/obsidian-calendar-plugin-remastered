@@ -202,7 +202,7 @@ export class NotificationService {
 
   private checkScheduledSummary(): void {
     const opts = this.plugin.options as ISettings;
-    if (!opts.morningSummaryEnabled || !opts.ntfyEnabled || !opts.ntfyTopic) return;
+    if (!opts.morningSummaryEnabled || !opts.ntfyTopic) return;
 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -321,7 +321,7 @@ export class NotificationService {
 
   private sendMorningSummary(): void {
     const opts = this.plugin.options as ISettings;
-    if (!opts.ntfyEnabled || !opts.ntfyTopic) return;
+    if (!opts.ntfyTopic) return;
 
     const allTasks = get(tasks);
     const allProjects = get(projects);

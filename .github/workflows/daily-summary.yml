@@ -23,6 +23,13 @@ jobs:
         run: |
           if [ ! -f "calendar-data.json" ]; then
             echo "::warning::calendar-data.json not found in repo root. Make sure syncToVault is enabled and the file is committed."
+            # Send alert via ntfy so user knows the setup is broken
+            TOPIC="${NTFY_TOPIC:-Calendar_Remastered}"
+            curl -s -d "⚠️ Утренняя сводка не отправлена: calendar-data.json не найден в репозитории. Включите syncToVault и закоммьте файл." \
+              -H "Title: Calendar Remastered — Ошибка" \
+              -H "Priority: min" \
+              -H "Tags: warning" \
+              "https://ntfy.sh/${TOPIC}" || true
             exit 0
           fi
 
@@ -50,6 +57,18 @@ jobs:
           msk = timezone(timedelta(hours=3))
           now = datetime.now(msk)
           today_prefix = now.strftime('%Y-%m-%d')
+
+          # Respect the configured morning summary time (default 06:00)
+          summary_time_str = ns.get('morningSummaryTime', '06:00')
+          try:
+              target_h, target_m = map(int, summary_time_str.split(':'))
+          except (ValueError, AttributeError):
+              target_h, target_m = 6, 0
+
+          # Only send within a 5-minute window of the target time
+          if now.hour != target_h or abs(now.minute - target_m) > 5:
+              print(f'Not within sending window (target {summary_time_str}, now {now.strftime("%H:%M")}), skipping')
+              sys.exit(0)
 
           # Prevent duplicate sends per day (check date, not hour)
           last_sent = ns.get('lastSummarySent', '')
