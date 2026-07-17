@@ -2,6 +2,8 @@
  * GitHub Gist API client for publishing .ics calendar files.
  */
 
+import { requestUrl } from "obsidian";
+
 const GIST_API_URL = "https://api.github.com/gists";
 
 export interface GistConfig {
@@ -34,7 +36,8 @@ export async function createGist(
   const url = config.gistId ? `${GIST_API_URL}/${config.gistId}` : GIST_API_URL;
   const method = config.gistId ? "PATCH" : "POST";
 
-  const response = await fetch(url, {
+  const response = await requestUrl({
+    url,
     method,
     headers: {
       Authorization: `Bearer ${config.token}`,
@@ -45,8 +48,8 @@ export async function createGist(
     body: JSON.stringify(body),
   });
 
-  if (!response.ok) {
-    const errorBody = await response.text();
+  if (response.status !== 200 && response.status !== 201) {
+    const errorBody = response.text;
     if (response.status === 403) {
       throw new Error(
         "Нет прав для создания Gist. Убедитесь что токен имеет scope 'gist'. " +
@@ -60,7 +63,7 @@ export async function createGist(
     throw new Error(`GitHub API error ${response.status}: ${errorBody}`);
   }
 
-  const data = await response.json();
+  const data = response.json;
   const rawUrl = data.files[filename]?.raw_url || "";
 
   // Generate stable URL without revision hash for subscriptions
@@ -78,22 +81,23 @@ export async function createGist(
 }
 
 export async function verifyToken(token: string): Promise<{ login: string; scopes: string[]; hasGistScope: boolean }> {
-  const response = await fetch("https://api.github.com/user", {
+  const response = await requestUrl({
+    url: "https://api.github.com/user",
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
     },
   });
 
-  if (!response.ok) {
+  if (response.status !== 200) {
     if (response.status === 401) {
       throw new Error("Неверный GitHub токен.");
     }
     throw new Error(`GitHub API error ${response.status}`);
   }
 
-  const data = await response.json();
-  const scopes = (response.headers.get("x-oauth-scopes") || "").split(",").map((s) => s.trim());
+  const data = response.json;
+  const scopes = (response.headers["x-oauth-scopes"] || "").split(",").map((s) => s.trim());
   const hasGistScope = scopes.includes("gist");
 
   if (!hasGistScope) {
@@ -108,15 +112,16 @@ export async function getGistContent(
   gistId: string,
   filename: string
 ): Promise<string | null> {
-  const response = await fetch(`${GIST_API_URL}/${gistId}`, {
+  const response = await requestUrl({
+    url: `${GIST_API_URL}/${gistId}`,
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
     },
   });
 
-  if (!response.ok) return null;
+  if (response.status !== 200) return null;
 
-  const data = await response.json();
+  const data = response.json;
   return data.files[filename]?.content || null;
 }

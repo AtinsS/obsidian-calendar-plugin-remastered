@@ -6,6 +6,9 @@ on:
     - cron: '0,30 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -28,7 +31,6 @@ jobs:
           with open('calendar-data.json') as f:
               data = json.load(f)
 
-          # Check if overdue check is enabled
           ns = data.get('notificationSync', {})
           if not ns.get('overdueCheckEnabled'):
               print('Overdue check disabled in settings, skipping')
@@ -37,14 +39,12 @@ jobs:
           topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
           tasks = data.get('taskTracker', {}).get('tasks', [])
 
-          # MSK = UTC+3
           msk = timezone(timedelta(hours=3))
           now = datetime.now(msk)
           today = now.strftime('%Y-%m-%d')
           now_str = now.strftime('%H:%M')
           tomorrow = (now + timedelta(days=1)).strftime('%Y-%m-%d')
 
-          # Anti-duplicate: track which notifications were already sent today
           last_check = ns.get('lastOverdueCheck', '')
           today_checks = ns.get('overdueChecksToday', [])
           if not last_check.startswith(today):
@@ -64,14 +64,12 @@ jobs:
               sched = t.get('scheduledTime', '')
               date_uid = t.get('dateUID', '')
 
-              # Overdue: scheduled time passed today
               check_key = f'overdue:{tid}'
               if sched and today in date_uid:
                   if sched <= now_str and status == 'todo' and check_key not in today_checks:
                       notifications.append(f'Просрочено: {title} (было в {sched})')
                       today_checks.append(check_key)
 
-              # Deadline today
               deadline = t.get('deadline', '')
               deadline_time = t.get('deadlineTime', '')
               dl_key = f'dl-today:{tid}'
@@ -83,7 +81,6 @@ jobs:
                       notifications.append(f'Дедлайн сегодня: {title}')
                       today_checks.append(dl_key)
 
-              # Deadline tomorrow (only notify once per day)
               dl_tomorrow_key = f'dl-tomorrow:{tid}'
               if deadline and tomorrow in deadline:
                   if dl_tomorrow_key not in today_checks:
@@ -91,7 +88,6 @@ jobs:
                       notifications.append(f'Дедлайн завтра: {title}{time_part}')
                       today_checks.append(dl_tomorrow_key)
 
-              # Estimate exceeded (only notify once per task)
               est_key = f'est:{tid}'
               est = t.get('estimatedTime', 0)
               work = t.get('totalWorkTime', 0)
@@ -113,9 +109,17 @@ jobs:
           else:
               print('No overdue tasks')
 
-          # Save dedup state
           ns['lastOverdueCheck'] = now.strftime('%Y-%m-%dT%H:%M')
           ns['overdueChecksToday'] = today_checks[-100:]
           with open('calendar-data.json', 'w') as f:
               json.dump(data, f, indent=2)
           "
+
+      - name: Commit updated calendar-data.json
+        if: success()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add calendar-data.json
+          git diff --staged --quiet || git commit -m "Update dedup state after overdue check"
+          git push

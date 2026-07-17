@@ -1,5 +1,6 @@
 import { get } from "svelte/store";
 import moment from "moment";
+import { requestUrl } from "obsidian";
 import type CalendarPlugin from "src/main";
 import { tasks, projects } from "src/task-tracker/stores";
 import type { ITask } from "src/task-tracker/types";
@@ -257,7 +258,8 @@ export class NotificationService {
     const opts = this.plugin.options as ISettings;
     if (!opts.ntfyEnabled || !opts.ntfyTopic) return;
 
-    fetch(`https://ntfy.sh/${opts.ntfyTopic}`, {
+    requestUrl({
+      url: `https://ntfy.sh/${opts.ntfyTopic}`,
       method: "POST",
       body,
     }).catch((e) => console.warn("[ntfy] send failed:", e));
@@ -279,10 +281,10 @@ export class NotificationService {
       try {
         const sinceParam = this.ntfyLastId ? `&since=${this.ntfyLastId}` : "&since=5m";
         const url = `https://ntfy.sh/${topic}/json?poll=1${sinceParam}`;
-        const response = await fetch(url);
-        if (!response.ok) return;
+        const response = await requestUrl({ url });
+        if (response.status !== 200) return;
 
-        const text = await response.text();
+        const text = response.text;
         if (!text.trim()) return;
 
         const lines = text.split("\n").filter((l) => l.trim().startsWith("{"));

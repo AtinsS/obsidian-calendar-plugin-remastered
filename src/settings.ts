@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, requestUrl } from "obsidian";
 import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride } from "obsidian-calendar-ui";
 import { get } from "svelte/store";
@@ -58,6 +58,10 @@ export interface ISettings {
   // Work task settings
   defaultPaymentType: "hour" | "day";
   defaultRate: number;
+
+  // GitHub Actions test settings
+  vaultRepo?: string;
+  workflowToken?: string;
 
   // GitHub Gist sync settings
   githubToken?: string;
@@ -512,7 +516,8 @@ priority: medium
           .onClick(async () => {
             const topic = this.plugin.options.ntfyTopic || "Calendar_Remastered";
             try {
-              await fetch(`https://ntfy.sh/${topic}`, {
+              await requestUrl({
+                url: `https://ntfy.sh/${topic}`,
                 method: "POST",
                 body: "Тестовое уведомление из Calendar Remastered",
               });
@@ -533,10 +538,14 @@ priority: medium
     ghDesc.innerHTML = `
       <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
         Уведомления отправляются через GitHub Actions, когда компьютер выключен.
-        Требуется: включённая синхронизация в корень хранилища + настроенный git push в репозиторий.
       </p>
       <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
-        <b>Настройка:</b> добавьте секрет <code>NTFY_TOPIC</code> в репозиторий (Settings → Secrets → Actions).
+        <b>Требования:</b><br>
+        1. Включите <b>Синхронизацию в корень хранилища</b> выше<br>
+        2. Настройте git push в репозиторий (Obsidian Git или вручную)<br>
+        3. Скопируйте файл <code>examples/workflows/daily-summary.yml</code> в <code>.github/workflows/</code> вашего vault-репозитория<br>
+        4. Создайте токен: GitHub → Settings → Credentials → Personal access tokens (классический) с правами <code>repo</code> + <code>actions:write</code><br>
+        5. Вставьте токен в поле ниже
       </p>
     `;
     this.containerEl.appendChild(ghDesc);
@@ -579,6 +588,139 @@ priority: medium
           this.syncNotificationSettingsToVault();
         });
       });
+
+    new Setting(this.containerEl)
+      .setName("Vault репозиторий")
+      .setDesc("GitHub репозиторий с vault (формат: owner/repo)")
+      .addText((text) => {
+        text
+          .setPlaceholder("AtinsS/ObsidianVaultRaven")
+          .setValue(this.plugin.options.vaultRepo || "")
+          .onChange(async (value) => {
+            await this.plugin.writeOptions({ vaultRepo: value });
+          });
+        text.inputEl.style.maxWidth = "300px";
+      });
+
+    new Setting(this.containerEl)
+      .setName("GitHub токен для Actions")
+      .setDesc("Personal access token с правами repo/public_repo + actions:write")
+      .addText((text) => {
+        text
+          .setPlaceholder("ghp_...")
+          .setValue(this.plugin.options.workflowToken || "")
+          .onChange(async (value) => {
+            await this.plugin.writeOptions({ workflowToken: value });
+          });
+        text.inputEl.type = "password";
+        text.inputEl.style.maxWidth = "300px";
+      });
+
+    new Setting(this.containerEl)
+      .setName("Тест GitHub Actions")
+      .setDesc("Запустить workflow утренней сводки в vault-репозитории")
+      .addButton((btn) =>
+        btn
+          .setButtonText("Запустить workflow")
+          .setWarning()
+          .onClick(async () => {
+            const token = this.plugin.options.workflowToken;
+            const rawRepo = this.plugin.options.vaultRepo;
+            const repo = rawRepo?.replace(/^https?:\/\/github\.com\//, "").replace(/\/+$/, "").replace(/\.git$/, "");
+
+            if (!token) {
+              alert("Сначала введите GitHub токен для Actions выше.");
+              return;
+            }
+            if (!repo) {
+              alert("Укажите vault репозиторий (owner/repo) выше.");
+              return;
+            }
+
+            btn.setButtonText("Запуск...");
+            btn.setDisabled(true);
+
+            try {
+              // Шаг 1: Проверяем доступ к репозиторию
+              try {
+                await requestUrl({
+                  url: `https://api.github.com/repos/${repo}`,
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/vnd.github.v3+json",
+                  },
+                });
+              } catch (err: any) {
+                const status = err?.status || "неизвестно";
+                alert(
+                  `Нет доступа к репозиторию (${status})\n\n` +
+                  `Репозиторий: ${repo}\n\n` +
+                  `Возможные причины:\n` +
+                  `1. Токен не имеет доступа к приватному репозиторию (нужен scope "repo")\n` +
+                  `2. Репозиторий не существует\n` +
+                  `3. Формат должен быть: owner/repo\n\n` +
+                  `Проверьте токен: GitHub → Settings → Credentials → Personal access tokens`
+                );
+                return;
+              }
+
+              // Шаг 2: Проверяем наличие workflow
+              let workflowFound = false;
+              let availableList = "";
+              try {
+                const workflowsResp = await requestUrl({
+                  url: `https://api.github.com/repos/${repo}/actions/workflows`,
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/vnd.github.v3+json",
+                  },
+                });
+                const workflows = workflowsResp.json?.workflows || [];
+                workflowFound = workflows.some((w: { path: string }) => w.path?.includes("daily-summary.yml"));
+                availableList = workflows.map((w: { name: string; path: string }) => `  - ${w.name} (${w.path})`).join("\n");
+              } catch (err: any) {
+                // Если не удалось получить список workflow — попробуем всё равно
+                availableList = "(не удалось загрузить)";
+              }
+
+              if (!workflowFound) {
+                alert(
+                  `Workflow daily-summary.yml не найден!\n\n` +
+                  `Доступные workflow:\n${availableList || "  (пусто)"}\n\n` +
+                  `Убедитесь, что файл .github/workflows/daily-summary.yml существует в репозитории.`
+                );
+                return;
+              }
+
+              // Шаг 3: Запускаем workflow
+              try {
+                await requestUrl({
+                  url: `https://api.github.com/repos/${repo}/actions/workflows/daily-summary.yml/dispatches`,
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/vnd.github.v3+json",
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ ref: "main" }),
+                });
+                alert(`Workflow запущен! Проверьте ntfy.sh через 1-2 минуты.`);
+              } catch (err: any) {
+                const status = err?.status || "неизвестно";
+                if (status === 422) {
+                  alert("Workflow уже выполняется или конфигурация неверна.");
+                } else {
+                  alert(`Ошибка запуска workflow (${status}):\n${err?.message || "неизвестная ошибка"}`);
+                }
+              }
+            } catch (e) {
+              alert(`Неожиданная ошибка: ${e}`);
+            } finally {
+              btn.setButtonText("Запустить workflow");
+              btn.setDisabled(false);
+            }
+          })
+      );
 
     new Setting(this.containerEl)
       .setName("Тест утренней сводки")
@@ -690,7 +832,8 @@ priority: medium
 
               const msg = lines.join("\n");
 
-              await fetch(`https://ntfy.sh/${topic}`, {
+              await requestUrl({
+                url: `https://ntfy.sh/${topic}`,
                 method: "POST",
                 body: msg,
                 headers: {
@@ -764,15 +907,15 @@ priority: medium
         <b>Как получить токен:</b><br>
         1. GitHub → Settings → Credentials<br>
         2. Personal access tokens → Tokens (classic)<br>
-        3. Generate new token → поставьте галочку <code>gist</code> → Generate<br>
-        4. Скопируйте токен и вставьте выше
+        3. Generate new token → галочки: <code>gist</code><br>
+        4. Скопируйте токен и вставьте ниже
       </p>
     `;
     this.containerEl.appendChild(desc);
 
     new Setting(this.containerEl)
-      .setName("GitHub токен")
-      .setDesc("Personal access token для доступа к Gist")
+      .setName("GitHub токен для Gist")
+      .setDesc("Personal access token с правами gist")
       .addText((text) => {
         text
           .setPlaceholder("ghp_...")
