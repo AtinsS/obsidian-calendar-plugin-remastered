@@ -29,6 +29,22 @@
   let calendar: Calendar;
   let refetchTimer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
+  let skipNextRefetch = false;
+
+  // Accessibility: live region for announcing view changes
+  let ariaLiveEl: HTMLDivElement | null = null;
+
+  function announceView(text: string) {
+    if (!ariaLiveEl) {
+      ariaLiveEl = document.createElement("div");
+      ariaLiveEl.setAttribute("role", "status");
+      ariaLiveEl.setAttribute("aria-live", "polite");
+      ariaLiveEl.setAttribute("aria-atomic", "true");
+      ariaLiveEl.style.cssText = "position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;";
+      document.body.appendChild(ariaLiveEl);
+    }
+    ariaLiveEl.textContent = text;
+  }
 
   // Мобильное определение — реактивное через matchMedia
   const mqlMobile = typeof window !== "undefined" ? window.matchMedia("(max-width: 768px)") : null;
@@ -41,18 +57,19 @@
     isSmallPhone = mqlSmallPhone?.matches ?? false;
   }
 
-  // Touch/swipe state
+  // Touch/swipe state (reference: SWIPE_MIN_DISTANCE=60, SWIPE_DIRECTION_RATIO=1.2)
   let touchStartX = 0;
   let touchStartY = 0;
   let touchEndX = 0;
   let touchEndY = 0;
   let isSwiping = false;
-  const SWIPE_THRESHOLD = 50;
-  const SWIPE_MAX_Y_DEVIATION = 100;
+  const SWIPE_THRESHOLD = 60;
+  const SWIPE_DIRECTION_RATIO = 1.2;
 
   /** Debounced refetch — предотвращает каскадное обновление */
   function scheduleRefetch(): void {
     if (destroyed) return;
+    if (skipNextRefetch) { skipNextRefetch = false; return; }
     if (refetchTimer) clearTimeout(refetchTimer);
     refetchTimer = setTimeout(() => {
       refetchTimer = null;
@@ -88,12 +105,74 @@
     }
   }
 
+  // ResizeObserver for container size changes (reference pattern)
+  let resizeObserver: ResizeObserver | null = null;
+
+  // Event highlighting (reference pattern)
+  let currentHighlightIds = new Set<string>();
+  let highlightInterval: ReturnType<typeof setInterval> | null = null;
+
+  function updateEventHighlight(): void {
+    if (!calendar || destroyed) return;
+    const nowMs = Date.now();
+    let current: string | null = null;
+    let currentEnd = Infinity;
+    let next: string | null = null;
+    let nextStart = Infinity;
+
+    for (const ev of calendar.getEvents()) {
+      if (ev.allDay || !ev.start) continue;
+      const s = ev.start.getTime();
+      const e = ev.end?.getTime() ?? s;
+      if (s <= nowMs && nowMs < e && e < currentEnd) { current = ev.id; currentEnd = e; }
+      if (s > nowMs && s < nextStart) { next = ev.id; nextStart = s; }
+    }
+
+    const active = current ?? next;
+    const nextIds = active ? new Set([active]) : new Set<string>();
+
+    for (const id of currentHighlightIds) {
+      if (!nextIds.has(id)) calendarEl?.querySelectorAll(`[data-event-id="${CSS.escape(id)}"]`).forEach(el => el.classList.remove("sch-event-active"));
+    }
+    for (const id of nextIds) {
+      calendarEl?.querySelectorAll(`[data-event-id="${CSS.escape(id)}"]`).forEach(el => el.classList.add("sch-event-active"));
+    }
+    currentHighlightIds = nextIds;
+  }
+
+  function handleKeyNav(e: KeyboardEvent) {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    const target = e.target as HTMLElement;
+    if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+    e.preventDefault();
+    if (e.key === "ArrowLeft") calendar?.prev();
+    else calendar?.next();
+  }
+
   onMount(() => {
     initCalendar();
     setupTouchNavigation();
     window.addEventListener("resize", handleResize);
     mqlMobile?.addEventListener("change", handleBreakpointChange);
     mqlSmallPhone?.addEventListener("change", handleBreakpointChange);
+    // Keyboard navigation
+    calendarEl?.addEventListener("keydown", handleKeyNav);
+    if (calendarEl && !calendarEl.hasAttribute("tabindex")) {
+      calendarEl.setAttribute("tabindex", "0");
+      calendarEl.setAttribute("role", "application");
+      calendarEl.setAttribute("aria-label", "Расписание — используйте стрелки для навигации");
+    }
+    // ResizeObserver
+    if (calendarEl) {
+      resizeObserver = new ResizeObserver(() => {
+        if (!destroyed && calendar) calendar.updateSize();
+      });
+      resizeObserver.observe(calendarEl);
+    }
+    // Event highlighting — update every 60s
+    highlightInterval = setInterval(updateEventHighlight, 60_000);
+    document.addEventListener("visibilitychange", updateEventHighlight);
   });
 
   onDestroy(() => {
@@ -104,7 +183,12 @@
     window.removeEventListener("resize", handleResize);
     mqlMobile?.removeEventListener("change", handleBreakpointChange);
     mqlSmallPhone?.removeEventListener("change", handleBreakpointChange);
-    closeContextMenu(); // убираем контекстное меню из document.body
+    calendarEl?.removeEventListener("keydown", handleKeyNav);
+    resizeObserver?.disconnect();
+    if (highlightInterval) clearInterval(highlightInterval);
+    document.removeEventListener("visibilitychange", updateEventHighlight);
+    closeContextMenu();
+    if (ariaLiveEl) { ariaLiveEl.remove(); ariaLiveEl = null; }
     if (calendarEl) {
       calendarEl.removeEventListener("touchstart", handleTouchStart);
       calendarEl.removeEventListener("touchmove", handleTouchMove);
@@ -137,7 +221,7 @@
     const dx = Math.abs(touchEndX - touchStartX);
     const dy = Math.abs(touchEndY - touchStartY);
 
-    if (dx > 20 && dx > dy && dy < SWIPE_MAX_Y_DEVIATION) {
+    if (dx > 20 && dx > dy * SWIPE_DIRECTION_RATIO && dy < 100) {
       isSwiping = true;
     }
   }
@@ -159,11 +243,9 @@
   }
 
   function initCalendar(): void {
-    // На мобилке начальный вид — день, на десктопе — неделя
     const initialView = isSmallPhone ? "timeGridDay" : "timeGridWeek";
-
-    // Тулбар: стрелки + переключение вида
     const headerToolbar = { left: "prev,next", center: "title", right: "dayGridMonth,timeGridWeek,timeGridDay" };
+    const mirrorParent = document.body;
 
     calendar = new Calendar(calendarEl, {
       plugins: [
@@ -172,23 +254,21 @@
         interactionPlugin,
       ],
       initialView,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       locale: "ru",
       headerToolbar,
-      buttonText: {
-        month: "Месяц",
-        week: "Неделя",
-        day: "День",
-      },
+      buttonText: { month: "Месяц", week: "Неделя", day: "День" },
       slotMinTime: "06:00:00",
       slotMaxTime: "30:00:00",
       allDaySlot: true,
       allDayText: "Без времени",
-      // На телефоне слот 15 минут — удобнее для выбора времени тапом
       slotDuration: isSmallPhone ? "00:15:00" : "00:30:00",
       snapDuration: isSmallPhone ? "00:15:00" : "00:30:00",
-      // На мобилке отключаем drag-and-drop — свайп используется для навигации
       editable: !isMobile,
+      fixedMirrorParent: mirrorParent,
+      longPressDelay: 250,
       selectable: true,
+      selectAllow: (selectInfo) => !selectInfo.end.getTime || (selectInfo.end.getTime() - selectInfo.start.getTime()) < 86400000 * 7,
       selectMirror: true,
       select: handleCalendarSelect,
       dayMaxEvents: true,
@@ -196,6 +276,10 @@
       firstDay: 1,
       height: "100%",
       nowIndicator: true,
+      scrollTimeReset: false,
+      eventTimeFormat: { hour: "numeric", minute: "2-digit", hour12: false },
+      slotLabelFormat: { hour: "numeric", minute: "2-digit", hour12: false },
+      dayHeaderFormat: { weekday: "short", day: "numeric", month: "numeric" },
       // На телефоне — list view по умолчанию не используем
       views: isSmallPhone ? {
         timeGridDay: { titleFormat: { day: "numeric", month: "short" }, buttonText: "День" },
@@ -213,6 +297,11 @@
       eventDrop: handleEventDrop,
       eventResize: handleEventResize,
       eventDidMount: handleEventDidMount,
+      datesSet: (info: any) => {
+        const view = info.view;
+        const viewType = view.type === "dayGridMonth" ? "Месяц" : view.type === "timeGridWeek" ? "Неделя" : "День";
+        announceView(`${viewType}: ${view.title}`);
+      },
     });
 
     calendar.render();
@@ -347,6 +436,7 @@
 
   function handleEventDidMount(info: any): void {
     const el = info.el;
+    el.setAttribute("data-event-id", info.event.id);
     const task = resolveTask(info.event);
     if (!task) return;
     const projectColor = info.event.extendedProps?.projectColor as string | null;
@@ -367,6 +457,11 @@
     if (projectColor) {
       el.style.setProperty("--event-project-color", projectColor);
       el.style.backgroundColor = projectColor;
+    }
+
+    // Completed task strikethrough
+    if (task.status === "done") {
+      el.classList.add("sch-event-done");
     }
 
     // Tooltip: full title + description + recurrence + estimated time
@@ -418,22 +513,36 @@
   function handleCalendarSelect(info: any): void {
     if (!info.start || !calendar) return;
 
-    const date = info.start as Date;
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${month}-${day}`;
+    // Use startStr for reliable timezone handling
+    const startStr = info.startStr || "";
+    const match = startStr.match(/^(\d{4}-\d{2}-\d{2})T?(\d{2}:\d{2})?/);
+    let dateStr: string;
+    let initialTime: string | undefined;
+
+    if (match) {
+      dateStr = match[1];
+      initialTime = match[2] || undefined;
+    } else {
+      const date = info.start as Date;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      dateStr = `${year}-${month}-${day}`;
+      initialTime = undefined;
+    }
+
     const viewType = calendar.view?.type || "";
     const isTimeView = viewType.startsWith("timeGrid");
     const isAllDay = info.allDay === true;
 
-    let initialTime: string | undefined;
     let estimatedTime: number | undefined;
 
     if (isTimeView && !isAllDay) {
-      const hours = String(date.getHours()).padStart(2, "0");
-      const minutes = String(date.getMinutes()).padStart(2, "0");
-      initialTime = `${hours}:${minutes}`;
+      if (!initialTime) {
+        // Fallback to date parsing
+        const date = info.start as Date;
+        initialTime = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+      }
 
       if (info.end && info.start.getTime() !== info.end.getTime()) {
         const durationMin = Math.round((info.end.getTime() - info.start.getTime()) / 1000 / 60);
@@ -450,52 +559,42 @@
   function handleEventDrop(info: any): void {
     if (info.event.extendedProps?.isDeadlineEvent) return;
     const task = resolveTask(info.event);
-    if (!task) return;
-    const newStart = info.event.start as Date;
+    if (!task) { info.revert(); return; }
 
-    if (newStart) {
-      const year = newStart.getFullYear();
-      const month = String(newStart.getMonth() + 1).padStart(2, "0");
-      const day = String(newStart.getDate()).padStart(2, "0");
-      const dateStr = `${year}-${month}-${day}`;
-      const hours = String(newStart.getHours()).padStart(2, "0");
-      const minutes = String(newStart.getMinutes()).padStart(2, "0");
-      const newTime = `${hours}:${minutes}`;
+    const startStr = info.event.startStr as string;
+    if (!startStr) { info.revert(); return; }
 
+    const match = startStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+    if (match) {
+      const dateStr = match[1];
+      const newTime = match[2];
       const moment = window.moment(dateStr, "YYYY-MM-DD", true);
       if (moment.isValid()) {
         const newDateUID = getDateUID(moment, "day");
-        updateTask(task.id, {
-          dateUID: newDateUID,
-          scheduledTime: info.event.allDay ? undefined : newTime,
-        });
-        // Синхронизируем заметку
-        const updatedTask = get(tasks).find((t) => t.id === task.id);
-        if (updatedTask) {
-          syncTaskToNote(updatedTask, plugin.app);
-        }
-      }
-    }
+        skipNextRefetch = true;
+        try {
+          updateTask(task.id, { dateUID: newDateUID, scheduledTime: info.event.allDay ? undefined : newTime });
+          const updatedTask = get(tasks).find((t) => t.id === task.id);
+          if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
+        } catch (e) { info.revert(); }
+      } else { info.revert(); }
+    } else { info.revert(); }
   }
 
   function handleEventResize(info: any): void {
     const task = resolveTask(info.event);
-    if (!task) return;
+    if (!task) { info.revert(); return; }
     const start = info.event.start as Date;
     const end = info.event.end as Date;
 
     if (start && end) {
-      const durationMin = Math.round(
-        (end.getTime() - start.getTime()) / 1000 / 60
-      );
-      updateTask(task.id, {
-        estimatedTime: Math.max(15, durationMin),
-      });
-      // Синхронизируем заметку
-      const updatedTask = get(tasks).find((t) => t.id === task.id);
-      if (updatedTask) {
-        syncTaskToNote(updatedTask, plugin.app);
-      }
+      const durationMin = Math.round((end.getTime() - start.getTime()) / 1000 / 60);
+      skipNextRefetch = true;
+      try {
+        updateTask(task.id, { estimatedTime: Math.max(15, durationMin) });
+        const updatedTask = get(tasks).find((t) => t.id === task.id);
+        if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
+      } catch (e) { info.revert(); }
     }
   }
 
@@ -843,12 +942,22 @@
   :global(.fc) {
     height: 100%;
     font-family: var(--font-interface);
-    --fc-border-color: rgba(255, 255, 255, 0.06);
+    /* Obsidian theme variable mapping (reference pattern) */
+    --fc-button-text-color: var(--text-normal);
+    --fc-button-bg-color: var(--interactive-normal, rgba(255,255,255,0.05));
+    --fc-button-border-color: var(--interactive-normal, rgba(255,255,255,0.08));
+    --fc-button-hover-bg-color: var(--interactive-hover, rgba(255,255,255,0.10));
+    --fc-button-hover-border-color: var(--interactive-hover, rgba(255,255,255,0.14));
+    --fc-button-active-bg-color: var(--interactive-accent, rgba(95,153,225,0.5));
+    --fc-button-active-border-color: var(--interactive-accent, rgba(95,153,225,0.5));
+    --fc-event-text-color: var(--text-on-accent, #fff);
+    --fc-border-color: var(--background-modifier-border, rgba(255,255,255,0.06));
     --fc-today-bg-color: transparent;
     --fc-page-bg-color: transparent;
-    --fc-neutral-bg-color: rgba(255, 255, 255, 0.03);
-    --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.04);
-    /* Не переопределяем --fc-event-border-color — цвет берётся изInlineData event data */
+    --fc-neutral-bg-color: rgba(255,255,255,0.03);
+    --fc-list-event-hover-bg-color: var(--background-secondary, rgba(255,255,255,0.04));
+    --fc-now-indicator-color: var(--text-error, #ef4444);
+    --fc-highlight-color: var(--text-highlight-bg, rgba(95,153,225,0.08));
   }
 
   /* Контейнер расписания — стеклянная панель */
@@ -1049,6 +1158,27 @@
     transform: none;
     box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 4px 16px rgba(0, 0, 0, 0.25);
     filter: brightness(1.15);
+  }
+
+  /* Active/current event highlight — multi-layered glow (reference pattern) */
+  :global(.fc .fc-event.sch-event-active) {
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.85),
+      0 0 24px 8px rgba(95,153,225,0.3),
+      0 0 56px 24px rgba(95,153,225,0.15);
+    outline: none;
+    overflow: visible;
+    isolation: isolate;
+    z-index: 3;
+    filter: none;
+  }
+  :global(.fc .fc-timegrid-event.sch-event-active) {
+    box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120,145,175,1)),
+      0 0 0 2px rgba(255,255,255,0.85),
+      0 0 24px 8px rgba(95,153,225,0.3);
+  }
+  :global(.fc .fc-daygrid-event.sch-event-active) {
+    background: rgba(95,153,225,0.2) !important;
+    border: 1px solid rgba(95,153,225,0.6) !important;
   }
 
   :global(.fc .fc-event.fc-dragging),
@@ -1253,6 +1383,23 @@
   :global(.sch-status-done) {
     background: rgba(110, 190, 160, 0.12);
     color: rgba(140, 205, 175, 0.75);
+  }
+
+  /* Task completed strikethrough (reference pattern) */
+  :global(.fc .fc-event.sch-event-done .fc-event-title) {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 50%;
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    opacity: 0.6;
+  }
+  :global(.fc .fc-list-event.sch-event-done .fc-list-event-title a) {
+    text-decoration: none;
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 50%;
+    background-repeat: no-repeat;
+    background-size: 100% 1px;
+    opacity: 0.6;
   }
 
   :global(.sch-status-paused) {

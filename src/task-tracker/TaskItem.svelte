@@ -188,17 +188,138 @@
 
   let showActionsMenu = false;
   let showDescription = false;
+  let actionsMenuEl: HTMLDivElement | null = null;
 
-  function toggleActionsMenu() {
-    showActionsMenu = !showActionsMenu;
+  function toggleActionsMenu(e: MouseEvent) {
+    e.stopPropagation();
+    if (showActionsMenu) { closeActionsMenu(); return; }
+    showActionsMenu = true;
+
+    const btn = e.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+
+    const el = document.createElement("div");
+    el.className = "sch-ctx-overlay";
+    el.addEventListener("click", closeActionsMenu);
+    el.style.zIndex = "9998";
+
+    const menu = document.createElement("div");
+    menu.className = "task-actions-menu";
+    menu.style.position = "fixed";
+    menu.style.zIndex = "9999";
+    menu.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+    menu.style.right = `${window.innerWidth - rect.right}px`;
+    menu.style.background = "var(--background-primary)";
+    menu.style.border = "1px solid var(--background-modifier-border)";
+    menu.style.borderRadius = "8px";
+    menu.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+    menu.style.minWidth = "160px";
+    menu.style.overflow = "hidden";
+    menu.style.padding = "4px";
+    menu.style.fontFamily = "var(--font-interface)";
+    menu.style.fontSize = "13px";
+
+    type MenuItem = { label: string; action?: () => void; danger?: boolean } | { divider: true };
+    const items: MenuItem[] = [];
+
+    if (task.status === "done") {
+      items.push({ label: "🔄 Вернуть в Сделать", action: () => { quickStatus("todo"); } });
+      items.push({ label: "⏰ Вернуть в работу", action: () => { quickStatus("progress"); } });
+      items.push({ divider: true });
+      items.push({ label: "❌ Удалить", action: () => { handleDelete(); }, danger: true });
+    } else {
+      if (task.status !== "progress" && task.status !== "paused")
+        items.push({ label: "⏰ В работу", action: () => { quickStatus("progress"); } });
+      if (task.status === "progress")
+        items.push({ label: "⏸ На паузу", action: () => { quickStatus("paused"); } });
+      if (task.status === "paused")
+        items.push({ label: "▶ Продолжить", action: () => { quickStatus("progress"); } });
+      items.push({ label: "✅ Готово", action: () => { dispatch("complete", { task }); } });
+      items.push({ divider: true });
+      items.push({ label: "✏ Редактировать", action: () => { handleEdit(); } });
+      items.push({ label: "❌ Удалить", action: () => { handleDelete(); }, danger: true });
+    }
+
+    for (const item of items) {
+      if ("divider" in item && item.divider) {
+        const d = document.createElement("div");
+        d.style.height = "1px";
+        d.style.background = "var(--background-modifier-border)";
+        d.style.margin = "3px 8px";
+        menu.appendChild(d);
+      } else if ("label" in item) {
+        const b = document.createElement("button");
+        b.className = "task-actions-item" + (item.danger ? " danger" : "");
+        b.textContent = item.label;
+        b.style.cssText = "display:flex;width:100%;padding:8px 12px;font-size:13px;border:none;background:transparent;text-align:left;cursor:pointer;border-radius:4px;font-family:var(--font-interface);transition:background .12s;align-items:center;gap:6px";
+        if (item.danger) b.style.color = "var(--text-error,#ef4444)";
+        b.addEventListener("mouseenter", () => b.style.background = "var(--background-modifier-hover,rgba(255,255,255,.06))");
+        b.addEventListener("mouseleave", () => b.style.background = "transparent");
+        b.addEventListener("click", (ev) => { ev.stopPropagation(); closeActionsMenu(); item.action?.(); });
+        menu.appendChild(b);
+      }
+    }
+
+    el.appendChild(menu);
+    document.body.appendChild(el);
+    actionsMenuEl = el;
+
+    requestAnimationFrame(() => {
+      const r = menu.getBoundingClientRect();
+      if (r.bottom > window.innerHeight) {
+        menu.style.bottom = "auto";
+        menu.style.top = `${rect.top - r.height - 4}px`;
+      }
+      if (r.left < 8) menu.style.left = "8px";
+    });
   }
 
   function closeActionsMenu() {
     showActionsMenu = false;
+    if (actionsMenuEl) { actionsMenuEl.remove(); actionsMenuEl = null; }
   }
 
-  function toggleDescription() {
-    showDescription = !showDescription;
+  let descrPopupEl: HTMLDivElement | null = null;
+
+  function toggleDescription(e: MouseEvent) {
+    e.stopPropagation();
+    if (showDescription) { closeDescription(); return; }
+    if (!task.description) return;
+    showDescription = true;
+
+    const btn = e.currentTarget as HTMLElement;
+    const rect = btn.getBoundingClientRect();
+
+    const popup = document.createElement("div");
+    popup.className = "sch-ctx-overlay";
+    popup.style.zIndex = "9998";
+    popup.addEventListener("click", closeDescription);
+
+    const content = document.createElement("div");
+    content.className = "task-descr-popup-body";
+    content.textContent = task.description;
+    content.style.cssText = "position:fixed;z-index:9999;min-width:180px;max-width:340px;max-height:200px;overflow-y:auto;background:var(--mcp-surface);border:1px solid var(--mcp-glass-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,.25);padding:8px 12px;font-size:12px;color:var(--mcp-text);white-space:pre-wrap;word-break:break-word;line-height:1.45;";
+    content.style.left = `${rect.left}px`;
+    content.style.top = `${rect.bottom + 6}px`;
+
+    popup.appendChild(content);
+    document.body.appendChild(popup);
+    descrPopupEl = popup;
+
+    requestAnimationFrame(() => {
+      const cr = content.getBoundingClientRect();
+      if (cr.bottom > window.innerHeight) {
+        content.style.top = `${rect.top - cr.height - 6}px`;
+      }
+      if (cr.right > window.innerWidth) {
+        content.style.left = `${Math.max(8, window.innerWidth - cr.width - 8)}px`;
+      }
+    });
+  }
+
+  function closeDescription() {
+    showDescription = false;
+    if (descrPopupEl) { descrPopupEl.remove(); descrPopupEl = null; }
   }
 
   function handleDescrKeydown(e: KeyboardEvent) {
@@ -221,6 +342,8 @@
 
   onDestroy(() => {
     document.removeEventListener("click", handleDescriptionClickOutside, true);
+    if (actionsMenuEl) { actionsMenuEl.remove(); actionsMenuEl = null; }
+    if (descrPopupEl) { descrPopupEl.remove(); descrPopupEl = null; }
   });
 </script>
 
@@ -284,25 +407,16 @@
   {/if}
 
   {#if task.description}
-    <div class="task-descr-wrapper" on:keydown={handleDescrKeydown}>
+    <div class="task-descr-wrapper">
       <button
         class="task-descr-toggle"
-        on:click|stopPropagation={toggleDescription}
+        on:click={toggleDescription}
         title={showDescription ? "Скрыть описание" : "Показать описание"}
         aria-label="Описание задачи"
         aria-expanded={showDescription}
       >
         &#128196;
       </button>
-      {#if showDescription}
-        <div
-          class="task-descr-popup"
-          role="tooltip"
-          on:click|stopPropagation
-        >
-          <span class="task-descr-popup-content">{task.description}</span>
-        </div>
-      {/if}
     </div>
   {/if}
 
@@ -384,92 +498,11 @@
   <div class="task-actions-dropdown">
     <button
       class="task-actions-toggle"
-      on:click|stopPropagation={toggleActionsMenu}
+      on:click={toggleActionsMenu}
       aria-label="Действия"
     >
       &#8942;
     </button>
-    {#if showActionsMenu}
-      <div class="task-actions-menu" on:click|stopPropagation role="menu">
-        {#if task.status === "done"}
-          <button
-            class="task-actions-item"
-            on:click|stopPropagation={() => { quickStatus("todo"); closeActionsMenu(); }}
-          >
-            &#8634; Вернуть в Сделать
-          </button>
-          <button
-            class="task-actions-item"
-            on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
-          >
-            &#9203; Вернуть в работу
-          </button>
-          <div class="task-tracker-dropdown-divider"></div>
-          <button
-            class="task-actions-item danger"
-            on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}
-          >
-            &#10005; Удалить
-          </button>
-        {:else}
-          <button
-            class="task-actions-item"
-            disabled={task.status === "progress" || task.status === "paused"}
-            on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
-          >
-            &#9203; В работу
-          </button>
-          {#if task.status === "progress"}
-            <button
-              class="task-actions-item"
-              on:click|stopPropagation={() => { quickStatus("paused"); closeActionsMenu(); }}
-            >
-              &#9208; На паузу
-            </button>
-            <button
-              class="task-actions-item"
-              on:click|stopPropagation={() => { resetTaskTimer(task.id); closeActionsMenu(); }}
-            >
-              &#8634; Сбросить таймер
-            </button>
-          {/if}
-          {#if task.status === "paused"}
-            <button
-              class="task-actions-item"
-              on:click|stopPropagation={() => { quickStatus("progress"); closeActionsMenu(); }}
-            >
-              &#9654; Продолжить
-            </button>
-            <button
-              class="task-actions-item"
-              on:click|stopPropagation={() => { resetTaskTimer(task.id); closeActionsMenu(); }}
-            >
-              &#8634; Сбросить таймер
-            </button>
-          {/if}
-          {#if task.notePath}
-            <button
-              class="task-actions-item"
-              on:click|stopPropagation={() => { dispatch("complete", { task }); closeActionsMenu(); }}
-            >
-              &#10003; Готово
-            </button>
-          {/if}
-          <button
-            class="task-actions-item"
-            on:click|stopPropagation={() => { handleEdit(); closeActionsMenu(); }}
-          >
-            &#9998; Редактировать
-          </button>
-          <button
-            class="task-actions-item danger"
-            on:click|stopPropagation={() => { handleDelete(); closeActionsMenu(); }}
-          >
-            &#10005; Удалить
-          </button>
-        {/if}
-      </div>
-    {/if}
   </div>
 
 </div>

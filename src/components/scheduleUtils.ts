@@ -70,8 +70,8 @@ export function getStatusBorder(status: string): string {
 export interface ScheduleEvent {
   id: string;
   title: string;
-  start: number;
-  end: number;
+  start: string;
+  end: string;
   allDay: boolean;
   backgroundColor: string;
   borderColor: string;
@@ -82,6 +82,7 @@ export interface ScheduleEvent {
     projectId: string | null;
     projectColor: string | null;
     isDeadlineEvent?: boolean;
+    sourceTimezone: string;
   };
 }
 
@@ -94,16 +95,24 @@ function getLocalTzOffset(): string {
   return `${sign}${h}:${m}`;
 }
 
-/** Create a UTC timestamp (ms) from a local date+time.
- *  FullCalendar's timeGrid renders events 30 min late with slotDuration=30m,
- *  so we subtract 1 slot to compensate. */
-function localToTimestamp(dateStr: string, time: string): number {
-  return new Date(`${dateStr}T${time}:00${getLocalTzOffset()}`).getTime() - 30 * 60_000;
+/** Create ISO string with local timezone offset — FullCalendar + luxonPlugin handle this correctly */
+function localISO(dateStr: string, time: string): string {
+  return `${dateStr}T${time}:00${getLocalTzOffset()}`;
 }
 
-/** Advance a local timestamp by durationMin minutes */
-function addMinutes(base: number, durationMin: number): number {
-  return base + durationMin * 60_000;
+/** Advance an ISO datetime string by durationMin minutes */
+function addMinutesISO(dateStr: string, time: string, durationMin: number): string {
+  const totalMin = parseInt(time.split(":")[0], 10) * 60 + parseInt(time.split(":")[1], 10) + durationMin;
+  let endH = Math.floor(totalMin / 60);
+  const endM = totalMin % 60;
+  let endStr = dateStr;
+  if (endH >= 24) {
+    const d = new Date(`${dateStr}T00:00:00`);
+    d.setDate(d.getDate() + 1);
+    endStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    endH -= 24;
+  }
+  return `${endStr}T${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}:00${getLocalTzOffset()}`;
 }
 
 export function taskToEvent(
@@ -115,12 +124,12 @@ export function taskToEvent(
 
   const hasTime = !!task.scheduledTime;
   const start = hasTime
-    ? localToTimestamp(dateStr, task.scheduledTime)
-    : localToTimestamp(dateStr, "00:00");
+    ? localISO(dateStr, task.scheduledTime)
+    : localISO(dateStr, "00:00");
 
   const end = hasTime
-    ? addMinutes(localToTimestamp(dateStr, task.scheduledTime), task.estimatedTime || 60)
-    : localToTimestamp(dateStr, "00:00") + 86400000;
+    ? addMinutesISO(dateStr, task.scheduledTime, task.estimatedTime || 60)
+    : `${dateStr}T00:00:00${getLocalTzOffset()}`;
 
   const project = projects.find((p) => p.id === task.projectId);
   const hasProject = !!project;
@@ -143,6 +152,7 @@ export function taskToEvent(
       taskId: task.id,
       projectId: task.projectId,
       projectColor: project?.color || null,
+      sourceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   };
 }
@@ -159,11 +169,11 @@ function deadlineToEvent(
   if (!deadlineDateStr || deadlineDateStr === taskDateStr) return null;
 
   const start = task.deadlineTime
-    ? localToTimestamp(deadlineDateStr, task.deadlineTime)
-    : localToTimestamp(deadlineDateStr, "23:55");
+    ? localISO(deadlineDateStr, task.deadlineTime)
+    : localISO(deadlineDateStr, "23:55");
   const end = task.deadlineTime
-    ? localToTimestamp(deadlineDateStr, task.deadlineTime)
-    : localToTimestamp(deadlineDateStr, "23:59");
+    ? localISO(deadlineDateStr, task.deadlineTime)
+    : localISO(deadlineDateStr, "23:59");
 
   const project = projects.find((p) => p.id === task.projectId);
 
@@ -182,6 +192,7 @@ function deadlineToEvent(
       projectId: task.projectId,
       projectColor: project?.color || null,
       isDeadlineEvent: true,
+      sourceTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   };
 }

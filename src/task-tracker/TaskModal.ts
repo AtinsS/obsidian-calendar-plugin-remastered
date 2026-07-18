@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal } from "obsidian";
 import { get } from "svelte/store";
 import { getDateUID } from "obsidian-daily-notes-interface";
 
@@ -23,8 +23,8 @@ export class TaskModal extends Modal {
   private recurrenceDaysOfWeek: number[] = [];
   private recurrenceUntilDateUID = "";
   private recurrenceUntilDateValue = "";
-  private estimatedTimeHours = "";
-  private estimatedTimeMinutes = "";
+  private estimatedTimeHours = "0";
+  private estimatedTimeMinutes = "30";
   private scheduledTime = "";
   private isWorkTask = false;
   private paymentType: "hour" | "day" = "hour";
@@ -36,6 +36,20 @@ export class TaskModal extends Modal {
   private deadlineTime = "";
   private titleInputEl: HTMLInputElement | null = null;
   private descriptionInputEl: HTMLTextAreaElement | null = null;
+  private descCounterEl: HTMLSpanElement | null = null;
+
+  private advancedBody: HTMLDivElement | null = null;
+  private estHoursEl: HTMLInputElement | null = null;
+  private estMinsEl: HTMLInputElement | null = null;
+  private recurrenceSubEl: HTMLDivElement | null = null;
+  private workTaskSubEl: HTMLDivElement | null = null;
+
+  private updateDescCounter(): void {
+    if (!this.descCounterEl) return;
+    const len = (this.descriptionInput || "").length;
+    this.descCounterEl.textContent = len > 0 ? `Макс. 100 символов (${len}/100)` : "";
+    this.descCounterEl.style.color = len > 100 ? "var(--text-error, #ef4436)" : "";
+  }
 
   constructor(
     app: App,
@@ -71,490 +85,422 @@ export class TaskModal extends Modal {
         this.estimatedTimeHours = String(Math.floor(totalMin / 60));
         this.estimatedTimeMinutes = String(totalMin % 60);
       }
-      if (this.task.scheduledTime) {
-        this.scheduledTime = this.task.scheduledTime;
-      }
+      if (this.task.scheduledTime) this.scheduledTime = this.task.scheduledTime;
       if (this.task.isWorkTask) {
         this.isWorkTask = this.task.isWorkTask;
         this.paymentType = this.task.paymentType || "hour";
         this.rate = this.task.rate ? String(this.task.rate) : "";
-        if (this.task.overtimeStart) {
-          this.overtimeStart = String(this.task.overtimeStart);
-        }
-        if (this.task.overtimeMultiplier) {
-          this.overtimeMultiplier = String(this.task.overtimeMultiplier);
-        }
+        if (this.task.overtimeStart) this.overtimeStart = String(this.task.overtimeStart);
+        if (this.task.overtimeMultiplier) this.overtimeMultiplier = String(this.task.overtimeMultiplier);
       }
       if (this.task.deadline) {
         this.deadlineDateUID = this.task.deadline;
         this.deadlineDateValue = this.extractDateValue(this.task.deadline);
       }
-      if (this.task.deadlineTime) {
-        this.deadlineTime = this.task.deadlineTime;
-      }
+      if (this.task.deadlineTime) this.deadlineTime = this.task.deadlineTime;
     } else {
       if (initialDate) {
         this.dateValue = initialDate;
         const m = window.moment(initialDate, "YYYY-MM-DD", true);
-        if (m.isValid()) {
-          this.dateUID = getDateUID(m, "day");
-        }
+        if (m.isValid()) this.dateUID = getDateUID(m, "day");
       } else {
         this.dateUID = get(selectedDate) || "";
         this.dateValue = this.extractDateValue(this.dateUID);
       }
-      if (initialTime) {
-        this.scheduledTime = initialTime;
-      }
+      if (initialTime) this.scheduledTime = initialTime;
       if (initialEstimatedTime && initialEstimatedTime > 0) {
         this.estimatedTimeHours = String(Math.floor(initialEstimatedTime / 60));
         this.estimatedTimeMinutes = String(initialEstimatedTime % 60);
       }
-      const currentSettings = get(settings);
-      this.paymentType = currentSettings.defaultPaymentType || "hour";
-      this.rate = currentSettings.defaultRate ? String(currentSettings.defaultRate) : "";
+      const cs = get(settings);
+      this.paymentType = cs.defaultPaymentType || "hour";
+      this.rate = cs.defaultRate ? String(cs.defaultRate) : "";
     }
   }
 
   onOpen(): void {
     const { contentEl } = this;
-    contentEl.addClass("task-tracker-modal");
+    contentEl.empty();
+    contentEl.addClass("tm");
 
-    contentEl.createEl("h2", {
-      text: this.task ? "Редактировать задачу" : "Новая задача",
+    // ── Header ──
+    const header = contentEl.createDiv({ cls: "tm-header" });
+    header.createEl("h2", { text: this.task ? "Редактировать задачу" : "Новая задача", cls: "tm-title" });
+
+
+    // ═══ 1. Название ═══
+    const titleWrap = contentEl.createDiv({ cls: "tm-field" });
+    titleWrap.createEl("label", { text: "Название *", cls: "tm-label" });
+    this.titleInputEl = titleWrap.createEl("input", {
+      type: "text", cls: "tm-input", placeholder: "Введите название задачи...",
+      value: this.titleInput,
+    });
+    this.titleInputEl.addEventListener("input", () => { this.titleInput = this.titleInputEl?.value ?? ""; });
+
+    // ═══ 2. Описание ═══
+    const descWrap = contentEl.createDiv({ cls: "tm-field" });
+    descWrap.createEl("label", { text: "Описание", cls: "tm-label" });
+    this.descriptionInputEl = descWrap.createEl("textarea", {
+      cls: "tm-textarea", placeholder: "Добавьте описание задачи (необязательно)",
+    }) as HTMLTextAreaElement;
+    this.descriptionInputEl.value = this.descriptionInput;
+    this.descriptionInputEl.rows = 3;
+    this.descCounterEl = descWrap.createEl("span", { cls: "tm-char-counter" });
+    this.updateDescCounter();
+    this.descriptionInputEl.addEventListener("input", () => {
+      this.descriptionInput = this.descriptionInputEl?.value ?? "";
+      this.updateDescCounter();
     });
 
-    // 1. Название
-    new Setting(contentEl)
-      .setName("Название")
-      .addText((text) =>
-        text
-          .setPlaceholder("Название задачи")
-          .setValue(this.titleInput)
-          .onChange((value) => {
-            this.titleInput = value;
-          })
-      );
+    // ═══ 3. Проект + Приоритет (в одну строку) ═══
+    const projPriRow = contentEl.createDiv({ cls: "tm-row-2" });
 
-    // Страховочное чтение названия из DOM — Obsidian addTextArea может
-    // вызвать потерю значения у addText при перерисовке
-    this.titleInputEl = contentEl.querySelector('.setting-item input[type="text"], .setting-item input:not([type])') as HTMLInputElement | null;
-    if (this.titleInputEl) {
-      this.titleInputEl.addEventListener("input", () => {
-        this.titleInput = this.titleInputEl?.value ?? this.titleInput;
+    // Проект
+    const projWrap = projPriRow.createDiv({ cls: "tm-field tm-half" });
+    projWrap.createEl("label", { text: "Проект", cls: "tm-label" });
+    const projSelect = projWrap.createEl("select", { cls: "tm-select" });
+    projSelect.createEl("option", { value: "", text: "Без проекта" });
+    for (const p of get(projects)) {
+      const opt = projSelect.createEl("option", { value: p.id, text: `${p.icon} ${p.name}` });
+      if (p.id === this.projectId) opt.selected = true;
+    }
+    projSelect.addEventListener("change", () => { this.projectId = projSelect.value || null; });
+
+    // Приоритет
+    const priWrap = projPriRow.createDiv({ cls: "tm-field tm-half" });
+    priWrap.createEl("label", { text: "Приоритет", cls: "tm-label" });
+    const priRow = priWrap.createDiv({ cls: "tm-pri-btns" });
+    const priDefs: Array<{ v: string; l: string; c: string }> = [
+      { v: "low", l: "Низкий", c: "#4caf50" },
+      { v: "medium", l: "Средний", c: "#ff9800" },
+      { v: "high", l: "Высокий", c: "#f44336" },
+    ];
+    for (const p of priDefs) {
+      const btn = priRow.createEl("button", { cls: "tm-pri-btn" + (this.priority === p.v ? " active" : "") });
+      btn.createSpan({ cls: "tm-pri-dot" }).style.background = p.c;
+      btn.createSpan({ text: p.l });
+      btn.addEventListener("click", () => {
+        this.priority = p.v as any;
+        priRow.querySelectorAll(".tm-pri-btn").forEach((b) => b.removeClass("active"));
+        btn.addClass("active");
       });
     }
 
-    // 2. Описание
-    new Setting(contentEl)
-      .setName("Описание")
-      .setDesc("Необязательно. Описание задачи.")
-      .addTextArea((text) =>
-        text
-          .setPlaceholder("Описание задачи...")
-          .setValue(this.descriptionInput)
-          .onChange((value) => {
-            this.descriptionInput = value;
-          })
-      );
+    // ═══ 4. Планирование: Дата + Время ═══
+    const planHeader = contentEl.createDiv({ cls: "tm-section-header" });
+    planHeader.createEl("span", { text: "📅", cls: "tm-section-icon" });
+    planHeader.createEl("span", { text: "Планирование", cls: "tm-section-title" });
 
-    // Страховочное чтение описания из DOM
-    this.descriptionInputEl = contentEl.querySelector("textarea") as HTMLTextAreaElement | null;
-    if (this.descriptionInputEl) {
-      this.descriptionInputEl.addEventListener("input", () => {
-        this.descriptionInput = this.descriptionInputEl?.value ?? this.descriptionInput;
-      });
-    }
+    const dateRow = contentEl.createDiv({ cls: "tm-row-2" });
 
-    // 3. Дата
-    new Setting(contentEl)
-      .setName("Дата")
-      .addText((text) => {
-        text
-          .setPlaceholder("ГГГГ-ММ-ДД")
-          .setValue(this.dateValue)
-          .onChange((value) => {
-            this.dateValue = value;
-            if (value) {
-              const moment = window.moment(value, "YYYY-MM-DD", true);
-              if (moment.isValid()) {
-                this.dateUID = getDateUID(moment, "day");
-              }
-            } else {
-              this.dateUID = "";
-            }
-          });
-        text.inputEl.type = "date";
-      });
-
-    // 3. Проект
-    const projectOptions: Record<string, string> = { "": "Без проекта" };
-    get(projects).forEach((p) => {
-      projectOptions[p.id] = `${p.icon} ${p.name}`;
+    // Дата
+    const dateWrap = dateRow.createDiv({ cls: "tm-field tm-half" });
+    dateWrap.createEl("label", { text: "Дата", cls: "tm-label" });
+    const dateInput = dateWrap.createEl("input", {
+      type: "date", cls: "tm-input", value: this.dateValue,
+    });
+    dateInput.addEventListener("change", () => {
+      this.dateValue = dateInput.value;
+      if (this.dateValue) {
+        const m = window.moment(this.dateValue, "YYYY-MM-DD", true);
+        if (m.isValid()) this.dateUID = getDateUID(m, "day");
+      } else { this.dateUID = ""; }
     });
 
-    new Setting(contentEl)
-      .setName("Проект")
-      .addDropdown((dropdown) => {
-        Object.entries(projectOptions).forEach(([id, label]) => {
-          dropdown.addOption(id, label);
-        });
-        dropdown.setValue(this.projectId || "");
-        dropdown.onChange((value) => {
-          this.projectId = value || null;
-        });
-      });
+    // Время
+    const timeWrap = dateRow.createDiv({ cls: "tm-field tm-half" });
+    timeWrap.createEl("label", { text: "Время", cls: "tm-label" });
+    const timeInput = timeWrap.createEl("input", {
+      type: "time", cls: "tm-input", value: this.scheduledTime,
+    });
+    timeInput.addEventListener("change", () => { this.scheduledTime = timeInput.value; });
 
-    // 4. Приоритет
-    new Setting(contentEl)
-      .setName("Приоритет")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("low", "Низкий");
-        dropdown.addOption("medium", "Средний");
-        dropdown.addOption("high", "Высокий");
-        dropdown.setValue(this.priority);
-        dropdown.onChange((value) => {
-          this.priority = value as "low" | "medium" | "high";
-        });
-      });
+    // ═══ 5. Длительность ═══
+    const durWrap = contentEl.createDiv({ cls: "tm-field" });
+    durWrap.createEl("label", { text: "Длительность (ожидаемое время)", cls: "tm-label" });
+    const durRow = durWrap.createDiv({ cls: "tm-dur-row" });
+    durRow.createEl("span", { text: "🕐", cls: "tm-dur-icon" });
 
-    // 5. Привязать существующую заметку
-    const boundNoteSetting = new Setting(contentEl)
-      .setName("Привязать заметку")
-      .setDesc("Необязательно. Путь к существующей заметке.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Путь/к/заметке.md")
-          .setValue(this.notePathInput)
-          .onChange((value) => {
-            this.notePathInput = value;
-          })
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText("...")
-          .setTooltip("Выбрать файл")
-          .onClick(() => {
-            new FileSuggestModal(this.app, (filePath) => {
-              this.notePathInput = filePath;
-              const input = boundNoteSetting.settingEl.querySelector("input[type=\"text\"]") as HTMLInputElement | null;
-              if (input) input.value = filePath;
-            }).open();
-          })
-      );
+    this.estHoursEl = durRow.createEl("input", {
+      type: "number", cls: "tm-dur-input", value: this.estimatedTimeHours, min: "0", max: "24",
+    }) as HTMLInputElement;
+    this.estHoursEl.addEventListener("change", () => { this.estimatedTimeHours = this.estHoursEl?.value ?? "0"; });
 
-    // 6. Запланировано на
-    new Setting(contentEl)
-      .setName("Запланировано на")
-      .setDesc("Необязательно. Время выполнения задачи.")
-      .addText((text) => {
-        text
-          .setPlaceholder("14:30")
-          .setValue(this.scheduledTime)
-          .onChange((value) => {
-            this.scheduledTime = value;
-          });
-        text.inputEl.type = "time";
-        text.inputEl.style.maxWidth = "120px";
-      });
+    durRow.createEl("span", { text: " ч ", cls: "tm-dur-sep" });
 
-    // 8. Дедлайн
-    new Setting(contentEl)
-      .setName("Дедлайн")
-      .setDesc("Необязательно. Крайний срок выполнения задачи.")
-      .addText((text) => {
-        text
-          .setPlaceholder("ГГГГ-ММ-ДД")
-          .setValue(this.deadlineDateValue)
-          .onChange((value) => {
-            this.deadlineDateValue = value;
-            if (value) {
-              const m = window.moment(value, "YYYY-MM-DD", true);
-              if (m.isValid()) {
-                this.deadlineDateUID = getDateUID(m, "day");
-              }
-            } else {
-              this.deadlineDateUID = "";
-            }
-          });
-        text.inputEl.type = "date";
-      })
-      .addText((text) => {
-        text
-          .setPlaceholder("Время")
-          .setValue(this.deadlineTime)
-          .onChange((value) => {
-            this.deadlineTime = value;
-          });
-        text.inputEl.type = "time";
-        text.inputEl.style.maxWidth = "120px";
-      });
+    this.estMinsEl = durRow.createEl("input", {
+      type: "number", cls: "tm-dur-input", value: this.estimatedTimeMinutes, min: "0", max: "59",
+    }) as HTMLInputElement;
+    this.estMinsEl.addEventListener("change", () => { this.estimatedTimeMinutes = this.estMinsEl?.value ?? "0"; });
 
-    // 9. Ожидаемое время
-    new Setting(contentEl)
-      .setName("Ожидаемое время")
-      .setDesc("Необязательно. Часы и минуты.")
-      .addText((text) => {
-        text
-          .setPlaceholder("ч")
-          .setValue(this.estimatedTimeHours)
-          .onChange((value) => {
-            this.estimatedTimeHours = value;
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "0";
-        text.inputEl.max = "24";
-        text.inputEl.style.maxWidth = "50px";
-        text.inputEl.placeholder = "ч";
-      })
-      .addText((text) => {
-        text
-          .setPlaceholder("мин")
-          .setValue(this.estimatedTimeMinutes)
-          .onChange((value) => {
-            this.estimatedTimeMinutes = value;
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "0";
-        text.inputEl.max = "59";
-        text.inputEl.style.maxWidth = "50px";
-        text.inputEl.placeholder = "мин";
-      });
+    durRow.createEl("span", { text: " мин", cls: "tm-dur-sep" });
 
-    // 10. Повторение
-    new Setting(contentEl)
-      .setName("Повторение")
-      .setDesc("Настройка повторяющейся задачи")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("none", "Нет");
-        dropdown.addOption("daily", "Ежедневно");
-        dropdown.addOption("weekly", "Еженедельно");
-        dropdown.addOption("monthly", "Ежемесячно");
-        dropdown.setValue(this.recurrenceType);
-        dropdown.onChange((value) => {
-          this.recurrenceType = value as "none" | "daily" | "weekly" | "monthly";
-          this.updateRecurrenceSettings();
-        });
-      });
+    const decBtn = durRow.createEl("button", { text: "−", cls: "tm-dur-btn" });
+    const incBtn = durRow.createEl("button", { text: "+", cls: "tm-dur-btn" });
 
-    this.recurrenceIntervalSetting = new Setting(contentEl)
-      .setName("Интервал")
-      .addText((text) => {
-        text
-          .setPlaceholder("1")
-          .setValue(String(this.recurrenceInterval))
-          .onChange((value) => {
-            this.recurrenceInterval = Math.max(1, parseInt(value) || 1);
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "1";
-        text.inputEl.style.maxWidth = "80px";
-      });
+    decBtn.addEventListener("click", () => {
+      const mins = (parseInt(this.estimatedTimeHours) || 0) * 60 + (parseInt(this.estimatedTimeMinutes) || 0);
+      const newMins = Math.max(0, mins - 15);
+      this.estimatedTimeHours = String(Math.floor(newMins / 60));
+      this.estimatedTimeMinutes = String(newMins % 60);
+      if (this.estHoursEl) this.estHoursEl.value = this.estimatedTimeHours;
+      if (this.estMinsEl) this.estMinsEl.value = this.estimatedTimeMinutes;
+    });
 
-    this.recurrenceDaysSetting = new Setting(contentEl)
-      .setName("Дни недели");
+    incBtn.addEventListener("click", () => {
+      const mins = (parseInt(this.estimatedTimeHours) || 0) * 60 + (parseInt(this.estimatedTimeMinutes) || 0);
+      const newMins = Math.min(24 * 60, mins + 15);
+      this.estimatedTimeHours = String(Math.floor(newMins / 60));
+      this.estimatedTimeMinutes = String(newMins % 60);
+      if (this.estHoursEl) this.estHoursEl.value = this.estimatedTimeHours;
+      if (this.estMinsEl) this.estMinsEl.value = this.estimatedTimeMinutes;
+    });
 
-    this.recurrenceUntilSetting = new Setting(contentEl)
-      .setName("Повторять до")
-      .setDesc("Необязательно. Дата, до которой повторять задачу (включительно).")
-      .addText((text) => {
-        text
-          .setPlaceholder("ГГГГ-ММ-ДД")
-          .setValue(this.recurrenceUntilDateValue)
-          .onChange((value) => {
-            this.recurrenceUntilDateValue = value;
-            if (value) {
-              const m = window.moment(value, "YYYY-MM-DD", true);
-              if (m.isValid()) {
-                this.recurrenceUntilDateUID = getDateUID(m, "day");
-              }
-            } else {
-              this.recurrenceUntilDateUID = "";
-            }
-          });
-        text.inputEl.type = "date";
-      });
+    // ═══ 6. Дополнительные параметры ═══
+    const advWrap = contentEl.createDiv({ cls: "tm-advanced" });
+    const advToggle = advWrap.createDiv({ cls: "tm-adv-toggle" });
+    advToggle.createEl("span", { text: "▾", cls: "tm-adv-chevron" });
+    advToggle.createEl("span", { text: "Дополнительные параметры", cls: "tm-adv-label" });
+    this.advancedBody = advWrap.createDiv({ cls: "tm-adv-body" });
+    this.advancedBody.style.display = "none";
 
-    // Visual order: Mon-Sun, but moment convention: 0=Sun,1=Mon,...,6=Sat
+    advToggle.addEventListener("click", () => {
+      const show = this.advancedBody!.style.display === "none";
+      this.advancedBody!.style.display = show ? "" : "none";
+      advToggle.querySelector(".tm-adv-chevron")!.textContent = show ? "▾" : "▸";
+    });
+
+    // --- Дедлайн ---
+    const dlRow = this.advancedBody.createDiv({ cls: "tm-adv-row" });
+    const dlLabel = dlRow.createDiv({ cls: "tm-adv-label-item" });
+    dlLabel.createEl("span", { text: "📅" });
+    dlLabel.createEl("span", { text: "Дедлайн" });
+    const dlInput = dlRow.createEl("input", {
+      type: "date", cls: "tm-input tm-adv-input", value: this.deadlineDateValue,
+    });
+    dlInput.addEventListener("change", () => {
+      this.deadlineDateValue = dlInput.value;
+      if (this.deadlineDateValue) {
+        const m = window.moment(this.deadlineDateValue, "YYYY-MM-DD", true);
+        if (m.isValid()) this.deadlineDateUID = getDateUID(m, "day");
+      } else { this.deadlineDateUID = ""; }
+    });
+
+    // --- Повторение ---
+    const recRow = this.advancedBody.createDiv({ cls: "tm-adv-row" });
+    const recLabel = recRow.createDiv({ cls: "tm-adv-label-item" });
+    recLabel.createEl("span", { text: "🔄" });
+    recLabel.createEl("span", { text: "Повторение" });
+    const recSelect = recRow.createEl("select", { cls: "tm-select tm-adv-input" });
+    recSelect.createEl("option", { value: "none", text: "Нет" });
+    recSelect.createEl("option", { value: "daily", text: "Ежедневно" });
+    recSelect.createEl("option", { value: "weekly", text: "Еженедельно" });
+    recSelect.createEl("option", { value: "monthly", text: "Ежемесячно" });
+    recSelect.value = this.recurrenceType;
+    recSelect.addEventListener("change", () => {
+      this.recurrenceType = recSelect.value as any;
+      this.updateRecurrenceSubFields();
+    });
+
+    // Sub-fields for recurrence
+    this.recurrenceSubEl = this.advancedBody.createDiv({ cls: "tm-adv-sub" });
+
+    // Интервал
+    const intRow = this.recurrenceSubEl.createDiv({ cls: "tm-adv-row" });
+    const intLabel = intRow.createDiv({ cls: "tm-adv-label-item" });
+    intLabel.createEl("span", { text: "Интервал" });
+    const intInput = intRow.createEl("input", {
+      type: "number", cls: "tm-input tm-adv-input", value: String(this.recurrenceInterval), min: "1",
+    }) as HTMLInputElement;
+    intInput.style.maxWidth = "80px";
+    intInput.addEventListener("input", () => { this.recurrenceInterval = Math.max(1, parseInt(intInput.value) || 1); });
+
+    // Дни недели
+    const daysRow = this.recurrenceSubEl.createDiv({ cls: "tm-adv-row tm-adv-row-days" });
+    const daysLabel = daysRow.createDiv({ cls: "tm-adv-label-item" });
+    daysLabel.createEl("span", { text: "Дни" });
+    const daysContainer = daysRow.createDiv({ cls: "tm-days-btns" });
     const dayLabels = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-    const dayIndices = [1, 2, 3, 4, 5, 6, 0]; // moment day-of-week indices
-    const daysContainer = this.recurrenceDaysSetting.settingEl.createDiv({
-      cls: "task-tracker-recurrence-days",
-    });
+    const dayIndices = [1, 2, 3, 4, 5, 6, 0];
     for (let i = 0; i < 7; i++) {
       const momentIdx = dayIndices[i];
-      const dayBtn = daysContainer.createEl("button", {
-        text: dayLabels[i],
-        cls: "task-tracker-recurrence-day-btn",
-      });
-      if (this.recurrenceDaysOfWeek.includes(momentIdx)) {
-        dayBtn.addClass("active");
-      }
+      const dayBtn = daysContainer.createEl("button", { text: dayLabels[i], cls: "tm-day-btn" });
+      if (this.recurrenceDaysOfWeek.includes(momentIdx)) dayBtn.addClass("active");
       dayBtn.addEventListener("click", () => {
         const idx = this.recurrenceDaysOfWeek.indexOf(momentIdx);
-        if (idx >= 0) {
-          this.recurrenceDaysOfWeek.splice(idx, 1);
-          dayBtn.removeClass("active");
-        } else {
-          this.recurrenceDaysOfWeek.push(momentIdx);
-          this.recurrenceDaysOfWeek.sort();
-          dayBtn.addClass("active");
-        }
+        if (idx >= 0) { this.recurrenceDaysOfWeek.splice(idx, 1); dayBtn.removeClass("active"); }
+        else { this.recurrenceDaysOfWeek.push(momentIdx); this.recurrenceDaysOfWeek.sort(); dayBtn.addClass("active"); }
       });
     }
 
-    this.updateRecurrenceSettings();
+    // Повторять до
+    const untilRow = this.recurrenceSubEl.createDiv({ cls: "tm-adv-row" });
+    const untilLabel = untilRow.createDiv({ cls: "tm-adv-label-item" });
+    untilLabel.createEl("span", { text: "Повторять до" });
+    const untilInput = untilRow.createEl("input", {
+      type: "date", cls: "tm-input tm-adv-input", value: this.recurrenceUntilDateValue,
+    });
+    untilInput.addEventListener("change", () => {
+      this.recurrenceUntilDateValue = untilInput.value;
+      if (this.recurrenceUntilDateValue) {
+        const m = window.moment(this.recurrenceUntilDateValue, "YYYY-MM-DD", true);
+        if (m.isValid()) this.recurrenceUntilDateUID = getDateUID(m, "day");
+      } else { this.recurrenceUntilDateUID = ""; }
+    });
 
-    // 11. Рабочая задача
-    new Setting(contentEl)
-      .setName("Рабочая")
-      .setDesc("Пометить задачу как рабочую для учёта заработка")
-      .addToggle((toggle) => {
-        toggle.setValue(this.isWorkTask);
-        toggle.onChange((value) => {
-          this.isWorkTask = value;
-          this.updateWorkTaskSettings();
-        });
-      });
+    this.updateRecurrenceSubFields();
 
-    this.workTaskTypeSetting = new Setting(contentEl)
-      .setName("Тип оплаты")
-      .addDropdown((dropdown) => {
-        dropdown.addOption("hour", "Оплата в час");
-        dropdown.addOption("day", "Оплата в день");
-        dropdown.setValue(this.paymentType);
-        dropdown.onChange((value) => {
-          this.paymentType = value as "hour" | "day";
-          this.updateWorkTaskSettings();
-        });
-      });
+    // --- Связать с заметкой ---
+    const noteRow = this.advancedBody.createDiv({ cls: "tm-adv-row" });
+    const noteLabel = noteRow.createDiv({ cls: "tm-adv-label-item" });
+    noteLabel.createEl("span", { text: "🔗" });
+    noteLabel.createEl("span", { text: "Связать с заметкой" });
+    const noteInput = noteRow.createEl("input", {
+      type: "text", cls: "tm-input tm-adv-input", placeholder: "Путь к заметке...",
+      value: this.notePathInput,
+    });
+    noteInput.addEventListener("input", () => { this.notePathInput = noteInput.value; });
+    const noteBtn = noteRow.createEl("button", { text: "...", cls: "tm-adv-file-btn" });
+    noteBtn.addEventListener("click", () => {
+      new FileSuggestModal(this.app, (filePath) => {
+        this.notePathInput = filePath;
+        noteInput.value = filePath;
+      }).open();
+    });
 
-    this.workTaskRateSetting = new Setting(contentEl)
-      .setName("Ставка")
-      .setDesc("Стоимость работы (час или день)")
-      .addText((text) => {
-        text
-          .setPlaceholder("0")
-          .setValue(this.rate)
-          .onChange((value) => {
-            this.rate = value.replace(/[^0-9.,]/g, "");
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "0";
-        text.inputEl.style.maxWidth = "120px";
-      });
+    // --- Рабочая задача ---
+    const workRow = this.advancedBody.createDiv({ cls: "tm-adv-row tm-adv-row-toggle" });
+    const workLabelWrap = workRow.createDiv({ cls: "tm-adv-label-item" });
+    workLabelWrap.createEl("span", { text: "💎" });
+    const workLabel = workLabelWrap.createEl("span");
+    workLabel.createEl("span", { text: "Учитывать в рабочем времени" });
+    workLabel.createEl("br");
+    workLabel.createEl("span", { text: "Задача будет учитываться в статистике и планировании", cls: "tm-adv-sublabel" });
+    const workToggle = workRow.createEl("label", { cls: "tm-toggle" });
+    const workCheckbox = workToggle.createEl("input", { type: "checkbox", cls: "tm-toggle-input" }) as HTMLInputElement;
+    workCheckbox.checked = this.isWorkTask;
+    workToggle.createEl("span", { cls: "tm-toggle-slider" });
+    workCheckbox.addEventListener("change", () => { this.isWorkTask = workCheckbox.checked; this.updateWorkTaskSettings(); });
 
-    this.workTaskOvertimeStartSetting = new Setting(contentEl)
-      .setName("Переработки с")
-      .setDesc("С какого часа начислять переработки (например, 8)")
-      .addText((text) => {
-        text
-          .setPlaceholder("ч")
-          .setValue(this.overtimeStart)
-          .onChange((value) => {
-            this.overtimeStart = value.replace(/[^0-9]/g, "");
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "1";
-        text.inputEl.max = "24";
-        text.inputEl.style.maxWidth = "60px";
-        text.inputEl.placeholder = "ч";
-      });
+    // --- Work task sub-fields (raw DOM — no Setting class) ---
+    this.workTaskSubEl = this.advancedBody.createDiv({ cls: "tm-adv-sub" });
 
-    this.workTaskOvertimeMultiplierSetting = new Setting(contentEl)
-      .setName("Множитель переработок")
-      .setDesc("Во сколько раз увеличивать ставку (например, 1.5)")
-      .addText((text) => {
-        text
-          .setPlaceholder("1.5")
-          .setValue(this.overtimeMultiplier)
-          .onChange((value) => {
-            this.overtimeMultiplier = value.replace(/[^0-9.,]/g, "");
-          });
-        text.inputEl.type = "number";
-        text.inputEl.min = "1";
-        text.inputEl.max = "10";
-        text.inputEl.step = "0.1";
-        text.inputEl.style.maxWidth = "80px";
-      });
+    // Тип оплаты
+    const payRow = this.workTaskSubEl.createDiv({ cls: "tm-adv-row" });
+    const payLabel = payRow.createDiv({ cls: "tm-adv-label-item" });
+    payLabel.createEl("span", { text: "Тип оплаты" });
+    const paySelect = payRow.createEl("select", { cls: "tm-select tm-adv-input" });
+    paySelect.createEl("option", { value: "hour", text: "В час" });
+    paySelect.createEl("option", { value: "day", text: "В день" });
+    paySelect.value = this.paymentType;
+    paySelect.addEventListener("change", () => { this.paymentType = paySelect.value as any; this.updateWorkTaskSubFields(); });
 
+    // Ставка
+    const rateRow = this.workTaskSubEl.createDiv({ cls: "tm-adv-row" });
+    const rateLabel = rateRow.createDiv({ cls: "tm-adv-label-item" });
+    rateLabel.createEl("span", { text: "Ставка (₽)" });
+    const rateInput = rateRow.createEl("input", {
+      type: "number", cls: "tm-input tm-adv-input", value: this.rate, placeholder: "0", min: "0",
+    }) as HTMLInputElement;
+    rateInput.style.maxWidth = "120px";
+    rateInput.addEventListener("input", () => { this.rate = rateInput.value.replace(/[^0-9.,]/g, ""); });
+
+    // Переработки с
+    const otStartRow = this.workTaskSubEl.createDiv({ cls: "tm-adv-row" });
+    const otStartLabel = otStartRow.createDiv({ cls: "tm-adv-label-item" });
+    otStartLabel.createEl("span", { text: "Переработки с (час)" });
+    const otStartInput = otStartRow.createEl("input", {
+      type: "number", cls: "tm-input tm-adv-input", value: this.overtimeStart, placeholder: "8", min: "1", max: "24",
+    }) as HTMLInputElement;
+    otStartInput.style.maxWidth = "60px";
+    otStartInput.addEventListener("input", () => { this.overtimeStart = otStartInput.value.replace(/[^0-9]/g, ""); });
+
+    // Множитель
+    const otMulRow = this.workTaskSubEl.createDiv({ cls: "tm-adv-row" });
+    const otMulLabel = otMulRow.createDiv({ cls: "tm-adv-label-item" });
+    otMulLabel.createEl("span", { text: "Множитель" });
+    const otMulInput = otMulRow.createEl("input", {
+      type: "number", cls: "tm-input tm-adv-input", value: this.overtimeMultiplier, placeholder: "1.5", min: "1", max: "10", step: "0.1",
+    }) as HTMLInputElement;
+    otMulInput.style.maxWidth = "80px";
+    otMulInput.addEventListener("input", () => { this.overtimeMultiplier = otMulInput.value.replace(/[^0-9.,]/g, ""); });
+
+    this.updateRecurrenceSubFields();
     this.updateWorkTaskSettings();
 
-    const buttonsEl = contentEl.createDiv("task-tracker-modal-buttons");
-
-    const cancelBtn = buttonsEl.createEl("button", { text: "Отмена" });
+    // ═══ Footer ═══
+    const footer = contentEl.createDiv({ cls: "tm-footer" });
+    const cancelBtn = footer.createEl("button", { text: "Отмена", cls: "tm-btn tm-cancel" });
     cancelBtn.addEventListener("click", () => this.close());
-
-    const submitBtn = buttonsEl.createEl("button", {
-      text: this.task ? "Сохранить" : "Создать",
-      cls: "mod-cta",
-    });
+    const submitBtn = footer.createEl("button", { cls: "tm-btn tm-submit" });
+    submitBtn.createEl("span", { text: "✓" });
+    submitBtn.createEl("span", { text: this.task ? "Сохранить" : "Создать задачу" });
     submitBtn.addEventListener("click", () => this.handleSubmit());
   }
 
-  private recurrenceIntervalSetting: Setting;
-  private recurrenceDaysSetting: Setting;
-  private recurrenceUntilSetting: Setting;
-  private workTaskTypeSetting: Setting;
-  private workTaskRateSetting: Setting;
-  private workTaskOvertimeStartSetting: Setting;
-  private workTaskOvertimeMultiplierSetting: Setting;
+  private updateRecurrenceSubFields(): void {
+    if (!this.recurrenceSubEl) return;
+    const show = this.recurrenceType !== "none";
+    this.recurrenceSubEl.style.display = show ? "" : "none";
 
-  private updateRecurrenceSettings(): void {
-    const showInterval = this.recurrenceType === "monthly";
-    const showDays = this.recurrenceType === "weekly";
-    const showUntil = this.recurrenceType !== "none";
+    // Interval only for monthly
+    const intervalRow = this.recurrenceSubEl.children[0] as HTMLElement;
+    if (intervalRow) intervalRow.style.display = this.recurrenceType === "monthly" ? "" : "none";
 
-    this.recurrenceIntervalSetting.settingEl.style.display = showInterval ? "" : "none";
-    this.recurrenceDaysSetting.settingEl.style.display = showDays ? "" : "none";
-    this.recurrenceUntilSetting.settingEl.style.display = showUntil ? "" : "none";
+    // Days only for weekly
+    const daysRow = this.recurrenceSubEl.children[1] as HTMLElement;
+    if (daysRow) daysRow.style.display = this.recurrenceType === "weekly" ? "" : "none";
   }
 
+  private workTaskSubEl: HTMLDivElement | null = null;
+
   private updateWorkTaskSettings(): void {
+    this.updateWorkTaskSubFields();
+  }
+
+  private updateWorkTaskSubFields(): void {
+    if (!this.workTaskSubEl) return;
     const show = this.isWorkTask;
     const showOvertime = show && this.paymentType === "hour";
-    this.workTaskTypeSetting.settingEl.style.display = show ? "" : "none";
-    this.workTaskRateSetting.settingEl.style.display = show ? "" : "none";
-    this.workTaskOvertimeStartSetting.settingEl.style.display = showOvertime ? "" : "none";
-    this.workTaskOvertimeMultiplierSetting.settingEl.style.display = showOvertime ? "" : "none";
+    this.workTaskSubEl.style.display = show ? "" : "none";
+    // Overtime fields are children 2 and 3
+    const otStartRow = this.workTaskSubEl.children[2] as HTMLElement;
+    const otMulRow = this.workTaskSubEl.children[3] as HTMLElement;
+    if (otStartRow) otStartRow.style.display = showOvertime ? "" : "none";
+    if (otMulRow) otMulRow.style.display = showOvertime ? "" : "none";
   }
 
   private handleSubmit(): void {
-    // Страховочное чтение из DOM на случай, если onChange не сработал
-    if (this.titleInputEl) {
-      this.titleInput = this.titleInputEl.value;
-    }
-    if (this.descriptionInputEl) {
-      this.descriptionInput = this.descriptionInputEl.value;
-    }
+    if (this.titleInputEl) this.titleInput = this.titleInputEl.value;
+    if (this.descriptionInputEl) this.descriptionInput = this.descriptionInputEl.value;
 
-    if (!this.titleInput.trim()) {
+    if (!this.titleInput.trim()) return;
+
+    const desc = (this.descriptionInput || "").trim();
+    if (desc.length > 100) {
+      if (this.descCounterEl) {
+        this.descCounterEl.style.color = "var(--text-error, #ef4436)";
+        this.descCounterEl.textContent = `⚠ ${desc.length}/100 — максимум 100`;
+        setTimeout(() => {
+          this.descCounterEl!.style.color = "";
+          this.updateDescCounter();
+        }, 3000);
+      }
       return;
     }
 
     let finalDateUID = this.dateUID;
     if (!finalDateUID && this.dateValue) {
-      const moment = window.moment(this.dateValue, "YYYY-MM-DD", true);
-      if (moment.isValid()) {
-        finalDateUID = getDateUID(moment, "day");
-      }
+      const m = window.moment(this.dateValue, "YYYY-MM-DD", true);
+      if (m.isValid()) finalDateUID = getDateUID(m, "day");
     }
-    if (!finalDateUID) {
-      finalDateUID = getDateUID(window.moment(), "day");
-    }
+    if (!finalDateUID) finalDateUID = getDateUID(window.moment(), "day");
 
     let recurrence: RecurrenceConfig | undefined;
     if (this.recurrenceType !== "none") {
-      recurrence = {
-        type: this.recurrenceType as "daily" | "weekly" | "monthly",
-        interval: this.recurrenceInterval,
-      };
-      if (this.recurrenceType === "weekly" && this.recurrenceDaysOfWeek.length > 0) {
-        recurrence.daysOfWeek = [...this.recurrenceDaysOfWeek];
-      }
-      if (this.recurrenceUntilDateUID) {
-        recurrence.until = this.recurrenceUntilDateUID;
-      }
+      recurrence = { type: this.recurrenceType as any, interval: this.recurrenceInterval };
+      if (this.recurrenceType === "weekly" && this.recurrenceDaysOfWeek.length > 0) recurrence.daysOfWeek = [...this.recurrenceDaysOfWeek];
+      if (this.recurrenceUntilDateUID) recurrence.until = this.recurrenceUntilDateUID;
     }
 
     this.onSubmit({
@@ -575,7 +521,6 @@ export class TaskModal extends Modal {
       deadline: this.deadlineDateUID || undefined,
       deadlineTime: this.deadlineTime || undefined,
     });
-
     this.close();
   }
 
@@ -586,7 +531,6 @@ export class TaskModal extends Modal {
   }
 
   onClose(): void {
-    const { contentEl } = this;
-    contentEl.empty();
+    this.contentEl.empty();
   }
 }

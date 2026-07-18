@@ -126,39 +126,30 @@ describe("taskToEvent", () => {
     expect(event).not.toBeNull();
     expect(event.id).toBe("test-id");
     expect(event.title).toBe("Test Task");
-    expect(typeof event.start).toBe("number");
-    expect(typeof event.end).toBe("number");
-    // FullCalendar renders 30 min late, so start is compensated by -30 min
-    const startMs = event.start as number;
-    const startDate = new Date(startMs);
-    expect(startDate.getHours()).toBe(13);
-    expect(startDate.getMinutes()).toBe(30);
-    const endMs = event.end as number;
-    const endDate = new Date(endMs);
-    expect(endDate.getHours()).toBe(15);
-    expect(endDate.getMinutes()).toBe(0);
+    expect(typeof event.start).toBe("string");
+    expect(typeof event.end).toBe("string");
+    expect(event.start).toContain("T14:00:00");
+    expect(event.end).toContain("T15:30:00");
   });
 
   it("should create an all-day event when no scheduledTime", () => {
     const task = makeTask({ scheduledTime: undefined, estimatedTime: 60 });
     const event = taskToEvent(task, []);
 
-    expect(typeof event.start).toBe("number");
-    expect(typeof event.end).toBe("number");
-    expect(event.end - event.start).toBe(86400000);
+    expect(typeof event.start).toBe("string");
+    expect(typeof event.end).toBe("string");
+    expect(event.start).toContain("T00:00:00");
+    expect(event.end).toContain("T00:00:00");
   });
 
   it("should default to 60 minutes when no estimatedTime", () => {
     const task = makeTask({ scheduledTime: "10:00", estimatedTime: undefined });
     const event = taskToEvent(task, []);
 
-    expect(typeof event.start).toBe("number");
-    const startDate = new Date(event.start as number);
-    expect(startDate.getHours()).toBe(9);
-    expect(startDate.getMinutes()).toBe(30);
-    const endDate = new Date(event.end as number);
-    expect(endDate.getHours()).toBe(10);
-    expect(endDate.getMinutes()).toBe(30);
+    expect(typeof event.start).toBe("string");
+    expect(event.start).toContain("T10:00:00");
+    expect(typeof event.end).toBe("string");
+    expect(event.end).toContain("T11:00:00");
   });
 
   it("should use project color when available (muted)", () => {
@@ -279,12 +270,10 @@ describe("tasksToEvents", () => {
 
     const events = tasksToEvents(tasks, []);
 
-    const end0 = new Date(events[0].end as number);
-    expect(end0.getHours()).toBe(9);
-    expect(end0.getMinutes()).toBe(0);
-    const end1 = new Date(events[1].end as number);
-    expect(end1.getHours()).toBe(10);
-    expect(end1.getMinutes()).toBe(30);
+    expect(typeof events[0].end).toBe("string");
+    expect(events[0].end).toContain("T09:30:00");
+    expect(typeof events[1].end).toBe("string");
+    expect(events[1].end).toContain("T11:00:00");
   });
 
   it("should handle tasks with descriptions", () => {
