@@ -69,6 +69,23 @@ export interface ISettings {
   gistUrl?: string;
   gistRawUrl?: string;
   gistAutoSync?: boolean;
+
+  // Appearance
+  accentColor?: string;
+  glassBgColor?: string;
+  glassOpacity?: number;
+
+  // Schedule display settings
+  scheduleShowTime: boolean;
+  scheduleShowStatus: boolean;
+  scheduleShowPriority: boolean;
+  scheduleShowWorkBadge: boolean;
+  scheduleShowNoteBadge: boolean;
+  scheduleShowDeadline: boolean;
+  scheduleShowOverdue: boolean;
+  scheduleShowDescription: boolean;
+  scheduleShowNowIndicator: boolean;
+  scheduleShowDeadlineEvents: boolean;
 }
 
 export const defaultSettings = Object.freeze({
@@ -113,7 +130,57 @@ export const defaultSettings = Object.freeze({
 
   defaultPaymentType: "hour" as "hour" | "day",
   defaultRate: 0,
+
+  accentColor: "#5f99e1",
+  glassBgColor: "#1e2332",
+  glassOpacity: 55,
+
+  scheduleShowTime: true,
+  scheduleShowStatus: true,
+  scheduleShowPriority: true,
+  scheduleShowWorkBadge: true,
+  scheduleShowNoteBadge: true,
+  scheduleShowDeadline: true,
+  scheduleShowOverdue: true,
+  scheduleShowDescription: true,
+  scheduleShowNowIndicator: true,
+  scheduleShowDeadlineEvents: true,
 });
+
+export function applyAccentColor(hex: string): void {
+  const root = document.documentElement;
+  // Parse hex to rgb
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+
+  root.style.setProperty("--mcp-accent", `rgba(${r}, ${g}, ${b}, 0.55)`);
+  root.style.setProperty("--mcp-accent-dim", `rgba(${r}, ${g}, ${b}, 0.10)`);
+  root.style.setProperty("--mcp-accent-faint", `rgba(${r}, ${g}, ${b}, 0.15)`);
+  root.style.setProperty("--mcp-accent-ultra-dim", `rgba(${r}, ${g}, ${b}, 0.08)`);
+  root.style.setProperty("--mcp-accent-hover", `rgba(${r}, ${g}, ${b}, 0.18)`);
+  root.style.setProperty("--mcp-accent-glow", `rgba(${r}, ${g}, ${b}, 0.18)`);
+
+  // Also set Obsidian's --interactive-accent so finance/analytics views follow the color
+  root.style.setProperty("--interactive-accent", `rgba(${r}, ${g}, ${b}, 0.55)`);
+  root.style.setProperty("--text-on-accent", "#fff");
+  root.style.setProperty("--text-accent", `rgba(${r}, ${g}, ${b}, 0.9)`);
+
+  // Calendar nav arrows and title
+  root.style.setProperty("--color-arrow", `rgba(${r}, ${g}, ${b}, 0.7)`);
+  root.style.setProperty("--color-text-title", `rgba(${r}, ${g}, ${b}, 0.9)`);
+}
+
+export function applyGlassBgColor(hex: string, opacity?: number): void {
+  const root = document.documentElement;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const alpha = opacity != null ? opacity / 100 : 0.55;
+
+  root.style.setProperty("--mcp-glass-bg", `rgba(${r}, ${g}, ${b}, ${alpha})`);
+  root.style.setProperty("--mcp-glass-highlight", `rgba(${r + 5}, ${g + 5}, ${b + 5}, ${Math.max(0.01, alpha * 0.05)})`);
+}
 
 export function appHasPeriodicNotesPluginLoaded(): boolean {
   // Undocumented periodic-notes plugin API
@@ -133,6 +200,20 @@ export class CalendarSettingsTab extends PluginSettingTab {
   display(): void {
     this.containerEl.empty();
 
+    // Coffee banner
+    const coffeeBanner = this.containerEl.createDiv({ cls: "settings-coffee-banner" });
+    const coffeeTitle = coffeeBanner.createEl("h3", { cls: "settings-coffee-title" });
+    coffeeTitle.textContent = "☕ Купить автору кофе";
+    const coffeeDesc = coffeeBanner.createEl("p", { cls: "settings-coffee-desc" });
+    coffeeDesc.textContent = "Если плагин оказался полезен — угощайте автора кофе!";
+    const coffeeBtn = coffeeBanner.createEl("a", {
+      cls: "settings-coffee-btn",
+      text: "Поддержать",
+      href: "https://pay.cloudtips.ru/p/cbaa3c81",
+    });
+    coffeeBtn.setAttribute("target", "_blank");
+    coffeeBtn.setAttribute("rel", "noopener");
+
     if (!appHasDailyNotesPluginLoaded()) {
       this.containerEl.createDiv("settings-banner", (banner) => {
         banner.createEl("h3", {
@@ -146,11 +227,23 @@ export class CalendarSettingsTab extends PluginSettingTab {
       });
     }
 
+
     this.containerEl.createEl("h3", {
       text: "Панели",
     });
     this.addShowTaskTrackerSetting();
     this.addShowHabitTrackerSetting();
+
+    this.containerEl.createEl("h3", {
+      text: "Внешний вид",
+    });
+    this.addAccentColorSetting();
+    this.addGlassBgColorSetting();
+
+    this.containerEl.createEl("h3", {
+      text: "Расписание — отображаемые элементы",
+    });
+    this.addScheduleDisplaySettings();
 
     this.containerEl.createEl("h3", {
       text: "Синхронизация",
@@ -231,6 +324,109 @@ export class CalendarSettingsTab extends PluginSettingTab {
         text.inputEl.min = "50";
         text.inputEl.max = "10000";
         text.inputEl.style.maxWidth = "100px";
+      });
+  }
+
+  addScheduleDisplaySettings(): void {
+    const opts = this.plugin.options;
+    const items: { key: string; name: string; desc: string }[] = [
+      { key: "scheduleShowTime", name: "Время", desc: "Отображать запланированное время задачи" },
+      { key: "scheduleShowStatus", name: "Статус", desc: "Бейдж статуса (В работе / На паузе / Готово)" },
+      { key: "scheduleShowPriority", name: "Приоритет", desc: "Иконка приоритета (! высокий, ~ средний)" },
+      { key: "scheduleShowWorkBadge", name: "Рабочая задача", desc: "Бейдж рабочей задачи" },
+      { key: "scheduleShowNoteBadge", name: "Привязанная заметка", desc: "Иконка привязанной заметки" },
+      { key: "scheduleShowDeadline", name: "Дедлайн", desc: "Отображать дедлайн (полупрозрачный бейдж)" },
+      { key: "scheduleShowOverdue", name: "Просрочено", desc: "Показывать время просрочки" },
+      { key: "scheduleShowDescription", name: "Описание", desc: "Краткое описание задачи под заголовком" },
+      { key: "scheduleShowNowIndicator", name: "Текущее время", desc: "Индикатор текущего времени в расписании" },
+      { key: "scheduleShowDeadlineEvents", name: "Дедлайн-задачи", desc: "Отдельные задачи-дедлайны в расписании (красные полупрозрачные)" },
+    ];
+    for (const item of items) {
+      new Setting(this.containerEl)
+        .setName(item.name)
+        .setDesc(item.desc)
+        .addToggle((toggle) => {
+          toggle.setValue(opts[item.key as keyof typeof opts] as boolean);
+          toggle.onChange(async (value) => {
+            await this.plugin.writeOptions({ [item.key]: value });
+          });
+        });
+    }
+  }
+
+  addAccentColorSetting(): void {
+    const currentColor = this.plugin.options.accentColor || "#5f99e1";
+
+    const setting = new Setting(this.containerEl)
+      .setName("Акцентный цвет")
+      .setDesc("Основной цвет подсветки кнопок, выделений и активных элементов")
+      .addColorPicker((picker) => {
+        picker
+          .setValue(currentColor)
+          .onChange(async (value) => {
+            await this.plugin.writeOptions({ accentColor: value });
+            applyAccentColor(value);
+          });
+      });
+
+    // Add a reset button
+    setting.addButton((btn) =>
+      btn
+        .setButtonText("Сбросить")
+        .setTooltip("Вернуть цвет по умолчанию")
+        .onClick(async () => {
+          const defaultColor = "#5f99e1";
+          await this.plugin.writeOptions({ accentColor: defaultColor });
+          applyAccentColor(defaultColor);
+          this.display();
+        })
+    );
+  }
+
+  addGlassBgColorSetting(): void {
+    const currentColor = this.plugin.options.glassBgColor || "#1e2332";
+    const currentOpacity = this.plugin.options.glassOpacity ?? 55;
+
+    const setting = new Setting(this.containerEl)
+      .setName("Фон стеклянных панелей")
+      .setDesc("Цвет фона панелей задач, привычек, расписания и модальных окон")
+      .addColorPicker((picker) => {
+        picker
+          .setValue(currentColor)
+          .onChange(async (value) => {
+            await this.plugin.writeOptions({ glassBgColor: value });
+            applyGlassBgColor(value, this.plugin.options.glassOpacity);
+          });
+      });
+
+    setting.addButton((btn) =>
+      btn
+        .setButtonText("Сбросить")
+        .setTooltip("Вернуть цвет по умолчанию")
+        .onClick(async () => {
+          const defaultColor = "#1e2332";
+          await this.plugin.writeOptions({ glassBgColor: defaultColor, glassOpacity: 55 });
+          applyGlassBgColor(defaultColor, 55);
+          this.display();
+        })
+    );
+
+    new Setting(this.containerEl)
+      .setName("Прозрачность панелей")
+      .setDesc(`Непрозрачность фона стеклянных панелей: ${currentOpacity}%`)
+      .addSlider((slider) => {
+        slider
+          .setLimits(0, 100, 5)
+          .setValue(currentOpacity)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            await this.plugin.writeOptions({ glassOpacity: value });
+            applyGlassBgColor(this.plugin.options.glassBgColor || "#1e2332", value);
+            // Update description with current value
+            slider.sliderEl.closest(".setting-item")?.querySelector(".setting-item-description")?.setText(
+              `Непрозрачность фона стеклянных панелей: ${value}%`
+            );
+          });
       });
   }
 
@@ -813,7 +1009,7 @@ priority: medium
               }
               if (afternoon.length) {
                 lines.push(`🌆 День (${afternoon.length}):`);
-                afternoon.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + 1}. 🔴 ${l}`));
+                afternoon.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + 1}. 🔵 ${l}`));
                 lines.push("");
               }
               if (evening.length) {
@@ -930,7 +1126,7 @@ priority: medium
 
     new Setting(this.containerEl)
       .setName("Синхронизировать с Gist")
-      .setDesc("Экспортировать задачи (даты, время, дедлайны) в .ics файл на GitHub Gist")
+      .setDesc("Экспортировать задачи в .ics файл на GitHub Gist")
       .addButton((btn) =>
         btn
           .setButtonText("Синхронизировать")
@@ -960,7 +1156,7 @@ priority: medium
               const status = get(gistSyncStatus);
               // Re-render settings to show the URL field
               this.display();
-              alert(`Синхронизация завершена!\n\nURL для подписки:\n${status.rawUrl}\n\nДобавьте этот URL в Google Calendar (Settings → Subscribe to calendar).`);
+              alert(`Синхронизация завершена!\n\nURL для подписки:\n${status.rawUrl}\n\n Скопируйте URL и добавьте его в Ваш календарь`);
             } else {
               alert(`Ошибка: ${result.error}`);
             }
@@ -979,7 +1175,7 @@ priority: medium
           if (value) {
             // Show status
             const statusEl = document.getElementById("gist-auto-sync-status");
-            if (statusEl) statusEl.textContent = "✓ Автосинхронизация включена. Измените задачу для проверки.";
+            if (statusEl) statusEl.textContent = "✓ Автосинхронизация включена.";
           }
         });
       });
@@ -989,7 +1185,7 @@ priority: medium
     statusDesc.id = "gist-auto-sync-status";
     statusDesc.style.cssText = "font-size: 11px; color: var(--text-faint); margin-top: 4px; padding: 4px 0;";
     statusDesc.textContent = this.plugin.options.gistAutoSync
-      ? "✓ Автосинхронизация включена. Измените задачу для проверки."
+      ? "✓ Автосинхронизация включена."
       : "Выключена. Включите для автоматического обновления календаря.";
     this.containerEl.querySelector(".setting-item:last-child")?.appendChild(statusDesc);
 

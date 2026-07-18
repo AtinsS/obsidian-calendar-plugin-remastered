@@ -689,3 +689,52 @@ export function getMonthlyEarningsForYear(year: number): { month: number; amount
   }
   return result;
 }
+
+export function calculateExpectedTaskEarnings(task: ITask, avgTimeMs?: number): number {
+  if (!task.isWorkTask || !task.rate) return 0;
+  if (task.paymentType === "hour") {
+    const timeMs = task.estimatedTime || avgTimeMs || 0;
+    const hours = timeMs / 3600000;
+    return Math.round(task.rate * hours);
+  }
+  if (task.paymentType === "day") {
+    return task.rate;
+  }
+  return 0;
+}
+
+export function getExpectedEarningsForMonth(year: number, month: number): number {
+  const allTasks = get(tasks);
+  const monthTasks = allTasks.filter((t) => {
+    if (!t.isWorkTask || !t.rate) return false;
+    const match = t.dateUID.match(/^day-(\d{4})-(\d{2})/);
+    if (!match) return false;
+    return parseInt(match[1]) === year && parseInt(match[2]) === month;
+  });
+
+  if (monthTasks.length === 0) return 0;
+
+  // Calculate average time per project for tasks without estimate
+  const projectAvgTime = new Map<string, number>();
+  const doneWithTime = allTasks.filter(
+    (t) => t.isWorkTask && t.paymentType === "hour" && t.totalWorkTime && t.totalWorkTime > 0
+  );
+  for (const t of doneWithTime) {
+    const key = t.projectId || "__none__";
+    const existing = projectAvgTime.get(key) || { total: 0, count: 0 };
+    existing.total += t.totalWorkTime;
+    existing.count += 1;
+    projectAvgTime.set(key, existing);
+  }
+  const avgByProject = new Map<string, number>();
+  for (const [key, val] of projectAvgTime) {
+    avgByProject.set(key, val.total / val.count);
+  }
+
+  let total = 0;
+  for (const task of monthTasks) {
+    const avgTime = task.projectId ? avgByProject.get(task.projectId) : undefined;
+    total += calculateExpectedTaskEarnings(task, avgTime);
+  }
+  return total;
+}

@@ -357,152 +357,160 @@
   on:keydown={handleKeydown}
   tabindex="0"
   role="listitem"
+  style="--task-color: {projectColor}"
   aria-label={task.title}
 >
-  <span
-    class="task-project-dot"
-    style="background-color: {projectColor}"
-  ></span>
+  <div class="task-item-row-main">
+    <span
+      class="task-project-dot"
+      style="background-color: {projectColor}"
+    ></span>
 
-  {#if task.isNoteTask && task.notePath}
-    <button
-      class="note-icon"
-      on:click|stopPropagation={openNote}
-      title="Открыть заметку-задачу"
-      aria-label="Открыть заметку"
-    >
-      📝
-    </button>
-  {:else}
-    <button
-      class="task-status-btn status-{task.status}"
-      disabled={task.status === "done"}
-      on:click|stopPropagation={() => {
-        if (task.status === "done") return;
-        else if (task.status === "progress") quickStatus("done");
-        else if (task.status === "paused") quickStatus("done");
-        else quickStatus("done");
-      }}
-      title={task.status === 'done' ? 'Готово (только удаление)' : task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : 'На паузе'}
-      aria-label="Изменить статус"
-    >
-      {statusIcons[task.status]}
-    </button>
-  {/if}
-
-  {#if task.boundNotePath}
-    <a
-      class="task-title note-link"
-      class:strikethrough={task.status === "done"}
-      href={task.boundNotePath}
-      on:click|preventDefault={openNote}
-      title="Открыть привязанную заметку: {task.boundNotePath}"
-    >
-      {task.title}
-    </a>
-  {:else}
-    <span class="task-title" class:strikethrough={task.status === "done"}>
-      {task.title}
-    </span>
-  {/if}
-
-  {#if task.description}
-    <div class="task-descr-wrapper">
+    {#if task.isNoteTask && task.notePath}
       <button
-        class="task-descr-toggle"
-        on:click={toggleDescription}
-        title={showDescription ? "Скрыть описание" : "Показать описание"}
-        aria-label="Описание задачи"
-        aria-expanded={showDescription}
+        class="note-icon"
+        on:click|stopPropagation={openNote}
+        title="Открыть заметку-задачу"
+        aria-label="Открыть заметку"
       >
-        &#128196;
+        📝
       </button>
-    </div>
-  {/if}
-
-  {#if task.recurrence}
-    <span class="task-recurring-icon" title="Повторяющаяся задача">&#8635;</span>
-  {/if}
-
-  {#if $activeTab === "all" && task.status !== "done"}
-    <span class="task-status-badge status-badge-{task.status}">
-      {task.status === "todo" ? "Сделать" : task.status === "progress" ? "В работе" : "На паузе"}
-    </span>
-  {/if}
-
-  {#if task.scheduledTime && task.status !== "progress" && task.status !== "paused"}
-    {#if task.status === "done"}
-      <span class="task-scheduled done" title="Готово">
-        &#10003; Готово
-      </span>
     {:else}
-      <span class="task-scheduled {scheduledTimePassed ? 'passed' : ''}" title={scheduledTimePassed ? "Время прошло" : "Запланировано"}>
-        {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
+      <button
+        class="task-status-btn status-{task.status}"
+        disabled={task.status === "done"}
+        on:click|stopPropagation={() => {
+          if (task.status === "done") return;
+          else if (task.status === "progress") quickStatus("done");
+          else if (task.status === "paused") quickStatus("done");
+          else quickStatus("done");
+        }}
+        title={task.status === 'done' ? 'Готово (только удаление)' : task.status === 'todo' ? 'Сделать' : task.status === 'progress' ? 'В работе' : 'На паузе'}
+        aria-label="Изменить статус"
+      >
+        {statusIcons[task.status]}
+      </button>
+    {/if}
+
+    {#if task.boundNotePath}
+      <a
+        class="task-title note-link"
+        class:strikethrough={task.status === "done"}
+        href={task.boundNotePath}
+        on:click|preventDefault={openNote}
+        title="Открыть привязанную заметку: {task.boundNotePath}"
+      >
+        {task.title}
+      </a>
+    {:else}
+      <span class="task-title" class:strikethrough={task.status === "done"}>
+        {task.title}
       </span>
     {/if}
-  {/if}
 
-  {#if hasDeadline && task.status !== "done"}
-    <span class="task-deadline {deadlineOverdue ? 'overdue' : ''}" title={deadlineOverdue ? "Дедлайн просрочен" : "Дедлайн"}>
-      &#9200; {deadlineLabel}
-    </span>
-  {/if}
+    {#if task.description}
+      <div class="task-descr-wrapper">
+        <button
+          class="task-descr-toggle"
+          on:click={toggleDescription}
+          title={showDescription ? "Скрыть описание" : "Показать описание"}
+          aria-label="Описание задачи"
+          aria-expanded={showDescription}
+        >
+          &#128196;
+        </button>
+      </div>
+    {/if}
 
-  {#if task.status === "paused"}
-    <span class="task-work-paused" title="Работа на паузе">
-      &#9208; Работа на паузе
-    </span>
-    {#if hasActual}
+    {#if task.recurrence}
+      <span class="task-recurring-icon" title="Повторяющаяся задача">&#8635;</span>
+    {/if}
+
+    {#if task.priority === "high"}
+      <span class="task-priority high" aria-label="Высокий приоритет">!</span>
+    {:else if task.priority === "medium"}
+      <span class="task-priority medium" aria-label="Средний приоритет">~</span>
+    {/if}
+
+    <div class="task-actions-dropdown">
+      <button
+        class="task-actions-toggle"
+        on:click={toggleActionsMenu}
+        aria-label="Действия"
+      >
+        &#8942;
+      </button>
+    </div>
+  </div>
+
+  <div class="task-item-row-meta">
+    {#if $activeTab === "all" && task.status !== "done"}
+      <span class="task-status-badge status-badge-{task.status}">
+        {task.status === "todo" ? "Сделать" : task.status === "progress" ? "В работе" : "На паузе"}
+      </span>
+    {/if}
+
+    {#if task.scheduledTime && task.status !== "progress" && task.status !== "paused"}
+      {#if task.status === "done"}
+        <span class="task-scheduled done" title="Готово">
+          &#10003; Готово
+        </span>
+      {:else}
+        <span class="task-scheduled {scheduledTimePassed ? 'passed' : ''}" title={scheduledTimePassed ? "Время прошло" : "Запланировано"}>
+          {scheduledTimePassed ? "\u26A0" : "\uD83D\uDD52"} {task.scheduledTime}
+        </span>
+      {/if}
+    {/if}
+
+    {#if hasDeadline && task.status !== "done"}
+      <span
+        class="task-deadline {deadlineOverdue ? 'overdue' : ''}"
+        title={deadlineOverdue ? "Дедлайн просрочен" : "Дедлайн"}
+      >
+        &#9200; {deadlineLabel}
+      </span>
+    {/if}
+
+    {#if task.status === "paused"}
+      <span class="task-work-paused" title="Работа на паузе">
+        &#9208; Работа на паузе
+      </span>
+      {#if hasActual}
+        <span class="task-timer total" title="Общее время">
+          &#9201; {formatDuration(task.totalWorkTime)}
+        </span>
+      {/if}
+    {:else if timerDisplay}
+      <span class="task-timer" title="Текущее время">
+        &#9201; {timerDisplay}
+      </span>
+    {:else if hasEstimate && !hasActual}
+      <span class="task-estimate" title="План">
+        &#9201; {formatEstimate(task.estimatedTime)}
+      </span>
+    {:else if task.status === "done" && hasEstimate && hasActual}
+      <span
+        class="task-estimate-compare {estimateOver ? 'over' : 'under'}"
+        title="План → Факт"
+      >
+        &#9201; {formatEstimate(task.estimatedTime)} → &#10003; {formatDuration(task.totalWorkTime)}
+      </span>
+    {:else if hasActual}
       <span class="task-timer total" title="Общее время">
         &#9201; {formatDuration(task.totalWorkTime)}
       </span>
     {/if}
-  {:else if timerDisplay}
-    <span class="task-timer" title="Текущее время">
-      &#9201; {timerDisplay}
-    </span>
-  {:else if hasEstimate && !hasActual}
-    <span class="task-estimate" title="План">
-      &#9201; {formatEstimate(task.estimatedTime)}
-    </span>
-  {:else if task.status === "done" && hasEstimate && hasActual}
-    <span
-      class="task-estimate-compare {estimateOver ? 'over' : 'under'}"
-      title="План → Факт"
-    >
-      &#9201; {formatEstimate(task.estimatedTime)} → &#10003; {formatDuration(task.totalWorkTime)}
-    </span>
-  {:else if hasActual}
-    <span class="task-timer total" title="Общее время">
-      &#9201; {formatDuration(task.totalWorkTime)}
-    </span>
-  {/if}
 
-  {#if task.priority === "high"}
-    <span class="task-priority high" aria-label="Высокий приоритет">!</span>
-  {:else if task.priority === "medium"}
-    <span class="task-priority medium" aria-label="Средний приоритет">~</span>
-  {/if}
-
-  {#if task.isWorkTask}
-    <span class="task-work-badge" title="Рабочая задача">
-      &#128188; Рабочая
-      {#if task.rate && task.status === "done"}
-        <span class="task-work-earnings">
-          {calculateTaskEarnings(task)} ₽
-        </span>
-      {/if}
-    </span>
-  {/if}
-
-  <div class="task-actions-dropdown">
-    <button
-      class="task-actions-toggle"
-      on:click={toggleActionsMenu}
-      aria-label="Действия"
-    >
-      &#8942;
-    </button>
+    {#if task.isWorkTask}
+      <span class="task-work-badge" title="Рабочая задача">
+        &#128188; Рабочая
+        {#if task.rate && task.status === "done"}
+          <span class="task-work-earnings">
+            {calculateTaskEarnings(task)} ₽
+          </span>
+        {/if}
+      </span>
+    {/if}
   </div>
 
 </div>

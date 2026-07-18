@@ -62,6 +62,7 @@
   on:keydown={handleKeydown}
   tabindex="0"
   role="listitem"
+  style="--habit-color: {habit.color}"
   aria-label={habit.title}
 >
   <button

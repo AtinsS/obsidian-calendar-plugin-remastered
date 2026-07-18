@@ -11,9 +11,14 @@
   import type { FinanceCategory, FinanceMonthData, MonthGoal, SavingsCategory } from "./types";
   import { generateCategoryId, generateGoalId } from "./types";
   import { get } from "svelte/store";
-  import { tasks } from "../task-tracker/stores";
-  import { calculateTaskEarnings } from "../task-tracker/stores";
-  import { financialAnalyticsData, getTotalManualIncome } from "./financialAnalyticsStorage";
+  import {
+    tasks,
+    getEarningsForMonth,
+    getExpectedEarningsForMonth,
+  } from "../task-tracker/stores";
+  import { financialAnalyticsData } from "./financialAnalyticsStorage";
+
+  type DistributionIncomeSource = "plan" | "fact" | "manual";
 
   function inputVal(e: Event): string {
     return (e.target as HTMLInputElement).value;
@@ -29,7 +34,7 @@
     distributionRules: [],
     updatedAt: "",
   };
-  let incomeSource: "analytics" | "manual" = "analytics";
+  let incomeSource: DistributionIncomeSource = "fact";
   let manualIncome = 0;
   let recalcTimeout: ReturnType<typeof setTimeout> | null = null;
   let editingRules = false;
@@ -70,7 +75,7 @@
     const newData = getMonthData(monthKey);
     if (newData) {
       monthData = newData;
-      incomeSource = monthData.incomeSource || "analytics";
+      incomeSource = normalizeIncomeSource(monthData.incomeSource);
       manualIncome = monthData.monthlyIncome;
     }
   }
@@ -78,14 +83,14 @@
   $: {
     $tasks;
     $financialAnalyticsData;
-    // Only sync income from analytics after finance data has been loaded from disk
+    // Only sync income from calculated sources after finance data has been loaded from disk
     // (monthData.monthlyIncome is 0 only when data hasn't been loaded yet)
-    if (incomeSource === "analytics" && monthData.updatedAt) {
-      const income = getWorkIncome();
-      if (income !== monthData.monthlyIncome) {
+    if (incomeSource !== "manual" && monthData.updatedAt) {
+      const income = getIncomeForSource(incomeSource);
+      if (income !== monthData.monthlyIncome || monthData.incomeSource !== incomeSource) {
         updateMonthData(monthKey, {
           monthlyIncome: income,
-          incomeSource: "analytics",
+          incomeSource,
         });
       }
     }
@@ -116,35 +121,49 @@
   $: expenseDelta = prevMonthData ? mainTotal - (prevMonthData.mainAccountCategories?.reduce((s, c) => s + c.amount, 0) || 0) : 0;
   $: balanceDelta = prevMonthData ? balance - ((prevMonthData.monthlyIncome || 0) - (prevMonthData.mainAccountCategories?.reduce((s, c) => s + c.amount, 0) || 0)) : 0;
 
-  function getWorkIncome(): number {
-    const [year, month] = monthKey.split("-").map(Number);
-    const allTasks = get(tasks);
-    const taskEarnings = allTasks
-      .filter((t) => {
-        if (!t.isWorkTask || t.status !== "done") return false;
-        const match = t.dateUID.match(/^day-(\d{4})-(\d{2})/);
-        if (!match) return false;
-        return parseInt(match[1]) === year && parseInt(match[2]) === month;
-      })
-      .reduce((sum, t) => sum + calculateTaskEarnings(t), 0);
-    if (monthKey !== getCurrentMonthKey()) {
-      return taskEarnings;
-    }
-    return taskEarnings + getTotalManualIncome();
+  function normalizeIncomeSource(source: FinanceMonthData["incomeSource"]): DistributionIncomeSource {
+    if (source === "manual") return "manual";
+    if (source === "plan") return "plan";
+    return "fact";
   }
 
-  function setIncomeSource(source: "analytics" | "manual") {
+  function isManualIncomeInMonth(dateStr: string, year: number, month: number): boolean {
+    const match = dateStr?.match(/^(\d{4})-(\d{2})/);
+    if (match) {
+      return parseInt(match[1], 10) === year && parseInt(match[2], 10) === month;
+    }
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return false;
+    return date.getFullYear() === year && date.getMonth() + 1 === month;
+  }
+
+  function getManualIncomeForMonth(year: number, month: number): number {
+    return get(financialAnalyticsData).manualIncomeSources
+      .filter((source) => isManualIncomeInMonth(source.date, year, month))
+      .reduce((sum, source) => sum + source.amount, 0);
+  }
+
+  function getIncomeForSource(source: Exclude<DistributionIncomeSource, "manual">): number {
+    const [year, month] = monthKey.split("-").map(Number);
+    const manualIncomeForMonth = getManualIncomeForMonth(year, month);
+    if (source === "plan") {
+      return getExpectedEarningsForMonth(year, month) + manualIncomeForMonth;
+    }
+    return getEarningsForMonth(year, month) + manualIncomeForMonth;
+  }
+
+  function setIncomeSource(source: DistributionIncomeSource) {
     incomeSource = source;
-    if (source === "analytics") {
-      const income = getWorkIncome();
-      updateMonthData(monthKey, {
-        monthlyIncome: income,
-        incomeSource: "analytics",
-      });
-    } else {
+    if (source === "manual") {
       updateMonthData(monthKey, {
         monthlyIncome: manualIncome,
         incomeSource: "manual",
+      });
+    } else {
+      const income = getIncomeForSource(source);
+      updateMonthData(monthKey, {
+        monthlyIncome: income,
+        incomeSource: source,
       });
     }
     monthData = getMonthData(monthKey);
@@ -390,9 +409,14 @@
     <div class="income-toggle">
       <button
         class="toggle-btn"
-        class:active={incomeSource === "analytics"}
-        on:click={() => setIncomeSource("analytics")}
-      >Из аналитики</button>
+        class:active={incomeSource === "plan"}
+        on:click={() => setIncomeSource("plan")}
+      >Планы на месяц</button>
+      <button
+        class="toggle-btn"
+        class:active={incomeSource === "fact"}
+        on:click={() => setIncomeSource("fact")}
+      >Факт</button>
       <button
         class="toggle-btn"
         class:active={incomeSource === "manual"}
@@ -402,9 +426,7 @@
     <div class="balance-grid">
       <div class="balance-item">
         <span class="balance-label">Поступления</span>
-        {#if incomeSource === "analytics"}
-          <span class="balance-value income">{formatMoney(monthData.monthlyIncome)} ₽</span>
-        {:else}
+        {#if incomeSource === "manual"}
           <input
             type="number"
             value={manualIncome}
@@ -412,6 +434,8 @@
             min="0"
             class="balance-input income-input"
           />
+        {:else}
+          <span class="balance-value income">{formatMoney(monthData.monthlyIncome)} ₽</span>
         {/if}
         {#if incomeDelta !== 0}
           <span class="balance-delta" class:delta-up={incomeDelta > 0} class:delta-down={incomeDelta < 0}>
@@ -720,7 +744,7 @@
   .month-select:focus {
     border-color: var(--fi-accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
+    box-shadow: 0 0 0 3px var(--mcp-accent-faint);
   }
 
   .month-select:hover {
@@ -873,7 +897,7 @@
 
   .balance-item.total {
     border-color: rgba(255, 255, 255, 0.08);
-    background: linear-gradient(135deg, rgba(80, 200, 160, 0.08), rgba(95, 153, 225, 0.08));
+    background: linear-gradient(135deg, rgba(80, 200, 160, 0.08), var(--mcp-accent-ultra-dim));
   }
 
   .balance-label {
@@ -921,7 +945,7 @@
   .balance-input:focus {
     border-color: var(--fi-accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
+    box-shadow: 0 0 0 3px var(--mcp-accent-faint);
   }
 
   /* ── Categories list ─────────────────────────────────── */
@@ -1043,7 +1067,7 @@
   .savings-field-input:focus {
     border-color: var(--fi-accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(95, 153, 225, 0.15);
+    box-shadow: 0 0 0 2px var(--mcp-accent-faint);
   }
 
   .savings-field-unit {
@@ -1127,7 +1151,7 @@
   .goal-edit-amount:focus {
     border-color: var(--fi-accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
+    box-shadow: 0 0 0 3px var(--mcp-accent-faint);
   }
 
   .goal-edit-row {
@@ -1257,7 +1281,7 @@
   .glass-add-btn:hover {
     border-color: var(--fi-accent);
     color: var(--fi-accent);
-    background: rgba(95, 153, 225, 0.06);
+    background: var(--mcp-accent-ultra-dim);
     transform: translateY(-1px);
   }
 
@@ -1279,7 +1303,7 @@
   .glass-textarea:focus {
     border-color: var(--fi-accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(95, 153, 225, 0.15);
+    box-shadow: 0 0 0 3px var(--mcp-accent-faint);
   }
 
   .glass-textarea.rules {

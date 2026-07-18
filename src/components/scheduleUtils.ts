@@ -168,10 +168,11 @@ function deadlineToEvent(
   const taskDateStr = extractDateFromUID(task.dateUID);
   if (!deadlineDateStr || deadlineDateStr === taskDateStr) return null;
 
-  const start = task.deadlineTime
+  const hasTime = !!task.deadlineTime;
+  const start = hasTime
     ? localISO(deadlineDateStr, task.deadlineTime)
-    : localISO(deadlineDateStr, "23:55");
-  const end = task.deadlineTime
+    : localISO(deadlineDateStr, "00:00");
+  const end = hasTime
     ? localISO(deadlineDateStr, task.deadlineTime)
     : localISO(deadlineDateStr, "23:59");
 
@@ -182,7 +183,7 @@ function deadlineToEvent(
     title: `Дедлайн: ${task.title}`,
     start,
     end,
-    allDay: false,
+    allDay: !hasTime,
     backgroundColor: "rgba(180, 60, 60, 0.85)",
     borderColor: "#b43c3c",
     textColor: "#fff",

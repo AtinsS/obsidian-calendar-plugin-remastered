@@ -625,7 +625,7 @@
     background: linear-gradient(
       135deg,
       rgba(80, 200, 160, 0.15),
-      rgba(95, 153, 225, 0.15)
+      var(--mcp-accent-faint)
     );
     border-color: rgba(80, 200, 160, 0.25);
   }

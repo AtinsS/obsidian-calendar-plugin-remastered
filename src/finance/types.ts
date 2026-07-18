@@ -19,6 +19,8 @@ export interface SavingsCategory extends FinanceCategory {
   completed: boolean;
 }
 
+export type FinanceIncomeSource = "plan" | "fact" | "manual" | "analytics";
+
 export interface FinanceMonthData {
   monthlyIncome: number;
   lastMonthExpense: number;
@@ -26,7 +28,7 @@ export interface FinanceMonthData {
   monthGoals: MonthGoal[];
   savingsCategories: SavingsCategory[];
   distributionRules: string[];
-  incomeSource?: "analytics" | "manual";
+  incomeSource?: FinanceIncomeSource;
   updatedAt: string;
 }
 

@@ -1,14 +1,99 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal } from "obsidian";
 import { get } from "svelte/store";
 
 import type { IProject } from "./types";
 import { DEFAULT_PROJECT_COLORS } from "./types";
 import {
   projects,
+  tasks,
   addProject,
   updateProject,
   removeProject,
 } from "./stores";
+
+const RECENT_ICONS_KEY = "calendar-recent-icons";
+const MAX_RECENT = 10;
+
+function getRecentIcons(): string[] {
+  try {
+    const raw = localStorage.getItem(RECENT_ICONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addRecentIcon(emoji: string): void {
+  const recent = getRecentIcons().filter((e) => e !== emoji);
+  recent.unshift(emoji);
+  if (recent.length > MAX_RECENT) recent.length = MAX_RECENT;
+  localStorage.setItem(RECENT_ICONS_KEY, JSON.stringify(recent));
+}
+
+function renderIconPicker(
+  container: HTMLElement,
+  currentIcon: string,
+  onSelect: (emoji: string) => void,
+): HTMLInputElement {
+  container.empty();
+
+  // Custom input
+  const customRow = container.createDiv("pm-icon-custom-row");
+  customRow.createEl("label", { text: "Иконка проекта", cls: "pm-label" });
+  const inputWrap = customRow.createDiv("pm-icon-input-wrap");
+  const input = inputWrap.createEl("input", {
+    cls: "pm-icon-custom-input",
+    attr: { type: "text", placeholder: "Вставьте эмодзи...", maxlength: "10", value: currentIcon },
+  });
+  const applyBtn = inputWrap.createEl("button", { text: "✓", cls: "pm-icon-apply-btn" });
+
+  function applyIcon() {
+    const val = input.value.trim();
+    if (val) {
+      onSelect(val);
+      addRecentIcon(val);
+      renderRecentSection();
+    }
+  }
+
+  applyBtn.addEventListener("click", applyIcon);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") applyIcon();
+  });
+  input.addEventListener("input", () => {
+    onSelect(input.value.trim() || "📁");
+  });
+
+  // Recently used
+  const recentSection = container.createDiv("pm-icon-recent");
+  recentSection.createEl("label", { text: "Недавние", cls: "pm-label" });
+  const recentGrid = recentSection.createDiv("pm-icon-grid");
+
+  function renderRecentSection() {
+    recentGrid.empty();
+    const recent = getRecentIcons();
+    if (recent.length === 0) {
+      recentSection.style.display = "none";
+      return;
+    }
+    recentSection.style.display = "";
+    recent.forEach((emoji) => {
+      const btn = recentGrid.createDiv("pm-icon-btn");
+      btn.textContent = emoji;
+      btn.title = emoji;
+      btn.addEventListener("click", () => {
+        input.value = emoji;
+        onSelect(emoji);
+        recentGrid.querySelectorAll(".pm-icon-btn").forEach((b) => b.removeClass("active"));
+        btn.addClass("active");
+      });
+    });
+  }
+
+  renderRecentSection();
+
+  return input;
+}
 
 export class ProjectModal extends Modal {
   constructor(app: App) {
@@ -20,121 +105,164 @@ export class ProjectModal extends Modal {
     contentEl.addClass("task-tracker-project-modal");
 
     contentEl.createEl("h2", { text: "Управление проектами" });
+    contentEl.createEl("p", {
+      text: "Создайте и настройте проекты для организации задач",
+      cls: "task-tracker-modal-subtitle",
+    });
 
-    const newProjectSection = contentEl.createDiv(
-      "task-tracker-new-project"
-    );
-    newProjectSection.createEl("h3", { text: "Новый проект" });
+    this.renderNewProjectForm(contentEl);
+    this.renderProjectList(contentEl);
+  }
+
+  private renderNewProjectForm(container: HTMLElement): void {
+    const section = container.createDiv("pm-new-project");
+
+    const header = section.createDiv("pm-section-header");
+    header.createEl("span", { text: "+", cls: "pm-section-icon" });
+    header.createEl("span", { text: "Новый проект", cls: "pm-section-title" });
 
     let newName = "";
     let newColor = DEFAULT_PROJECT_COLORS[0];
-    let newIcon = "";
+    let newIcon = "📁";
 
-    new Setting(newProjectSection)
-      .setName("Название")
-      .addText((text) =>
-        text.setPlaceholder("Название проекта").onChange((value) => {
-          newName = value;
-        })
-      );
+    // Name input
+    const nameField = section.createDiv("pm-field");
+    nameField.createEl("label", { text: "Название проекта", cls: "pm-label" });
+    const nameInput = nameField.createEl("input", {
+      cls: "pm-input",
+      attr: { type: "text", placeholder: "Введите название...", maxlength: "50" },
+    });
+    const charCount = nameField.createEl("span", { text: "0/50", cls: "pm-char-count" });
+    nameInput.addEventListener("input", () => {
+      newName = nameInput.value;
+      charCount.textContent = `${newName.length}/50`;
+    });
 
-    const colorPickerEl = newProjectSection.createDiv(
-      "task-tracker-color-picker"
-    );
-    colorPickerEl.createEl("label", { text: "Цвет:" });
+    // Color + Icon row
+    const row = section.createDiv("pm-row");
 
-    const colorGrid = colorPickerEl.createDiv("task-tracker-color-grid");
+    // Color picker
+    const colorSection = row.createDiv("pm-color-section");
+    colorSection.createEl("label", { text: "Цвет проекта", cls: "pm-label" });
+    const colorGrid = colorSection.createDiv("pm-color-grid");
+
     DEFAULT_PROJECT_COLORS.forEach((color) => {
-      const swatch = colorGrid.createDiv("task-tracker-color-swatch");
+      const swatch = colorGrid.createDiv("pm-color-swatch");
       swatch.style.backgroundColor = color;
-      if (color === newColor) {
-        swatch.addClass("active");
-      }
+      if (color === newColor) swatch.addClass("active");
       swatch.addEventListener("click", () => {
-        colorGrid
-          .querySelectorAll(".task-tracker-color-swatch")
-          .forEach((s) => s.removeClass("active"));
+        colorGrid.querySelectorAll(".pm-color-swatch").forEach((s) => s.removeClass("active"));
         swatch.addClass("active");
         newColor = color;
+        updatePreview();
       });
     });
 
-    new Setting(newProjectSection)
-      .setName("Иконка")
-      .addText((text) =>
-        text.setPlaceholder("Emoji иконка").onChange((value) => {
-          newIcon = value;
-        })
-      );
+    // Icon picker
+    const iconSection = row.createDiv("pm-icon-section");
+    renderIconPicker(iconSection, newIcon, (emoji) => {
+      newIcon = emoji;
+      updatePreview();
+    });
 
-    const createBtn = newProjectSection.createEl("button", {
+    // Preview
+    const preview = section.createDiv("pm-preview");
+    preview.createEl("label", { text: "Предпросмотр", cls: "pm-label" });
+    const previewCard = preview.createDiv("pm-preview-card");
+
+    const previewDot = previewCard.createDiv("pm-preview-dot");
+    previewDot.style.backgroundColor = newColor;
+    const previewIcon = previewCard.createSpan("pm-preview-icon");
+    previewIcon.textContent = newIcon;
+    const previewName = previewCard.createSpan("pm-preview-name");
+    previewName.textContent = "Название проекта";
+
+    function updatePreview() {
+      previewDot.style.backgroundColor = newColor;
+      previewIcon.textContent = newIcon;
+      previewName.textContent = newName || "Название проекта";
+    }
+
+    nameInput.addEventListener("input", updatePreview);
+
+    // Create button
+    const createBtn = section.createEl("button", {
       text: "Создать проект",
-      cls: "mod-cta",
+      cls: "pm-create-btn",
     });
     createBtn.addEventListener("click", () => {
-      if (!newName.trim()) return;
+      if (!newName.trim()) {
+        nameInput.focus();
+        nameInput.classList.add("pm-input-error");
+        setTimeout(() => nameInput.classList.remove("pm-input-error"), 1500);
+        return;
+      }
+      addRecentIcon(newIcon);
       addProject({
         name: newName.trim(),
         color: newColor,
-        icon: newIcon || "📁",
+        icon: newIcon,
         folder: null,
         archived: false,
         sortOrder: get(projects).length,
       });
       this.rerender();
     });
-
-    const existingSection = contentEl.createDiv(
-      "task-tracker-existing-projects"
-    );
-    existingSection.createEl("h3", { text: "Существующие проекты" });
-
-    this.renderProjectList(existingSection);
   }
 
   private renderProjectList(container: HTMLElement): void {
-    container.empty();
+    const section = container.createDiv("pm-existing");
+    const header = section.createDiv("pm-section-header");
+    header.createEl("span", { text: "🗂", cls: "pm-section-icon" });
+    header.createEl("span", { text: "Существующие проекты", cls: "pm-section-title" });
+
     const allProjects = get(projects);
+    const allTasks = get(tasks);
 
     if (allProjects.length === 0) {
-      container.createEl("p", {
-        text: "Проектов пока нет. Создайте один выше.",
-        cls: "setting-item-description",
+      section.createEl("p", {
+        text: "Проектов пока нет. Создайте первый выше!",
+        cls: "pm-empty",
       });
       return;
     }
 
+    const list = section.createDiv("pm-project-list");
+
     allProjects.forEach((project) => {
-      const projectEl = container.createDiv("task-tracker-project-item");
+      const taskCount = allTasks.filter((t) => t.projectId === project.id && t.status !== "done").length;
+      const doneCount = allTasks.filter((t) => t.projectId === project.id && t.status === "done").length;
 
-      const infoEl = projectEl.createDiv("task-tracker-project-info");
-      const dot = infoEl.createSpan("task-tracker-project-dot");
+      const item = list.createDiv("pm-project-item");
+      item.style.setProperty("--project-color", project.color);
+
+      const left = item.createDiv("pm-project-left");
+      const dot = left.createDiv("pm-project-dot");
       dot.style.backgroundColor = project.color;
-      infoEl.createSpan("task-tracker-project-icon").textContent =
-        project.icon;
-      infoEl.createSpan("task-tracker-project-name").textContent =
-        project.name;
+      left.createEl("span", { text: project.icon, cls: "pm-project-icon" });
+      const info = left.createDiv("pm-project-info");
+      info.createEl("span", { text: project.name, cls: "pm-project-name" });
 
-      const actionsEl = projectEl.createDiv("task-tracker-project-actions");
+      const stats = info.createDiv("pm-project-stats");
+      if (taskCount > 0) {
+        stats.createEl("span", { text: `${taskCount} активн.`, cls: "pm-stat pm-stat-active" });
+      }
+      if (doneCount > 0) {
+        stats.createEl("span", { text: `${doneCount} готово`, cls: "pm-stat pm-stat-done" });
+      }
 
-      const editBtn = actionsEl.createEl("button", {
-        text: "Ред.",
-        cls: "task-tracker-btn-small",
-      });
-      editBtn.addEventListener("click", () => {
-        this.openEditProject(project);
-      });
+      const actions = item.createDiv("pm-project-actions");
 
-      const deleteBtn = actionsEl.createEl("button", {
-        text: "Удалить",
-        cls: "task-tracker-btn-small mod-warning",
-      });
+      const editBtn = actions.createEl("button", { cls: "pm-action-btn pm-edit-btn" });
+      editBtn.innerHTML = "&#9998;";
+      editBtn.title = "Редактировать";
+      editBtn.addEventListener("click", () => this.openEditProject(project));
+
+      const deleteBtn = actions.createEl("button", { cls: "pm-action-btn pm-delete-btn" });
+      deleteBtn.innerHTML = "&#10005;";
+      deleteBtn.title = "Удалить проект";
       deleteBtn.addEventListener("click", () => {
-        if (
-          confirm(
-            `Удалить проект «${project.name}»? Задачи сохранят данные, но потеряют привязку к проекту.`
-          )
-        ) {
+        if (confirm(`Удалить проект «${project.name}»?\nЗадачи сохранят данные, но потеряют привязку к проекту.`)) {
           removeProject(project.id);
           this.rerender();
         }
@@ -143,9 +271,10 @@ export class ProjectModal extends Modal {
   }
 
   private openEditProject(project: IProject): void {
-    const modal = new EditProjectModal(this.app, project, () =>
-      this.rerender()
-    );
+    this.close();
+    const modal = new EditProjectModal(this.app, project, () => {
+      new ProjectModal(this.app).open();
+    });
     modal.open();
   }
 
@@ -161,82 +290,86 @@ export class ProjectModal extends Modal {
 
 class EditProjectModal extends Modal {
   private project: IProject;
-  private onSaved: () => void;
+  private onClosed: () => void;
+  private didClose = false;
 
-  constructor(app: App, project: IProject, onSaved: () => void) {
+  constructor(app: App, project: IProject, onClosed: () => void) {
     super(app);
     this.project = project;
-    this.onSaved = onSaved;
+    this.onClosed = onClosed;
   }
 
   onOpen(): void {
     const { contentEl } = this;
+    contentEl.addClass("task-tracker-project-modal");
+    contentEl.addClass("pm-edit-modal");
+
     contentEl.createEl("h2", { text: "Редактировать проект" });
 
     let name = this.project.name;
     let color = this.project.color;
     let icon = this.project.icon;
 
-    new Setting(contentEl)
-      .setName("Название")
-      .addText((text) =>
-        text.setValue(name).onChange((value) => {
-          name = value;
-        })
-      );
+    // Name
+    const nameField = contentEl.createDiv("pm-field");
+    nameField.createEl("label", { text: "Название проекта", cls: "pm-label" });
+    const nameInput = nameField.createEl("input", {
+      cls: "pm-input",
+      attr: { type: "text", placeholder: "Название проекта", value: name, maxlength: "50" },
+    });
+    nameInput.addEventListener("input", () => { name = nameInput.value; });
 
-    const colorPickerEl = contentEl.createDiv(
-      "task-tracker-color-picker"
-    );
-    colorPickerEl.createEl("label", { text: "Цвет:" });
+    // Color
+    const colorSection = contentEl.createDiv("pm-color-section");
+    colorSection.createEl("label", { text: "Цвет проекта", cls: "pm-label" });
+    const colorGrid = colorSection.createDiv("pm-color-grid");
 
-    const colorGrid = colorPickerEl.createDiv("task-tracker-color-grid");
     DEFAULT_PROJECT_COLORS.forEach((c) => {
-      const swatch = colorGrid.createDiv("task-tracker-color-swatch");
+      const swatch = colorGrid.createDiv("pm-color-swatch");
       swatch.style.backgroundColor = c;
-      if (c === color) {
-        swatch.addClass("active");
-      }
+      if (c === color) swatch.addClass("active");
       swatch.addEventListener("click", () => {
-        colorGrid
-          .querySelectorAll(".task-tracker-color-swatch")
-          .forEach((s) => s.removeClass("active"));
+        colorGrid.querySelectorAll(".pm-color-swatch").forEach((s) => s.removeClass("active"));
         swatch.addClass("active");
         color = c;
       });
     });
 
-    new Setting(contentEl)
-      .setName("Иконка")
-      .addText((text) =>
-        text.setValue(icon).onChange((value) => {
-          icon = value;
-        })
-      );
+    // Icon
+    const iconSection = contentEl.createDiv("pm-icon-section");
+    renderIconPicker(iconSection, icon, (emoji) => {
+      icon = emoji;
+    });
 
-    const buttonsEl = contentEl.createDiv("task-tracker-modal-buttons");
+    // Buttons
+    const buttonsEl = contentEl.createDiv("pm-modal-buttons");
 
-    const cancelBtn = buttonsEl.createEl("button", { text: "Отмена" });
+    const cancelBtn = buttonsEl.createEl("button", { text: "Отмена", cls: "pm-cancel-btn" });
     cancelBtn.addEventListener("click", () => this.close());
 
-    const saveBtn = buttonsEl.createEl("button", {
-      text: "Сохранить",
-      cls: "mod-cta",
-    });
+    const saveBtn = buttonsEl.createEl("button", { text: "Сохранить", cls: "pm-save-btn" });
     saveBtn.addEventListener("click", () => {
-      if (!name.trim()) return;
+      if (!name.trim()) {
+        nameInput.focus();
+        nameInput.classList.add("pm-input-error");
+        setTimeout(() => nameInput.classList.remove("pm-input-error"), 1500);
+        return;
+      }
+      addRecentIcon(icon);
       updateProject(this.project.id, {
         name: name.trim(),
         color,
         icon: icon || "📁",
         folder: null,
       });
-      this.onSaved();
       this.close();
     });
   }
 
   onClose(): void {
+    if (this.didClose) return;
+    this.didClose = true;
     this.contentEl.empty();
+    this.onClosed();
   }
 }

@@ -67,7 +67,7 @@
     const height = Math.max((duration / 60) * HOUR_HEIGHT, 40);
 
     const project = $projects.find((p) => p.id === task.projectId);
-    const color = project?.color || "rgba(95, 153, 225, 0.8)";
+    const color = project?.color || "var(--mcp-accent)";
 
     return `top: ${top}px; height: ${height}px; background: ${color};`;
   }

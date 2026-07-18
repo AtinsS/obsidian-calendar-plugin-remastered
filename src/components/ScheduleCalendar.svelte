@@ -24,12 +24,25 @@
     tasksToEvents,
   } from "./scheduleUtils";
   export let plugin: CalendarPlugin;
+  export let scheduleDisplay: {
+    scheduleShowTime?: boolean;
+    scheduleShowStatus?: boolean;
+    scheduleShowPriority?: boolean;
+    scheduleShowWorkBadge?: boolean;
+    scheduleShowNoteBadge?: boolean;
+    scheduleShowDeadline?: boolean;
+    scheduleShowOverdue?: boolean;
+    scheduleShowDescription?: boolean;
+    scheduleShowNowIndicator?: boolean;
+    scheduleShowDeadlineEvents?: boolean;
+  } = {};
 
   let calendarEl: HTMLDivElement;
   let calendar: Calendar;
   let refetchTimer: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
   let skipNextRefetch = false;
+  let isDragging = false;
 
   // Accessibility: live region for announcing view changes
   let ariaLiveEl: HTMLDivElement | null = null;
@@ -69,6 +82,7 @@
   /** Debounced refetch — предотвращает каскадное обновление */
   function scheduleRefetch(): void {
     if (destroyed) return;
+    if (isDragging) return;
     if (skipNextRefetch) { skipNextRefetch = false; return; }
     if (refetchTimer) clearTimeout(refetchTimer);
     refetchTimer = setTimeout(() => {
@@ -82,6 +96,18 @@
   // Подписываемся и на tasks, и на projects
   const unsubTasks = tasks.subscribe(() => scheduleRefetch());
   const unsubProjects = projects.subscribe(() => scheduleRefetch());
+
+  // Re-render events when schedule display settings change
+  $: if (scheduleDisplay && calendar) {
+    scheduleDisplay; // track dependency
+    scheduleRefetch();
+  }
+
+  // Toggle now-indicator visibility via class
+  $: if (calendarEl && scheduleDisplay) {
+    const show = scheduleDisplay.scheduleShowNowIndicator !== false;
+    calendarEl.classList.toggle("now-indicator-hidden", !show);
+  }
 
   // Обработчик ресайза — переключаем вид при переходе через брейкпоинт
   let lastWidth = typeof window !== "undefined" ? window.innerWidth : 1024;
@@ -150,6 +176,31 @@
     else calendar?.next();
   }
 
+  function handleDeadlineClick(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    const deadlineSpan = target.closest(".sch-deadline[data-deadline-date]") as HTMLElement | null;
+    if (!deadlineSpan) return;
+    e.stopPropagation();
+    const dateStr = deadlineSpan.dataset.deadlineDate;
+    if (!dateStr) return;
+    // Switch to month view
+    if (calendar) {
+      calendar.changeView("dayGridMonth");
+      const m = window.moment(dateStr, "YYYY-MM-DD");
+      calendar.gotoDate(m.toDate());
+    }
+    // Blink the day cell after navigation
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const dayCell = document.querySelector(`#calendar-container .day[data-date="${dateStr}"]`);
+        if (dayCell) {
+          dayCell.classList.add("deadline-highlight");
+          setTimeout(() => dayCell.classList.remove("deadline-highlight"), 5000);
+        }
+      }, 150);
+    });
+  }
+
   onMount(() => {
     initCalendar();
     setupTouchNavigation();
@@ -163,6 +214,8 @@
       calendarEl.setAttribute("role", "application");
       calendarEl.setAttribute("aria-label", "Расписание — используйте стрелки для навигации");
     }
+    // Delegate deadline click → navigate to month view + blink
+    calendarEl?.addEventListener("click", handleDeadlineClick);
     // ResizeObserver
     if (calendarEl) {
       resizeObserver = new ResizeObserver(() => {
@@ -178,12 +231,14 @@
   onDestroy(() => {
     destroyed = true;
     if (refetchTimer) clearTimeout(refetchTimer);
+    if (dropDebounceTimer) clearTimeout(dropDebounceTimer);
     unsubTasks();
     unsubProjects();
     window.removeEventListener("resize", handleResize);
     mqlMobile?.removeEventListener("change", handleBreakpointChange);
     mqlSmallPhone?.removeEventListener("change", handleBreakpointChange);
     calendarEl?.removeEventListener("keydown", handleKeyNav);
+    calendarEl?.removeEventListener("click", handleDeadlineClick);
     resizeObserver?.disconnect();
     if (highlightInterval) clearInterval(highlightInterval);
     document.removeEventListener("visibilitychange", updateEventHighlight);
@@ -294,9 +349,18 @@
       ],
       eventContent: renderEventContent,
       eventClick: handleEventClick,
+      eventDragStart: () => { isDragging = true; },
+      eventDragStop: () => {
+        isDragging = false;
+        scheduleRefetch();
+      },
       eventDrop: handleEventDrop,
       eventResize: handleEventResize,
       eventDidMount: handleEventDidMount,
+      eventClassNames: (arg: any) => {
+        if (arg.event.extendedProps?.isDeadlineEvent) return ["sch-event-deadline-marker"];
+        return [];
+      },
       datesSet: (info: any) => {
         const view = info.view;
         const viewType = view.type === "dayGridMonth" ? "Месяц" : view.type === "timeGridWeek" ? "Неделя" : "День";
@@ -314,7 +378,10 @@
     try {
       const allTasks = get(tasks);
       const allProjects = get(projects);
-      const events = tasksToEvents(allTasks, allProjects);
+      let events = tasksToEvents(allTasks, allProjects);
+      if (scheduleDisplay.scheduleShowDeadlineEvents === false) {
+        events = events.filter((e) => !e.extendedProps?.isDeadlineEvent);
+      }
       successCallback(events);
     } catch (e) {
       console.error("[ScheduleCalendar] fetchEvents error:", e);
@@ -351,25 +418,37 @@
       };
     }
 
-    const displayTime = time || (task.scheduledTime || "");
+    const showTime = scheduleDisplay.scheduleShowTime !== false;
+    const showStatus = scheduleDisplay.scheduleShowStatus !== false;
+    const showPriority = scheduleDisplay.scheduleShowPriority !== false;
+    const showWorkBadge = scheduleDisplay.scheduleShowWorkBadge !== false;
+    const showNoteBadge = scheduleDisplay.scheduleShowNoteBadge !== false;
+    const showDeadline = scheduleDisplay.scheduleShowDeadline !== false;
+    const showOverdue = scheduleDisplay.scheduleShowOverdue !== false;
+    const showDescription = scheduleDisplay.scheduleShowDescription !== false;
+
+    const displayTime = showTime ? (time || (task.scheduledTime || "")) : "";
     const statusLabel =
-      task.status === "progress" ? "В работе" :
-      task.status === "paused" ? "На паузе" :
-      task.status === "done" ? "Готово" : "";
+      showStatus ? (
+        task.status === "progress" ? "В работе" :
+        task.status === "paused" ? "На паузе" :
+        task.status === "done" ? "Готово" : ""
+      ) : "";
     const statusHtml = statusLabel
       ? `<span class="sch-event-status sch-status-${task.status}">${statusLabel}</span>`
       : "";
-    const priorityBadge =
-      task.priority === "high" ? '<span class="sch-priority sch-priority-high">!</span>' :
-      task.priority === "medium" ? '<span class="sch-priority sch-priority-mid">~</span>' : "";
-    const workBadge = task.isWorkTask
+    const priorityBadge = showPriority
+      ? (task.priority === "high" ? '<span class="sch-priority sch-priority-high">!</span>' :
+         task.priority === "medium" ? '<span class="sch-priority sch-priority-mid">~</span>' : "")
+      : "";
+    const workBadge = (showWorkBadge && task.isWorkTask)
       ? '<span class="sch-work-badge" title="Рабочая задача">&#128188;</span>' : "";
-    const noteBadge = task.boundNotePath
+    const noteBadge = (showNoteBadge && task.boundNotePath)
       ? '<span class="sch-note-badge" title="С привязанной заметкой">&#128279;</span>'
       : "";
 
     let deadlineHtml = "";
-    if (task.deadline && task.status !== "done") {
+    if (showDeadline && task.deadline && task.status !== "done") {
       const match = task.deadline.match(/^day-(\d{4})-(\d{2})-(\d{2})/);
       if (match) {
         const [, y, m, d] = match;
@@ -384,13 +463,12 @@
         else dlLabel = `${diffDays}д`;
         if (task.deadlineTime) dlLabel += ` ${task.deadlineTime}`;
         const isOverdue = diffDays < 0;
-        deadlineHtml = `<span class="sch-deadline ${isOverdue ? 'sch-deadline-overdue' : ''}" title="Дедлайн">${dlLabel}</span>`;
+        deadlineHtml = `<span class="sch-deadline sch-deadline-transparent ${isOverdue ? 'sch-deadline-overdue' : ''}" title="Показать в календаре" data-deadline-date="${y}-${m}-${d}" style="cursor:pointer">${dlLabel}</span>`;
       }
     }
 
-    // Бейдж «Просрочено на N» — только todo (не в работе / на паузе / готово)
     let overdueHtml = "";
-    if (task.status === "todo" && task.scheduledTime && task.dateUID) {
+    if (showOverdue && task.status === "todo" && task.scheduledTime && task.dateUID) {
       const dateMatch = task.dateUID.match(/^day-(\d{4})-(\d{2})-(\d{2})/);
       if (dateMatch) {
         const [, dy, dm, dd] = dateMatch;
@@ -411,7 +489,7 @@
       }
     }
 
-    const descriptionHtml = task.description
+    const descriptionHtml = (showDescription && task.description)
       ? `<span class="sch-event-description">${task.description}</span>`
       : "";
 
@@ -443,14 +521,10 @@
     const isDeadlineEvent = info.event.extendedProps?.isDeadlineEvent as boolean;
 
     if (isDeadlineEvent) {
-      el.style.backgroundColor = "rgba(180, 60, 60, 0.85)";
-      el.style.boxShadow = "inset 3px 0 0 #b43c3c";
-      el.style.cursor = "default";
-      el.style.pointerEvents = "none";
       const deadlineDateStr = info.event.start
         ? `${info.event.start.getFullYear()}-${String(info.event.start.getMonth()+1).padStart(2,"0")}-${String(info.event.start.getDate()).padStart(2,"0")}`
         : "";
-      el.setAttribute("title", `Дедлайн задачи: ${task.title}\nДата: ${deadlineDateStr}${task.deadlineTime ? ' ' + task.deadlineTime : ''}`);
+      el.setAttribute("title", `Дедлайн задачи: ${task.title}\nДата: ${deadlineDateStr}${task.deadlineTime ? ' ' + task.deadlineTime : ''}\nНажмите, чтобы найти задачу`);
       return;
     }
 
@@ -490,7 +564,22 @@
   }
 
   function handleEventClick(info: any): void {
-    if (info.event.extendedProps?.isDeadlineEvent) return;
+    // Deadline event → blink the parent task in the schedule
+    if (info.event.extendedProps?.isDeadlineEvent) {
+      const task = resolveTask(info.event);
+      if (!task) return;
+      // Find the parent task's event element in the calendar and blink it
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          const taskEl = calendarEl?.querySelector(`[data-event-id="${CSS.escape(task.id)}"]`);
+          if (taskEl) {
+            taskEl.classList.add("sch-event-blink");
+            setTimeout(() => taskEl.classList.remove("sch-event-blink"), 3000);
+          }
+        }, 50);
+      });
+      return;
+    }
     const task = resolveTask(info.event);
     if (!task) return;
 
@@ -556,6 +645,8 @@
     openTaskCreator(dateStr, initialTime, estimatedTime);
   }
 
+  let dropDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
   function handleEventDrop(info: any): void {
     if (info.event.extendedProps?.isDeadlineEvent) return;
     const task = resolveTask(info.event);
@@ -565,20 +656,27 @@
     if (!startStr) { info.revert(); return; }
 
     const match = startStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
-    if (match) {
-      const dateStr = match[1];
-      const newTime = match[2];
-      const moment = window.moment(dateStr, "YYYY-MM-DD", true);
-      if (moment.isValid()) {
-        const newDateUID = getDateUID(moment, "day");
-        skipNextRefetch = true;
-        try {
-          updateTask(task.id, { dateUID: newDateUID, scheduledTime: info.event.allDay ? undefined : newTime });
-          const updatedTask = get(tasks).find((t) => t.id === task.id);
-          if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
-        } catch (e) { info.revert(); }
-      } else { info.revert(); }
-    } else { info.revert(); }
+    if (!match) { info.revert(); return; }
+
+    const dateStr = match[1];
+    const newTime = match[2];
+    const m = window.moment(dateStr, "YYYY-MM-DD", true);
+    if (!m.isValid()) { info.revert(); return; }
+
+    const newDateUID = getDateUID(m, "day");
+    const allDay = info.event.allDay;
+
+    // Debounce data update — let FullCalendar finish its animation first
+    if (dropDebounceTimer) clearTimeout(dropDebounceTimer);
+    dropDebounceTimer = setTimeout(() => {
+      dropDebounceTimer = null;
+      skipNextRefetch = true;
+      try {
+        updateTask(task.id, { dateUID: newDateUID, scheduledTime: allDay ? undefined : newTime });
+        const updatedTask = get(tasks).find((t) => t.id === task.id);
+        if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
+      } catch (e) { /* ignore */ }
+    }, 100);
   }
 
   function handleEventResize(info: any): void {
@@ -589,12 +687,16 @@
 
     if (start && end) {
       const durationMin = Math.round((end.getTime() - start.getTime()) / 1000 / 60);
-      skipNextRefetch = true;
-      try {
-        updateTask(task.id, { estimatedTime: Math.max(15, durationMin) });
-        const updatedTask = get(tasks).find((t) => t.id === task.id);
-        if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
-      } catch (e) { info.revert(); }
+      if (dropDebounceTimer) clearTimeout(dropDebounceTimer);
+      dropDebounceTimer = setTimeout(() => {
+        dropDebounceTimer = null;
+        skipNextRefetch = true;
+        try {
+          updateTask(task.id, { estimatedTime: Math.max(15, durationMin) });
+          const updatedTask = get(tasks).find((t) => t.id === task.id);
+          if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
+        } catch (e) { /* ignore */ }
+      }, 100);
     }
   }
 
@@ -864,7 +966,7 @@
 
   .swipe-arrow {
     font-size: 24px;
-    color: var(--mcp-accent, rgba(95, 153, 225, 0.8));
+    color: var(--mcp-accent);
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   }
 
@@ -1007,10 +1109,10 @@
   }
 
   :global(.fc .fc-button-active) {
-    background: var(--mcp-accent, rgba(95, 153, 225, 0.48)) !important;
+    background: var(--mcp-accent) !important;
     color: var(--mcp-text, var(--text-normal)) !important;
-    border-color: rgba(95, 153, 225, 0.3) !important;
-    box-shadow: 0 0 12px rgba(95, 153, 225, 0.15);
+    border-color: var(--mcp-accent-faint) !important;
+    box-shadow: 0 0 12px var(--mcp-accent-faint);
   }
 
   :global(.fc .fc-button:disabled) {
@@ -1062,27 +1164,34 @@
   /* Сегодня — без заливки, только бордер */
   :global(.fc .fc-day-today) {
     background: transparent !important;
-    box-shadow: inset 0 0 0 1.5px var(--mcp-accent, rgba(95, 153, 225, 0.48));
+    box-shadow: inset 0 0 0 1.5px var(--mcp-accent);
     border-radius: 6px;
   }
 
   :global(.fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number) {
-    color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+    color: var(--mcp-accent);
     font-weight: 700;
   }
 
   /* Сегодня в timegrid — бордер колонки */
   :global(.fc .fc-timegrid .fc-day-today) {
-    box-shadow: inset 0 0 0 1.5px var(--mcp-accent, rgba(95, 153, 225, 0.48));
+    box-shadow: inset 0 0 0 1.5px var(--mcp-accent);
   }
 
   /* Now indicator */
   :global(.fc .fc-timegrid-now-indicator-line) {
-    border-color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+    border-color: var(--mcp-accent);
+  }
+
+  :global(.now-indicator-hidden .fc .fc-timegrid-now-indicator-line),
+  :global(.now-indicator-hidden .fc .fc-timegrid-now-indicator-arrow),
+  :global(.now-indicator-hidden .fc .fc-timegrid-now-indicator-container),
+  :global(.now-indicator-hidden .fc .fc-timegrid-now-indicator-now) {
+    display: none !important;
   }
 
   :global(.fc .fc-timegrid-now-indicator-arrow) {
-    border-color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+    border-color: var(--mcp-accent);
   }
 
   :global(.fc .fc-timegrid-now-indicator-container) {
@@ -1090,14 +1199,14 @@
   }
 
   :global(.fc .fc-timegrid-now-indicator-now) {
-    color: var(--mcp-accent, rgba(95, 153, 225, 0.48));
+    color: var(--mcp-accent);
     font-weight: 600;
     font-size: 10px;
   }
 
   /* Выделение */
   :global(.fc .fc-highlight) {
-    background: rgba(95, 153, 225, 0.08);
+    background: var(--mcp-accent-ultra-dim);
     border-radius: 4px;
   }
 
@@ -1107,15 +1216,15 @@
   }
 
   :global(.fc .fc-timegrid-slot:hover) {
-    background: rgba(95, 153, 225, 0.06);
+    background: var(--mcp-accent-ultra-dim);
   }
 
   :global(.fc .fc-timegrid-slot-lane:hover) {
-    background: rgba(95, 153, 225, 0.06);
+    background: var(--mcp-accent-ultra-dim);
   }
 
   :global(.fc .fc-daygrid-day:hover) {
-    background: rgba(95, 153, 225, 0.04);
+    background: var(--mcp-accent-ultra-dim);
   }
 
   :global(.fc .fc-daygrid-more-link) {
@@ -1163,8 +1272,8 @@
   /* Active/current event highlight — multi-layered glow (reference pattern) */
   :global(.fc .fc-event.sch-event-active) {
     box-shadow: 0 0 0 2px rgba(255,255,255,0.85),
-      0 0 24px 8px rgba(95,153,225,0.3),
-      0 0 56px 24px rgba(95,153,225,0.15);
+      0 0 24px 8px var(--mcp-accent-faint),
+      0 0 56px 24px var(--mcp-accent-dim);
     outline: none;
     overflow: visible;
     isolation: isolate;
@@ -1174,11 +1283,11 @@
   :global(.fc .fc-timegrid-event.sch-event-active) {
     box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120,145,175,1)),
       0 0 0 2px rgba(255,255,255,0.85),
-      0 0 24px 8px rgba(95,153,225,0.3);
+      0 0 24px 8px var(--mcp-accent-faint);
   }
   :global(.fc .fc-daygrid-event.sch-event-active) {
-    background: rgba(95,153,225,0.2) !important;
-    border: 1px solid rgba(95,153,225,0.6) !important;
+    background: var(--mcp-accent-dim) !important;
+    border: 1px solid var(--mcp-accent) !important;
   }
 
   :global(.fc .fc-event.fc-dragging),
@@ -1262,9 +1371,48 @@
     white-space: nowrap;
   }
 
+  :global(.sch-deadline-transparent) {
+    background: transparent !important;
+    color: rgba(255, 230, 150, 0.4) !important;
+    border: 1px dashed rgba(251, 191, 36, 0.25) !important;
+    font-weight: 400;
+  }
+
   :global(.sch-deadline-overdue) {
     background: rgba(220, 100, 100, 0.4);
     color: rgba(255, 180, 180, 0.95);
+  }
+
+  :global(.sch-event-deadline-marker),
+  :global(.fc .fc-event.sch-event-deadline-marker),
+  :global(.fc .fc-daygrid-event.sch-event-deadline-marker),
+  :global(.fc .fc-timegrid-event.sch-event-deadline-marker) {
+    background: rgba(180, 60, 60, 0.35) !important;
+    border-color: rgba(220, 100, 100, 0.6) !important;
+    border-left: 3px solid rgba(220, 100, 100, 0.8) !important;
+    box-shadow: none !important;
+    cursor: pointer !important;
+  }
+
+  :global(.sch-event-deadline-marker .fc-event-main),
+  :global(.sch-event-deadline-marker .fc-event-main-frame),
+  :global(.sch-event-deadline-marker .fc-event-bg),
+  :global(.sch-event-deadline-marker .fc-daygrid-event-dot) {
+    background: transparent !important;
+    border-color: transparent !important;
+  }
+
+  :global(.fc .fc-list-event.sch-event-deadline-marker td) {
+    background: rgba(180, 60, 60, 0.2) !important;
+  }
+
+  :global(.sch-event-blink) {
+    animation: sch-blink 0.5s ease-in-out 5;
+  }
+
+  @keyframes sch-blink {
+    0%, 100% { opacity: 1; box-shadow: none; }
+    50% { opacity: 0.5; box-shadow: 0 0 12px 2px rgba(251, 191, 36, 0.6); }
   }
 
   :global(.sch-overdue) {
@@ -1572,7 +1720,7 @@
     }
 
     :global(.fc .fc-button-active) {
-      box-shadow: 0 0 8px rgba(95, 153, 225, 0.2);
+      box-shadow: 0 0 8px var(--mcp-accent-dim);
     }
 
     /* Заголовки дней — компактные */
@@ -1676,7 +1824,7 @@
 
     /* Выделение при тапе */
     :global(.fc .fc-highlight) {
-      background: rgba(95, 153, 225, 0.12);
+      background: var(--mcp-accent-dim);
       border-radius: 4px;
     }
 
@@ -1774,7 +1922,7 @@
     :global(.fc .fc-daygrid-more-link) {
       font-size: 9px;
       padding: 1px 4px;
-      color: var(--mcp-accent, rgba(95, 153, 225, 0.7));
+      color: var(--mcp-accent);
     }
 
     /* Заголовки дней месяца */
@@ -1785,7 +1933,7 @@
 
     /* Скрываем "весь день" слот в timegrid на мобилке */
     :global(.fc .fc-timegrid .fc-day-today) {
-      background: rgba(95, 153, 225, 0.04) !important;
+      background: var(--mcp-accent-ultra-dim) !important;
     }
   }
 

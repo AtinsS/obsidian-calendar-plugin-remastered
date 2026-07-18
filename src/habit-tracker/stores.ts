@@ -351,46 +351,77 @@ export interface DayOfWeekStats {
 
 const DAY_NAMES_RU = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-export function getDayOfWeekProductivity(): DayOfWeekStats[] {
-  const today = moment().startOf("day");
-  const yearAgo = today.clone().subtract(1, "year");
-
-  // Count completions per day of week
-  const completionsByDay = new Map<number, number>();
-  const totalDaysByDay = new Map<number, number>();
-
-  // Count unique dates per day of week
-  const uniqueDates = new Map<number, Set<string>>();
-
-  for (const log of cachedLogs) {
-    if (!log.completed) continue;
-    const logDate = moment(log.date, "YYYY-MM-DD");
-    if (logDate.isBefore(yearAgo)) continue;
-    const dayIndex = (logDate.day() + 6) % 7; // Convert to Mon=0
-    completionsByDay.set(dayIndex, (completionsByDay.get(dayIndex) || 0) + 1);
-    if (!uniqueDates.has(dayIndex)) uniqueDates.set(dayIndex, new Set());
-    uniqueDates.get(dayIndex).add(log.date);
+/** Check if a habit is "active" on a given date */
+function isHabitActiveOnDate(habit: IHabit, date: moment.Moment): boolean {
+  if (habit.archived) return false;
+  const dow = (date.day() + 6) % 7; // Mon=0
+  switch (habit.frequency) {
+    case "daily":
+      return true;
+    case "weekly":
+      if (!habit.customDays || habit.customDays.length === 0) return true;
+      return habit.customDays.includes(dow);
+    case "monthly":
+      return habit.monthlyDay != null && date.date() === habit.monthlyDay;
   }
+}
 
-  // Count total occurrences of each day of week in the year
-  const day = yearAgo.clone();
-  while (day.isSameOrBefore(today)) {
-    const dayIndex = (day.day() + 6) % 7;
-    totalDaysByDay.set(dayIndex, (totalDaysByDay.get(dayIndex) || 0) + 1);
-    day.add(1, "day");
+export function getDayOfWeekProductivity(): DayOfWeekStats[] {
+  // Get active (non-archived) habits
+  const activeHabits = get(habits).filter((h) => !h.archived);
+
+  // Build a set of unique dates from logs
+  const dateSet = new Set<string>();
+  for (const log of cachedLogs) {
+    dateSet.add(log.date);
+  }
+  // Also include dates from today backwards to fill gaps
+  const sortedDates = Array.from(dateSet).sort();
+
+  // For each date, compute completion rate
+  // key: dayOfWeek (0-6), value: { completedSum, activeSum }
+  const statsByDay = new Map<number, { completedSum: number; activeSum: number; count: number }>();
+
+  for (const dateStr of sortedDates) {
+    const date = moment(dateStr, "YYYY-MM-DD");
+    if (!date.isValid()) continue;
+    const dayOfWeek = (date.day() + 6) % 7;
+
+    // How many habits are active on this date?
+    let activeCount = 0;
+    let completedCount = 0;
+    for (const habit of activeHabits) {
+      if (!isHabitActiveOnDate(habit, date)) continue;
+      activeCount++;
+      const key = `${habit.id}::${dateStr}`;
+      if (logsByHabitDate.has(key)) {
+        completedCount++;
+      }
+    }
+
+    if (activeCount === 0) continue;
+
+    let entry = statsByDay.get(dayOfWeek);
+    if (!entry) {
+      entry = { completedSum: 0, activeSum: 0, count: 0 };
+      statsByDay.set(dayOfWeek, entry);
+    }
+    entry.completedSum += completedCount;
+    entry.activeSum += activeCount;
+    entry.count++;
   }
 
   const result: DayOfWeekStats[] = [];
   for (let i = 0; i < 7; i++) {
-    const completions = completionsByDay.get(i) || 0;
-    const totalDays = totalDaysByDay.get(i) || 1;
-    const activeDays = uniqueDates.get(i)?.size || 0;
-    const productivityRate = totalDays > 0 ? Math.round((activeDays / totalDays) * 100) : 0;
+    const entry = statsByDay.get(i);
+    const productivityRate = entry && entry.activeSum > 0
+      ? Math.round((entry.completedSum / entry.activeSum) * 100)
+      : 0;
     result.push({
       dayIndex: i,
       dayName: DAY_NAMES_RU[i],
-      completions,
-      totalDays,
+      completions: entry?.completedSum || 0,
+      totalDays: entry?.count || 0,
       productivityRate,
     });
   }

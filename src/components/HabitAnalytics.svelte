@@ -22,6 +22,7 @@
     getEarningsForMonth,
     getEarningsForYear,
     getMonthlyEarningsForYear,
+    getExpectedEarningsForMonth,
   } from "../task-tracker/stores";
   import { app } from "../stores/appStore";
   import {
@@ -50,7 +51,7 @@
     dayOfWeekStats = getDayOfWeekProductivity();
     maxProductivity = Math.max(...dayOfWeekStats.map((d) => d.productivityRate), 1);
   }
-  let dayOfWeekStats: { dayIndex: number; dayName: string; completions: number; productivityRate: number }[] = [];
+  let dayOfWeekStats: { dayIndex: number; dayName: string; completions: number; totalDays: number; productivityRate: number }[] = [];
   let maxProductivity = 1;
 
   // Calculate weekly earnings
@@ -150,6 +151,7 @@
     const manualIncome = getTotalManualIncome();
     monthlyEarnings = taskMonthly + manualIncome;
     yearlyEarnings = taskYearly + manualIncome;
+    expectedMonthlyEarnings = getExpectedEarningsForMonth(currentYear, currentMonth);
     monthlyChart = getMonthlyEarningsForYear(currentYear);
     maxMonthly = Math.max(...monthlyChart.map((m) => m.amount), 1);
 
@@ -164,6 +166,7 @@
     yearlyDelta = yearlyEarnings - prevYearEarnings;
   }
   let monthlyEarnings = 0;
+  let expectedMonthlyEarnings = 0;
   let yearlyEarnings = 0;
   let monthlyChart: { month: number; amount: number }[] = [];
   let maxMonthly = 1;
@@ -267,7 +270,7 @@
               class:neutral={day.productivityRate >= 20 && day.productivityRate < 50}
               class:lazy={day.productivityRate < 20}
               style="height: {day.productivityRate > 0 ? Math.max((day.productivityRate / maxProductivity) * 100, 6) : 0}%"
-              title="{day.dayName}: {day.completions} выполнений, {day.productivityRate}% активных дней"
+              title="{day.dayName}: {day.completions} выполнений из {day.totalDays} дней, {day.productivityRate}% выполнения"
             ></div>
             <span class="day-bar-label">{day.dayName}</span>
             <span class="day-bar-count">{day.completions}</span>
@@ -346,16 +349,35 @@
       </button>
     </div>
     <div class="earnings-summary">
-      <div class="earnings-card">
+      <div class="earnings-card earnings-card-main">
         <span class="earnings-value"
           >{monthlyEarnings.toLocaleString("ru-RU")} ₽</span
         >
-        <span class="earnings-label">За месяц</span>
+        <span class="earnings-label">Факт за месяц</span>
         {#if monthlyDelta !== 0}
           <span class="earnings-delta {monthlyDelta > 0 ? 'delta-up' : 'delta-down'}"
             >{monthlyDelta > 0 ? '+' : ''}{monthlyDelta.toLocaleString("ru-RU")} ₽ к прошлому
             месяцу</span
           >
+        {/if}
+      </div>
+      <div class="earnings-card earnings-card-expected">
+        <span class="earnings-value earnings-value-expected"
+          >{expectedMonthlyEarnings.toLocaleString("ru-RU")} ₽</span
+        >
+        <span class="earnings-label">План за месяц</span>
+        {#if expectedMonthlyEarnings > 0}
+          {@const progress = Math.round((monthlyEarnings / expectedMonthlyEarnings) * 100)}
+          <div class="earnings-progress-bar">
+            <div
+              class="earnings-progress-fill"
+              style="width: {Math.min(progress, 100)}%"
+              class:over={progress >= 100}
+            ></div>
+          </div>
+          <span class="earnings-progress-text" class:done={progress >= 100}>
+            {progress}% выполнено
+          </span>
         {/if}
       </div>
       <div class="earnings-card">
@@ -871,7 +893,7 @@
   /* Earnings */
   .earnings-summary {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 14px;
     margin-bottom: 18px;
   }
@@ -892,11 +914,54 @@
     transform: translateY(-2px);
   }
 
+  .earnings-card-expected {
+    border-color: var(--mcp-accent-dim);
+  }
+
+  .earnings-card-expected:hover {
+    border-color: var(--mcp-accent);
+  }
+
   .earnings-value {
     font-size: 22px;
     font-weight: 700;
     color: var(--mcp-success, rgba(34, 197, 94, 0.9));
     letter-spacing: -0.02em;
+  }
+
+  .earnings-value-expected {
+    color: var(--mcp-accent);
+  }
+
+  .earnings-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--mcp-surface);
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .earnings-progress-fill {
+    height: 100%;
+    background: var(--mcp-accent);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  .earnings-progress-fill.over {
+    background: var(--mcp-success, rgba(34, 197, 94, 0.9));
+  }
+
+  .earnings-progress-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--mcp-text-muted);
+    margin-top: 4px;
+  }
+
+  .earnings-progress-text.done {
+    color: var(--mcp-success, rgba(34, 197, 94, 0.9));
   }
 
   .earnings-label {

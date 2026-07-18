@@ -16,6 +16,8 @@ import {
   appHasPeriodicNotesPluginLoaded,
   CalendarSettingsTab,
   ISettings,
+  applyAccentColor,
+  applyGlassBgColor,
 } from "./settings";
 import { TFile } from "obsidian";
 import CalendarView from "./view";
@@ -212,6 +214,14 @@ export default class CalendarPlugin extends Plugin {
     });
 
     await this.loadOptions();
+
+    // Apply accent color from settings
+    if (this.options.accentColor) {
+      applyAccentColor(this.options.accentColor);
+    }
+    if (this.options.glassBgColor) {
+      applyGlassBgColor(this.options.glassBgColor, this.options.glassOpacity);
+    }
 
     // Sync notification settings to vault on load so GitHub Actions always has current data
     syncNotificationSettingsOnLoad(this.app, {
