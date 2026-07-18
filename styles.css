@@ -505,8 +505,6 @@ content: attr(data-task-count);
   -webkit-backdrop-filter: var(--mcp-blur);
   border-top: 1px solid var(--mcp-glass-border);
   padding: 20px 22px;
-  max-height: 62vh;
-  overflow-y: auto;
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -516,11 +514,19 @@ content: attr(data-task-count);
 .task-tracker-panel {
   position: relative;
   z-index: 10;
+  overflow: visible;
 }
 
 .habit-tracker-panel {
   position: relative;
   z-index: 0;
+}
+
+/* Task list gets its own scroll container so dropdown menus aren't clipped */
+.task-tracker-list {
+  max-height: 55vh;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* ============================================
@@ -1286,21 +1292,56 @@ content: attr(data-task-count);
   text-decoration: underline;
 }
 
-/* Task description */
-.task-descr {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--mcp-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-  padding-left: 30px;
-  margin-top: -2px;
+/* Task description toggle button */
+.task-descr-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.task-item[data-status="done"] .task-descr {
-  color: var(--mcp-text-faint);
+.task-descr-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-descr-toggle:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.task-descr-popup {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  max-width: 340px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--mcp-surface);
+  border: 1px solid var(--mcp-glass-border);
+  border-radius: var(--mcp-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 200;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--mcp-text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
+.task-item[data-status="done"] .task-descr-toggle {
+  opacity: 0.25;
 }
 
 .task-recurring-icon {
@@ -2200,11 +2241,6 @@ content: attr(data-task-count);
     font-size: 12px;
   }
 
-  .task-tracker-panel .task-descr {
-    font-size: 10px;
-    padding-left: 26px;
-  }
-
   .task-tracker-panel .task-scheduled,
   .task-tracker-panel .task-timer,
   .task-tracker-panel .task-estimate,
@@ -2400,10 +2436,6 @@ content: attr(data-task-count);
     font-size: 12px;
   }
 
-  /* Task description — hide on small desktop */
-  .task-tracker-panel .task-item .task-descr {
-    display: none;
-  }
 }
 
 /* ============================================
@@ -2463,6 +2495,9 @@ content: attr(data-task-count);
   /* Panels — spacious glassmorphism */
   .task-tracker-panel {
     padding: 16px 16px;
+  }
+
+  .task-tracker-panel .task-tracker-list {
     max-height: 42vh;
   }
 
@@ -2574,7 +2609,6 @@ content: attr(data-task-count);
   }
 
   /* Hide everything non-essential on mobile */
-  .task-item .task-descr,
   .task-item .task-recurring-icon,
   .task-item .task-status-badge,
   .task-item .task-deadline,
@@ -2583,6 +2617,34 @@ content: attr(data-task-count);
   .task-item .task-work-badge,
   .task-item .task-project-dot {
     display: none !important;
+  }
+
+  /* Description toggle — smaller on mobile */
+  .task-item .task-descr-toggle {
+    font-size: 10px;
+  }
+
+  /* Description popup — bottom sheet on mobile */
+  .task-item .task-descr-popup {
+    position: fixed;
+    bottom: env(safe-area-inset-bottom, 16px);
+    left: 12px;
+    right: 12px;
+    top: auto;
+    max-width: none;
+    max-height: 45vh;
+    border-radius: var(--mcp-radius);
+    background: var(--mcp-glass-bg);
+    backdrop-filter: blur(28px) saturate(1.6);
+    -webkit-backdrop-filter: blur(28px) saturate(1.6);
+    border: 1px solid var(--mcp-glass-border);
+    box-shadow:
+      0 -8px 40px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(255, 255, 255, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 14px 18px;
+    font-size: 14px;
+    z-index: 200;
   }
 
   /* Scheduled time — keep visible */
@@ -2859,67 +2921,6 @@ content: attr(data-task-count);
     font-size: 13px;
   }
 
-  /* Description popup — glassmorphism bottom sheet */
-  .task-descr-popup {
-    position: fixed;
-    bottom: env(safe-area-inset-bottom, 16px);
-    left: 12px;
-    right: 12px;
-    max-height: 45vh;
-    background: var(--mcp-glass-bg);
-    backdrop-filter: blur(28px) saturate(1.6);
-    -webkit-backdrop-filter: blur(28px) saturate(1.6);
-    border: 1px solid var(--mcp-glass-border);
-    border-radius: var(--mcp-radius);
-    box-shadow:
-      0 -8px 40px rgba(0, 0, 0, 0.3),
-      0 0 0 1px rgba(255, 255, 255, 0.04),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    z-index: 200;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .task-descr-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 18px;
-    font-size: 14px;
-    font-weight: 600;
-    border-bottom: 1px solid var(--mcp-glass-border);
-  }
-
-  .task-descr-close {
-    background: none;
-    border: none;
-    color: var(--mcp-text-muted);
-    cursor: pointer;
-    font-size: 16px;
-    padding: 4px 8px;
-    border-radius: 6px;
-    min-width: 36px;
-    min-height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .task-descr-close:hover {
-    color: var(--mcp-text);
-    background: var(--mcp-surface-hover);
-  }
-
-  .task-descr-body {
-    padding: 16px 18px;
-    font-size: 14px;
-    color: var(--mcp-text);
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-
   /* Schedule open button */
   .schedule-open-btn {
     padding: 12px 16px;
@@ -2953,6 +2954,10 @@ content: attr(data-task-count);
   .task-tracker-panel,
   .habit-tracker-panel {
     padding: 6px 6px;
+  }
+
+  .task-tracker-panel .task-tracker-list,
+  .habit-tracker-panel {
     max-height: 42vh;
   }
 
@@ -2992,7 +2997,7 @@ content: attr(data-task-count);
     max-height: 28vh;
   }
 
-  .task-tracker-panel {
+  .task-tracker-panel .task-tracker-list {
     max-height: 36vh;
   }
 
@@ -3037,7 +3042,7 @@ content: attr(data-task-count);
    RESPONSIVE — MOBILE LANDSCAPE (keyboard open)
    ============================================ */
 @media (max-width: 480px) and (orientation: landscape) {
-  .task-tracker-panel {
+  .task-tracker-panel .task-tracker-list {
     max-height: 35vh;
   }
   .habit-tracker-panel {

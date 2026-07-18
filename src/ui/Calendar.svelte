@@ -94,8 +94,6 @@
     }
   }
 
-  const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
-
   let lastHeartbeatDay: string = today.format("YYYY-MM-DD");
 
   const heartbeat = setInterval(() => {
@@ -233,7 +231,7 @@
     {onClickWeek}
     bind:displayedMonth
     localeData={today.localeData()}
-    selectedId={isMobile ? null : $activeFile}
+    selectedId={$activeFile}
     showWeekNums={$settings.showWeeklyNote}
   />
 </div>

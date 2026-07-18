@@ -5,7 +5,6 @@
   import dayGridPlugin from "@fullcalendar/daygrid";
   import timeGridPlugin from "@fullcalendar/timegrid";
   import interactionPlugin from "@fullcalendar/interaction";
-  import luxonPlugin from "@fullcalendar/luxon3";
 
   import type CalendarPlugin from "../main";
   import type { ITask, IProject } from "../task-tracker/types";
@@ -171,7 +170,6 @@
         dayGridPlugin,
         timeGridPlugin,
         interactionPlugin,
-        luxonPlugin,
       ],
       initialView,
       locale: "ru",
@@ -187,7 +185,7 @@
       allDayText: "Без времени",
       // На телефоне слот 15 минут — удобнее для выбора времени тапом
       slotDuration: isSmallPhone ? "00:15:00" : "00:30:00",
-      slotLabelInterval: "01:00",
+      snapDuration: isSmallPhone ? "00:15:00" : "00:30:00",
       // На мобилке отключаем drag-and-drop — свайп используется для навигации
       editable: !isMobile,
       selectable: true,

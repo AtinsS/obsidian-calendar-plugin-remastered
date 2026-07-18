@@ -31,8 +31,7 @@ export default class FinanceView extends ItemView {
     container.addClass("finance-view-container");
 
     this.svelteComponent = new FinanceTracker({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target: container as any,
+      target: container as HTMLElement,
     });
   }
 

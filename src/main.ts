@@ -53,6 +53,7 @@ export default class CalendarPlugin extends Plugin {
   private view: CalendarView;
   private syncReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationService: NotificationService;
+  private lastMorningSummaryTime = "";
 
   onunload(): void {
     // Flush pending debounced saves before teardown
@@ -96,6 +97,14 @@ export default class CalendarPlugin extends Plugin {
         this.options = value;
         setTaskSync(!!value.syncToVault);
         setHabitSync(!!value.syncToVault);
+
+        // When morningSummaryTime changes, reset summary state so it fires at the new time
+        const newTime = value.morningSummaryTime || "06:00";
+        if (this.lastMorningSummaryTime && this.lastMorningSummaryTime !== newTime) {
+          this.notificationService?.resetSummaryState();
+        }
+        this.lastMorningSummaryTime = newTime;
+
         this.notificationService?.restart();
       })
     );
@@ -190,6 +199,10 @@ export default class CalendarPlugin extends Plugin {
       this.activateScheduleView();
     });
 
+    this.addRibbonIcon("calendar-with-checkmark", "Календарь", () => {
+      this.initLeaf();
+    });
+
     this.addRibbonIcon("bar-chart", "Аналитика", () => {
       this.activateHabitAnalyticsView();
     });
@@ -274,9 +287,16 @@ export default class CalendarPlugin extends Plugin {
     if (this.app.workspace.getLeavesOfType(VIEW_TYPE_CALENDAR).length) {
       return;
     }
-    this.app.workspace.getRightLeaf(false).setViewState({
-      type: VIEW_TYPE_CALENDAR,
-    });
+    // On mobile, open calendar in the main content area (right sidebar is hidden by default)
+    const isMobile = this.app.workspace.containerEl.innerWidth <= 768;
+    if (isMobile) {
+      const leaf = this.app.workspace.getLeaf("tab");
+      leaf.setViewState({ type: VIEW_TYPE_CALENDAR });
+    } else {
+      this.app.workspace.getRightLeaf(false).setViewState({
+        type: VIEW_TYPE_CALENDAR,
+      });
+    }
   }
 
   private async activateView(viewType: string): Promise<void> {

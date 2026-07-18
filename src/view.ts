@@ -67,8 +67,8 @@ export default class CalendarView extends ItemView {
     this.onContextMenuWeek = this.onContextMenuWeek.bind(this);
 
     this.registerEvent(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (<any>this.app.workspace).on(
+      // Undocumented periodic-notes plugin event
+      (this.app.workspace as unknown as { on: (name: string, cb: () => void) => import("obsidian").EventRef }).on(
         "periodic-notes:settings-updated",
         this.onNoteSettingsUpdate
       )

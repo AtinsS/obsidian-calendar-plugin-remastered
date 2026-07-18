@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount, onDestroy } from "svelte";
   import type { App } from "obsidian";
   import type { ITask, TaskStatus } from "./types";
   import { updateTask, updateTaskStatus, removeTask, resetTaskTimer, projects, activeTab, calculateTaskEarnings, tasks } from "./stores";
@@ -187,6 +187,7 @@
   }
 
   let showActionsMenu = false;
+  let showDescription = false;
 
   function toggleActionsMenu() {
     showActionsMenu = !showActionsMenu;
@@ -195,6 +196,32 @@
   function closeActionsMenu() {
     showActionsMenu = false;
   }
+
+  function toggleDescription() {
+    showDescription = !showDescription;
+  }
+
+  function handleDescrKeydown(e: KeyboardEvent) {
+    if (e.key === "Escape") {
+      showDescription = false;
+    }
+  }
+
+  function handleDescriptionClickOutside(e: MouseEvent) {
+    if (!showDescription) return;
+    const target = e.target as HTMLElement;
+    if (!target.closest('.task-descr-wrapper')) {
+      showDescription = false;
+    }
+  }
+
+  onMount(() => {
+    document.addEventListener("click", handleDescriptionClickOutside, true);
+  });
+
+  onDestroy(() => {
+    document.removeEventListener("click", handleDescriptionClickOutside, true);
+  });
 </script>
 
 <div
@@ -257,9 +284,26 @@
   {/if}
 
   {#if task.description}
-    <span class="task-descr" title={task.description}>
-      {task.description}
-    </span>
+    <div class="task-descr-wrapper" on:keydown={handleDescrKeydown}>
+      <button
+        class="task-descr-toggle"
+        on:click|stopPropagation={toggleDescription}
+        title={showDescription ? "Скрыть описание" : "Показать описание"}
+        aria-label="Описание задачи"
+        aria-expanded={showDescription}
+      >
+        &#128196;
+      </button>
+      {#if showDescription}
+        <div
+          class="task-descr-popup"
+          role="tooltip"
+          on:click|stopPropagation
+        >
+          <span class="task-descr-popup-content">{task.description}</span>
+        </div>
+      {/if}
+    </div>
   {/if}
 
   {#if task.recurrence}

@@ -9,7 +9,6 @@ import {
   updateProject,
   removeProject,
 } from "./stores";
-import { FolderSuggestModal } from "../modals/FolderSuggestModal";
 
 export class ProjectModal extends Modal {
   constructor(app: App) {
@@ -30,7 +29,6 @@ export class ProjectModal extends Modal {
     let newName = "";
     let newColor = DEFAULT_PROJECT_COLORS[0];
     let newIcon = "";
-    let newFolder = "";
 
     new Setting(newProjectSection)
       .setName("Название")
@@ -69,29 +67,6 @@ export class ProjectModal extends Modal {
         })
       );
 
-    new Setting(newProjectSection)
-      .setName("Папка")
-      .setDesc("Папка в хранилище для заметок-задач (необязательно)")
-      .addText((text) =>
-        text.setPlaceholder("Проекты/МойПроект").onChange((value) => {
-          newFolder = value;
-        })
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText("...")
-          .setTooltip("Выбрать папку")
-          .onClick(() => {
-            new FolderSuggestModal(this.app, (folder) => {
-              newFolder = folder;
-              const input = newProjectSection.querySelector(
-                ".task-tracker-new-project input[type='text']"
-              ) as HTMLInputElement | null;
-              if (input) input.value = folder;
-            }).open();
-          })
-      );
-
     const createBtn = newProjectSection.createEl("button", {
       text: "Создать проект",
       cls: "mod-cta",
@@ -102,7 +77,7 @@ export class ProjectModal extends Modal {
         name: newName.trim(),
         color: newColor,
         icon: newIcon || "📁",
-        folder: newFolder || null,
+        folder: null,
         archived: false,
         sortOrder: get(projects).length,
       });
@@ -201,7 +176,6 @@ class EditProjectModal extends Modal {
     let name = this.project.name;
     let color = this.project.color;
     let icon = this.project.icon;
-    let folder = this.project.folder || "";
 
     new Setting(contentEl)
       .setName("Название")
@@ -240,28 +214,6 @@ class EditProjectModal extends Modal {
         })
       );
 
-    new Setting(contentEl)
-      .setName("Папка")
-      .addText((text) =>
-        text.setValue(folder).onChange((value) => {
-          folder = value;
-        })
-      )
-      .addButton((btn) =>
-        btn
-          .setButtonText("...")
-          .setTooltip("Выбрать папку")
-          .onClick(() => {
-            new FolderSuggestModal(this.app, (selectedFolder) => {
-              folder = selectedFolder;
-              const input = contentEl.querySelector(
-                ".task-tracker-project-modal input[type='text']"
-              ) as HTMLInputElement | null;
-              if (input) input.value = selectedFolder;
-            }).open();
-          })
-      );
-
     const buttonsEl = contentEl.createDiv("task-tracker-modal-buttons");
 
     const cancelBtn = buttonsEl.createEl("button", { text: "Отмена" });
@@ -277,7 +229,7 @@ class EditProjectModal extends Modal {
         name: name.trim(),
         color,
         icon: icon || "📁",
-        folder: folder || null,
+        folder: null,
       });
       this.onSaved();
       this.close();

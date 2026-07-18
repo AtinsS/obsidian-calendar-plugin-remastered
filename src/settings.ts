@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, requestUrl } from "obsidian";
+import { App, PluginSettingTab, Setting, TFolder, requestUrl } from "obsidian";
 import { appHasDailyNotesPluginLoaded } from "obsidian-daily-notes-interface";
 import type { ILocaleOverride } from "obsidian-calendar-ui";
 import { get } from "svelte/store";
@@ -116,8 +116,9 @@ export const defaultSettings = Object.freeze({
 });
 
 export function appHasPeriodicNotesPluginLoaded(): boolean {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const periodicNotes = (<any>window.app).plugins.getPlugin("periodic-notes");
+  // Undocumented periodic-notes plugin API
+  const appWithPlugins = window.app as unknown as { plugins: { getPlugin: (id: string) => { settings?: { weekly?: { enabled?: boolean } } } } };
+  const periodicNotes = appWithPlugins.plugins.getPlugin("periodic-notes");
   return periodicNotes && periodicNotes.settings?.weekly?.enabled;
 }
 
@@ -190,9 +191,9 @@ export class CalendarSettingsTab extends PluginSettingTab {
   private getVaultFolders(): string[] {
     const folders: string[] = [];
     const root = this.app.vault.getRoot();
-    const walk = (folder: any) => {
+    const walk = (folder: TFolder) => {
       for (const child of folder.children || []) {
-        if (child.children) {
+        if (child instanceof TFolder) {
           folders.push(child.path);
           walk(child);
         }
@@ -650,8 +651,8 @@ priority: medium
                     Accept: "application/vnd.github.v3+json",
                   },
                 });
-              } catch (err: any) {
-                const status = err?.status || "неизвестно";
+              } catch (err: unknown) {
+                const status = (err as { status?: number | string })?.status || "неизвестно";
                 alert(
                   `Нет доступа к репозиторию (${status})\n\n` +
                   `Репозиторий: ${repo}\n\n` +
@@ -678,7 +679,7 @@ priority: medium
                 const workflows = workflowsResp.json?.workflows || [];
                 workflowFound = workflows.some((w: { path: string }) => w.path?.includes("daily-summary.yml"));
                 availableList = workflows.map((w: { name: string; path: string }) => `  - ${w.name} (${w.path})`).join("\n");
-              } catch (err: any) {
+              } catch {
                 // Если не удалось получить список workflow — попробуем всё равно
                 availableList = "(не удалось загрузить)";
               }
@@ -705,12 +706,12 @@ priority: medium
                   body: JSON.stringify({ ref: "main" }),
                 });
                 alert(`Workflow запущен! Проверьте ntfy.sh через 1-2 минуты.`);
-              } catch (err: any) {
-                const status = err?.status || "неизвестно";
+              } catch (err: unknown) {
+                const status = (err as { status?: number | string })?.status || "неизвестно";
                 if (status === 422) {
                   alert("Workflow уже выполняется или конфигурация неверна.");
                 } else {
-                  alert(`Ошибка запуска workflow (${status}):\n${err?.message || "неизвестная ошибка"}`);
+                  alert(`Ошибка запуска workflow (${status}):\n${(err as Error)?.message || "неизвестная ошибка"}`);
                 }
               }
             } catch (e) {

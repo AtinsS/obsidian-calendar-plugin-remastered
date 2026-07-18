@@ -72,7 +72,7 @@ export function getMonthData(monthKey: string): FinanceMonthData {
   };
 
   // Migration: convert old string[] monthGoals to MonthGoal[]
-  if (Array.isArray(data.monthGoals) && data.monthGoals.length > 0 && typeof (data.monthGoals[0] as any) === "string") {
+  if (Array.isArray(data.monthGoals) && data.monthGoals.length > 0 && typeof data.monthGoals[0] === "string") {
     data.monthGoals = (data.monthGoals as unknown as string[]).map((g: string) => ({
       id: generateGoalId(),
       icon: "🎯",

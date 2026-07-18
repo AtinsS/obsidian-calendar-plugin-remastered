@@ -68,7 +68,7 @@ export function initGistSync(plugin: CalendarPlugin): void {
 }
 
 function checkAutoSyncSetting(): void {
-  const currentSettings = get(settings) as any;
+  const currentSettings = get(settings);
   const wasEnabled = autoSyncEnabled;
   autoSyncEnabled = !!currentSettings.gistAutoSync && !!currentSettings.githubToken && !!currentSettings.gistId;
 
@@ -193,7 +193,7 @@ function tasksToIcsEvents(): IcsEvent[] {
 }
 
 export async function syncToGist(): Promise<{ success: boolean; error?: string; url?: string }> {
-  const currentSettings = get(settings) as any;
+  const currentSettings = get(settings);
   const token = currentSettings.githubToken;
   const gistId = currentSettings.gistId || undefined;
 
@@ -223,7 +223,7 @@ export async function syncToGist(): Promise<{ success: boolean; error?: string; 
         gistId: result.id,
         gistUrl: result.url,
         gistRawUrl: result.rawUrl,
-      } as any);
+      });
       console.log("[GistSync] Gist saved to settings. ID:", result.id);
     }
 

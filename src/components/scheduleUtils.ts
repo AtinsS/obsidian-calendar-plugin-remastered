@@ -70,8 +70,8 @@ export function getStatusBorder(status: string): string {
 export interface ScheduleEvent {
   id: string;
   title: string;
-  start: string;
-  end: string;
+  start: number;
+  end: number;
   allDay: boolean;
   backgroundColor: string;
   borderColor: string;
@@ -85,10 +85,25 @@ export interface ScheduleEvent {
   };
 }
 
-function calculateAllDayEnd(date: string): string {
-  const d = new Date(`${date}T00:00:00`);
-  d.setDate(d.getDate() + 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T00:00:00`;
+/** Get local timezone offset as "+03:00" / "-05:00" */
+function getLocalTzOffset(): string {
+  const offset = -new Date().getTimezoneOffset(); // in minutes, positive = east of UTC
+  const sign = offset >= 0 ? "+" : "-";
+  const h = String(Math.floor(Math.abs(offset) / 60)).padStart(2, "0");
+  const m = String(Math.abs(offset) % 60).padStart(2, "0");
+  return `${sign}${h}:${m}`;
+}
+
+/** Create a UTC timestamp (ms) from a local date+time.
+ *  FullCalendar's timeGrid renders events 30 min late with slotDuration=30m,
+ *  so we subtract 1 slot to compensate. */
+function localToTimestamp(dateStr: string, time: string): number {
+  return new Date(`${dateStr}T${time}:00${getLocalTzOffset()}`).getTime() - 30 * 60_000;
+}
+
+/** Advance a local timestamp by durationMin minutes */
+function addMinutes(base: number, durationMin: number): number {
+  return base + durationMin * 60_000;
 }
 
 export function taskToEvent(
@@ -99,11 +114,13 @@ export function taskToEvent(
   if (!dateStr) return null;
 
   const hasTime = !!task.scheduledTime;
-  const start = hasTime ? `${dateStr}T${task.scheduledTime}:00` : dateStr;
+  const start = hasTime
+    ? localToTimestamp(dateStr, task.scheduledTime)
+    : localToTimestamp(dateStr, "00:00");
 
   const end = hasTime
-    ? calculateEndTime(dateStr, task.scheduledTime, task.estimatedTime || 60)
-    : calculateAllDayEnd(dateStr);
+    ? addMinutes(localToTimestamp(dateStr, task.scheduledTime), task.estimatedTime || 60)
+    : localToTimestamp(dateStr, "00:00") + 86400000;
 
   const project = projects.find((p) => p.id === task.projectId);
   const hasProject = !!project;
@@ -139,15 +156,14 @@ function deadlineToEvent(
 
   const deadlineDateStr = extractDateFromUID(task.deadline);
   const taskDateStr = extractDateFromUID(task.dateUID);
-  // Не дублируем, если дедлайн совпадает с днём задачи
   if (!deadlineDateStr || deadlineDateStr === taskDateStr) return null;
 
   const start = task.deadlineTime
-    ? `${deadlineDateStr}T${task.deadlineTime}:00`
-    : `${deadlineDateStr}T23:55:00`;
+    ? localToTimestamp(deadlineDateStr, task.deadlineTime)
+    : localToTimestamp(deadlineDateStr, "23:55");
   const end = task.deadlineTime
-    ? `${deadlineDateStr}T${task.deadlineTime}:00`
-    : `${deadlineDateStr}T23:59:00`;
+    ? localToTimestamp(deadlineDateStr, task.deadlineTime)
+    : localToTimestamp(deadlineDateStr, "23:59");
 
   const project = projects.find((p) => p.id === task.projectId);
 

@@ -3,7 +3,7 @@ import moment from "moment";
 import { requestUrl } from "obsidian";
 import type CalendarPlugin from "src/main";
 import { tasks, projects } from "src/task-tracker/stores";
-import type { ITask } from "src/task-tracker/types";
+import type { ITask, IProject } from "src/task-tracker/types";
 import type { ISettings } from "src/settings";
 
 const DEFAULT_CHECK_INTERVAL_MS = 60_000; // 1 minute
@@ -37,6 +37,7 @@ export class NotificationService {
   private firedDeadline = new Set<string>();
   private firedEstimateExceeded = new Set<string>();
   private lastSummaryDate = "";
+  private vaultSummaryChecked = false;
 
   constructor(plugin: CalendarPlugin) {
     this.plugin = plugin;
@@ -47,6 +48,7 @@ export class NotificationService {
 
     await this.loadFiredState();
     this.requestPermission();
+    this.vaultSummaryChecked = false;
     this.timer = setInterval(() => this.check(), this.getSettings().checkIntervalMs);
     this.check(); // run immediately
     this.startNtfyListener();
@@ -69,6 +71,11 @@ export class NotificationService {
     if (this.getSettings().notificationsEnabled) {
       this.start();
     }
+  }
+
+  resetSummaryState(): void {
+    this.lastSummaryDate = "";
+    this.vaultSummaryChecked = false;
   }
 
   private getSettings(): NotificationSettings {
@@ -201,7 +208,7 @@ export class NotificationService {
     this.checkScheduledSummary();
   }
 
-  private checkScheduledSummary(): void {
+  private async checkScheduledSummary(): Promise<void> {
     const opts = this.plugin.options as ISettings;
     if (!opts.morningSummaryEnabled || !opts.ntfyTopic) return;
 
@@ -212,16 +219,35 @@ export class NotificationService {
     // Reset on new day
     if (this.lastSummaryDate && this.lastSummaryDate !== todayStr) {
       this.lastSummaryDate = "";
+      this.vaultSummaryChecked = false;
     }
 
-    // Already sent today
+    // Already sent today (in-memory check)
     if (this.lastSummaryDate === todayStr) return;
+
+    // Also check vault to avoid double-send after Obsidian restart
+    if (!this.vaultSummaryChecked) {
+      this.vaultSummaryChecked = true;
+      try {
+        const data = await this.plugin.loadData();
+        const lastSent = data?.firedNotifications?.lastSummarySent || "";
+        if (lastSent.startsWith(todayStr)) {
+          this.lastSummaryDate = todayStr;
+          return;
+        }
+      } catch {
+        // ignore — proceed with in-memory check
+      }
+    }
 
     const summaryTime = opts.morningSummaryTime || "08:00";
     const [targetH, targetM] = summaryTime.split(":").map(Number);
 
-    // Check if current time matches target (within 1-minute window)
-    if (now.getHours() === targetH && now.getMinutes() === targetM) {
+    // Check if current time is within a 2-minute window after target
+    // This prevents missed sends when the interval fires slightly off the exact minute
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const targetMinutes = targetH * 60 + targetM;
+    if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 2) {
       this.lastSummaryDate = todayStr;
       this.sendMorningSummary();
     }
@@ -335,7 +361,7 @@ export class NotificationService {
     const yesterdayStr = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
 
     const getProjectName = (pid: string) => {
-      const p = allProjects.find((pr: any) => pr.id === pid);
+      const p = allProjects.find((pr: IProject) => pr.id === pid);
       return p ? ` [${p.name}]` : "";
     };
 
@@ -464,11 +490,16 @@ export class NotificationService {
   }
 
   private saveFiredState(): void {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const now = new Date();
     const data = {
       reminders: [...this.firedReminders],
       overdue: [...this.firedOverdue],
       deadline: [...this.firedDeadline],
       estimateExceeded: [...this.firedEstimateExceeded],
+      lastSummarySent: this.lastSummaryDate
+        ? `${this.lastSummaryDate}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+        : "",
     };
     this.plugin.loadData().then((existing) => {
       const updated = { ...(existing || {}), firedNotifications: data };

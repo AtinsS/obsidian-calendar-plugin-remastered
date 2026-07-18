@@ -7,8 +7,7 @@ export function showNoteContextMenu(app: App, file: TFile, position: Point): voi
       .setTitle("Delete")
       .setIcon("trash")
       .onClick(() => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (<any>app).fileManager.promptForFileDeletion(file);
+        (app.fileManager as unknown as { promptForFileDeletion: (file: TFile) => void }).promptForFileDeletion(file);
       })
   );
 

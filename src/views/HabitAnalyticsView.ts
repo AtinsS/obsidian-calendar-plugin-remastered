@@ -36,8 +36,7 @@ export default class HabitAnalyticsView extends ItemView {
     const habitsHidden = currentSettings.showHabitTracker === false;
 
     this.svelteComponent = new HabitAnalytics({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target: container as any,
+      target: container as HTMLElement,
       props: { habitsHidden },
     });
   }

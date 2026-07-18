@@ -23,9 +23,13 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ ! -f "calendar-data.json" ]; then
-            echo "::warning::calendar-data.json not found in repo root. Make sure syncToVault is enabled and the file is committed."
+            echo "::error::calendar-data.json not found in repo root"
+            echo "Make sure:"
+            echo "  1. syncToVault is enabled in plugin settings"
+            echo "  2. The file is committed: git add calendar-data.json && git commit"
+            echo "  3. The file is pushed to the main branch"
             TOPIC="${NTFY_TOPIC:-Calendar_Remastered}"
-            curl -s -d "⚠️ Утренняя сводка не отправлена: calendar-data.json не найден в репозитории. Включите syncToVault и закоммьте файл." \
+            curl -s -d "Утренняя сводка не отправлена: calendar-data.json не найден. Включите syncToVault в настройках плагина и закоммьте файл." \
               -H "Title: Calendar Remastered — Ошибка" \
               -H "Priority: min" \
               -H "Tags: warning" \
@@ -63,9 +67,12 @@ jobs:
               target_h, target_m = 6, 0
 
           event_name = os.environ.get('EVENT_NAME', 'schedule')
-          if event_name == 'schedule' and (now.hour != target_h or abs(now.minute - target_m) > 5):
-              print(f'Not within sending window (target {summary_time_str}, now {now.strftime("%H:%M")}), skipping')
-              sys.exit(0)
+          if event_name == 'schedule':
+              # Compare minutes with wrap-around handling (e.g. target 05:58, now 06:02)
+              minute_diff = (now.hour * 60 + now.minute) - (target_h * 60 + target_m)
+              if now.hour != target_h or minute_diff < 0 or minute_diff > 5:
+                  print(f'Not within sending window (target {summary_time_str}, now {now.strftime("%H:%M")}), skipping')
+                  sys.exit(0)
 
           last_sent = ns.get('lastSummarySent', '')
           if last_sent.startswith(today_prefix):
@@ -190,16 +197,27 @@ jobs:
           msg = '\n'.join(lines)
           print(msg)
 
-          result = subprocess.run([
-              'curl', '-s', '-d', msg,
-              '-H', 'Title: Задачи на сегодня',
-              '-H', 'Priority: high',
-              '-H', 'Tags: calendar,clipboard',
-              f'https://ntfy.sh/{topic}'
-          ], capture_output=True, text=True)
+          # Send with retry (ntfy.sh can be temporarily unavailable)
+          send_ok = False
+          for attempt in range(3):
+              result = subprocess.run([
+                  'curl', '-s', '--retry', '2', '--retry-delay', '5',
+                  '-d', msg,
+                  '-H', 'Title: Задачи на сегодня',
+                  '-H', 'Priority: high',
+                  '-H', 'Tags: calendar,clipboard',
+                  f'https://ntfy.sh/{topic}'
+              ], capture_output=True, text=True, timeout=30)
 
-          if result.returncode != 0:
-              print(f"::error::Failed to send notification: {result.stderr}")
+              if result.returncode == 0:
+                  send_ok = True
+                  break
+              print(f'Attempt {attempt + 1} failed, retrying...')
+              import time
+              time.sleep(5)
+
+          if not send_ok:
+              print(f"::error::Failed to send notification after 3 attempts: {result.stderr}")
               sys.exit(1)
 
           ns['lastSummarySent'] = now.strftime('%Y-%m-%dT%H:%M')

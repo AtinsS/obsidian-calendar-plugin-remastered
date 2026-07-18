@@ -1,4 +1,4 @@
-import { App, SuggestModal } from "obsidian";
+import { App, SuggestModal, TFolder } from "obsidian";
 
 export interface FolderSuggestion {
   folder: string;
@@ -33,9 +33,9 @@ export class FolderSuggestModal extends SuggestModal<FolderSuggestion> {
   private getVaultFolders(): string[] {
     const folders: string[] = [];
     const root = this.app.vault.getRoot();
-    const walk = (folder: any) => {
+    const walk = (folder: TFolder) => {
       for (const child of folder.children || []) {
-        if (child.children) {
+        if (child instanceof TFolder) {
           folders.push(child.path);
           walk(child);
         }

@@ -31,8 +31,7 @@ export default class FinancialAnalyticsView extends ItemView {
     container.addClass("financial-analytics-view-container");
 
     this.svelteComponent = new FinancialAnalytics({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target: container as any,
+      target: container as HTMLElement,
     });
   }
 

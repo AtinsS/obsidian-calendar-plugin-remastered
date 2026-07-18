@@ -34,8 +34,7 @@ export default class MobileScheduleView extends ItemView {
     (container as HTMLElement).style.flexDirection = "column";
 
     this.svelteComponent = new MobileSchedule({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      target: container as any,
+      target: container as HTMLElement,
       props: {
         plugin: this.plugin,
         onClose: () => {

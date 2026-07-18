@@ -9,11 +9,21 @@
   export let plugin: CalendarPlugin;
   export let onClose: () => void = () => {};
 
+  // Use Obsidian's global moment to guarantee locale data is loaded
+  const m = (typeof window !== "undefined" && window.moment) ? window.moment : moment;
+  m.locale("ru");
+  m.updateLocale("ru", {
+    week: {
+      dow: 1, // Monday
+      doy: 4,
+    },
+  });
+
   const DAY_START = 6;
-  const DAY_END = 23;
+  const DAY_END = 30; // 6 AM next day (24 + 6)
   const HOUR_HEIGHT = 64;
 
-  let currentDate = moment();
+  let currentDate = m();
   let containerEl: HTMLDivElement;
   let scrollEl: HTMLDivElement;
   let contextMenuTask: ITask | null = null;
@@ -39,7 +49,7 @@
   }
 
   function goToday() {
-    currentDate = moment();
+    currentDate = m();
   }
 
   function selectDay(day: moment.Moment) {
@@ -49,7 +59,9 @@
   function getTaskStyle(task: ITask): string {
     if (!task.scheduledTime) return "";
     const [h, m] = task.scheduledTime.split(":").map(Number);
-    const startMin = (h - DAY_START) * 60 + m;
+    // Tasks at 00:00-05:59 appear in the extended zone (after midnight)
+    const adjustedH = h < 6 ? h + 24 : h;
+    const startMin = (adjustedH - DAY_START) * 60 + m;
     const duration = task.estimatedTime || 60;
     const top = (startMin / 60) * HOUR_HEIGHT;
     const height = Math.max((duration / 60) * HOUR_HEIGHT, 40);
@@ -65,9 +77,13 @@
     const [h, m] = task.scheduledTime.split(":").map(Number);
     const duration = task.estimatedTime || 60;
     const endMin = h * 60 + m + duration;
-    const endH = Math.floor(endMin / 60);
+    const endH = Math.floor(endMin / 60) % 24;
     const endM = endMin % 60;
     return `${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`;
+  }
+
+  function formatHourLabel(hour: number): string {
+    return `${String(hour >= 24 ? hour - 24 : hour).padStart(2, "0")}:00`;
   }
 
   function openContextMenu(task: ITask, e: MouseEvent) {
@@ -190,7 +206,7 @@
       <button
         class="ms-week-day"
         class:active={day.format("YYYY-MM-DD") === dateStr}
-        class:today={day.format("YYYY-MM-DD") === moment().format("YYYY-MM-DD")}
+        class:today={day.format("YYYY-MM-DD") === m().format("YYYY-MM-DD")}
         on:click={() => selectDay(day)}
       >
         <span class="ms-week-day-label">{day.locale("ru").format("dd")}</span>
@@ -205,14 +221,15 @@
       <!-- Hour grid -->
       {#each Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i) as hour}
         <div class="ms-hour-line" style="top: {(hour - DAY_START) * HOUR_HEIGHT}px;">
-          <span class="ms-hour-label">{String(hour).padStart(2, "0")}:00</span>
+          <span class="ms-hour-label">{formatHourLabel(hour)}</span>
         </div>
       {/each}
 
       <!-- Now indicator -->
-      {#if dateStr === moment().format("YYYY-MM-DD")}
+      {#if dateStr === m().format("YYYY-MM-DD")}
         {@const now = new Date()}
-        {@const nowMin = (now.getHours() - DAY_START) * 60 + now.getMinutes()}
+        {@const nowH = now.getHours()}
+        {@const nowMin = ((nowH < 6 ? nowH + 24 : nowH) - DAY_START) * 60 + now.getMinutes()}
         {#if nowMin >= 0 && nowMin <= (DAY_END - DAY_START) * 60}
           <div class="ms-now-line" style="top: {nowMin / 60 * HOUR_HEIGHT}px;"></div>
         {/if}
