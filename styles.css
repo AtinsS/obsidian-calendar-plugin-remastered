@@ -1714,14 +1714,14 @@ content: attr(data-task-count);
   cursor: not-allowed;
 }
 
-/* Task actions dropdown */
-.task-tracker-modal .modal-content,
-.task-tracker-project-modal .modal-content {
+/* Habit + Project modals — applied to contentEl (which IS .modal-content) */
+.task-tracker-modal,
+.task-tracker-project-modal {
   padding: 28px;
 }
 
-.task-tracker-modal .modal-content h2,
-.task-tracker-project-modal .modal-content h2 {
+.task-tracker-modal h2,
+.task-tracker-project-modal h2 {
   margin: 0 0 20px;
   font-size: 20px;
   font-weight: 700;
@@ -1759,6 +1759,45 @@ content: attr(data-task-count);
   background: var(--mcp-accent);
   border-color: var(--mcp-accent);
   color: #000;
+}
+
+/* Color picker grid */
+.task-tracker-color-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.task-tracker-color-swatch {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.task-tracker-color-swatch:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+.task-tracker-color-swatch.active {
+  border-color: var(--mcp-text);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 3px var(--mcp-glass-bg), 0 0 16px rgba(255, 255, 255, 0.1);
+}
+
+.task-tracker-color-swatch.active::after {
+  content: "\2713";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
 }
 
 .task-tracker-modal-buttons button.mod-cta:hover {
@@ -2341,7 +2380,7 @@ content: attr(data-task-count);
 /* ============================================
    PROJECT MODAL — PM prefix
    ============================================ */
-.task-tracker-project-modal .modal-content {
+.task-tracker-project-modal {
   padding: 28px;
 }
 
@@ -3650,19 +3689,25 @@ content: attr(data-task-count);
     display: none;
   }
 
-  /* ===== MOBILE TASK MODAL (tm) — full width, touch-friendly ===== */
+  /* ===== MOBILE TASK MODAL (tm) — full width, touch-friendly, scrollable ===== */
+  /* Obsidian modal hierarchy: .modal-container > .modal > .modal-content.tm */
+  .modal-container .modal {
+    max-height: 100vh;
+    max-height: 100dvh;
+    padding: 0;
+    overflow: hidden;
+  }
+
   .tm {
     max-height: 100vh !important;
     max-height: 100dvh !important;
     border-radius: 0 !important;
     margin: 0 !important;
-  }
-
-  .tm .modal-content {
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
-    max-height: 100vh;
-    max-height: 100dvh;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
   }
 
   .tm-header {
@@ -3753,6 +3798,7 @@ content: attr(data-task-count);
   .tm-advanced {
     margin: 4px 14px 12px;
     border-radius: 14px;
+    overflow: visible;
   }
 
   .tm-adv-toggle {
@@ -3849,10 +3895,11 @@ content: attr(data-task-count);
   }
 
   /* ===== MOBILE PROJECT MODAL — full width, touch-friendly ===== */
-  .task-tracker-project-modal .modal-content {
+  .task-tracker-project-modal {
     padding: 14px;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     max-height: 100vh;
     max-height: 100dvh;
   }
@@ -3972,10 +4019,11 @@ content: attr(data-task-count);
   }
 
   /* Edit modal */
-  .pm-edit-modal .modal-content {
+  .pm-edit-modal {
     padding: 14px;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .pm-modal-buttons {
@@ -4029,14 +4077,17 @@ content: attr(data-task-count);
     flex-shrink: 0;
   }
 
-  /* Modals — full width mobile */
-  .task-tracker-modal .modal-content,
-  .task-tracker-project-modal .modal-content {
+  /* Modals — full width mobile, scrollable */
+  .task-tracker-modal,
+  .task-tracker-project-modal {
     padding: 24px 20px;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
-  .task-tracker-modal .modal-content h2,
-  .task-tracker-project-modal .modal-content h2 {
+  .task-tracker-modal h2,
+  .task-tracker-project-modal h2 {
     font-size: 20px;
     margin-bottom: 24px;
   }
@@ -4282,13 +4333,13 @@ content: attr(data-task-count);
   }
 
   /* Modals — full width on smallest screens */
-  .task-tracker-modal .modal-content,
-  .task-tracker-project-modal .modal-content {
+  .task-tracker-modal,
+  .task-tracker-project-modal {
     padding: 18px;
   }
 
-  .task-tracker-modal .modal-content h2,
-  .task-tracker-project-modal .modal-content h2 {
+  .task-tracker-modal h2,
+  .task-tracker-project-modal h2 {
     font-size: 18px;
     margin-bottom: 18px;
   }
