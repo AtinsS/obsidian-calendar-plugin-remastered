@@ -8,7 +8,7 @@ export function normalizePath(): string {
 
 // Minimal mock implementations used by tests
 export class TFolder {
-  path: string = "";
+  path = "";
   children: Array<TFolder | TFile> = [];
   constructor(path?: string) {
     if (path) this.path = path;
@@ -29,13 +29,13 @@ export class SuggestModal<T> {
   constructor(app?: any) {
     this.app = app;
   }
-  setPlaceholder(_: string) {}
-  open() {}
-  close() {}
+  setPlaceholder(_: string) { /* noop */ }
+  open() { /* noop */ }
+  close() { /* noop */ }
   // Methods expected by subclasses
   getSuggestions(_query: string): T[] {
     return [] as T[];
   }
-  renderSuggestion(_suggestion: T, _el: HTMLElement) {}
-  onChooseSuggestion(_suggestion: T) {}
+  renderSuggestion(_suggestion: T, _el: HTMLElement) { /* noop */ }
+  onChooseSuggestion(_suggestion: T) { /* noop */ }
 }

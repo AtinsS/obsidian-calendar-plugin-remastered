@@ -222,14 +222,14 @@ export class TaskModal extends Modal {
     durRow.createEl("span", { text: "🕐", cls: "tm-dur-icon" });
 
     this.estHoursEl = durRow.createEl("input", {
-      type: "number", cls: "tm-dur-input", value: this.estimatedTimeHours, min: "0", max: "24",
+      type: "number", cls: "tm-dur-input", value: this.estimatedTimeHours, attr: { min: "0", max: "24" },
     }) as HTMLInputElement;
     this.estHoursEl.addEventListener("change", () => { this.estimatedTimeHours = this.estHoursEl?.value ?? "0"; });
 
     durRow.createEl("span", { text: " ч ", cls: "tm-dur-sep" });
 
     this.estMinsEl = durRow.createEl("input", {
-      type: "number", cls: "tm-dur-input", value: this.estimatedTimeMinutes, min: "0", max: "59",
+      type: "number", cls: "tm-dur-input", value: this.estimatedTimeMinutes, attr: { min: "0", max: "59" },
     }) as HTMLInputElement;
     this.estMinsEl.addEventListener("change", () => { this.estimatedTimeMinutes = this.estMinsEl?.value ?? "0"; });
 
@@ -310,7 +310,7 @@ export class TaskModal extends Modal {
     const intLabel = intRow.createDiv({ cls: "tm-adv-label-item" });
     intLabel.createEl("span", { text: "Интервал" });
     const intInput = intRow.createEl("input", {
-      type: "number", cls: "tm-input tm-adv-input", value: String(this.recurrenceInterval), min: "1",
+      type: "number", cls: "tm-input tm-adv-input", value: String(this.recurrenceInterval), attr: { min: "1" },
     }) as HTMLInputElement;
     intInput.style.maxWidth = "80px";
     intInput.addEventListener("input", () => { this.recurrenceInterval = Math.max(1, parseInt(intInput.value) || 1); });
@@ -400,7 +400,7 @@ export class TaskModal extends Modal {
     const rateLabel = rateRow.createDiv({ cls: "tm-adv-label-item" });
     rateLabel.createEl("span", { text: "Ставка (₽)" });
     const rateInput = rateRow.createEl("input", {
-      type: "number", cls: "tm-input tm-adv-input", value: this.rate, placeholder: "0", min: "0",
+      type: "number", cls: "tm-input tm-adv-input", value: this.rate, placeholder: "0", attr: { min: "0" },
     }) as HTMLInputElement;
     rateInput.style.maxWidth = "120px";
     rateInput.addEventListener("input", () => { this.rate = rateInput.value.replace(/[^0-9.,]/g, ""); });
@@ -410,7 +410,7 @@ export class TaskModal extends Modal {
     const otStartLabel = otStartRow.createDiv({ cls: "tm-adv-label-item" });
     otStartLabel.createEl("span", { text: "Переработки с (час)" });
     const otStartInput = otStartRow.createEl("input", {
-      type: "number", cls: "tm-input tm-adv-input", value: this.overtimeStart, placeholder: "8", min: "1", max: "24",
+      type: "number", cls: "tm-input tm-adv-input", value: this.overtimeStart, placeholder: "8", attr: { min: "1", max: "24" },
     }) as HTMLInputElement;
     otStartInput.style.maxWidth = "60px";
     otStartInput.addEventListener("input", () => { this.overtimeStart = otStartInput.value.replace(/[^0-9]/g, ""); });
@@ -420,7 +420,7 @@ export class TaskModal extends Modal {
     const otMulLabel = otMulRow.createDiv({ cls: "tm-adv-label-item" });
     otMulLabel.createEl("span", { text: "Множитель" });
     const otMulInput = otMulRow.createEl("input", {
-      type: "number", cls: "tm-input tm-adv-input", value: this.overtimeMultiplier, placeholder: "1.5", min: "1", max: "10", step: "0.1",
+      type: "number", cls: "tm-input tm-adv-input", value: this.overtimeMultiplier, placeholder: "1.5", attr: { min: "1", max: "10", step: "0.1" },
     }) as HTMLInputElement;
     otMulInput.style.maxWidth = "80px";
     otMulInput.addEventListener("input", () => { this.overtimeMultiplier = otMulInput.value.replace(/[^0-9.,]/g, ""); });
@@ -451,8 +451,6 @@ export class TaskModal extends Modal {
     const daysRow = this.recurrenceSubEl.children[1] as HTMLElement;
     if (daysRow) daysRow.style.display = this.recurrenceType === "weekly" ? "" : "none";
   }
-
-  private workTaskSubEl: HTMLDivElement | null = null;
 
   private updateWorkTaskSettings(): void {
     this.updateWorkTaskSubFields();

@@ -655,16 +655,29 @@
     const startStr = info.event.startStr as string;
     if (!startStr) { info.revert(); return; }
 
-    const match = startStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
-    if (!match) { info.revert(); return; }
+    const allDay = info.event.allDay;
+    let dateStr: string | null = null;
+    let newTime: string | undefined;
 
-    const dateStr = match[1];
-    const newTime = match[2];
+    if (allDay) {
+      // Dragged to "Без времени" — startStr is just "YYYY-MM-DD"
+      const dayMatch = startStr.match(/^(\d{4}-\d{2}-\d{2})$/);
+      if (!dayMatch) { info.revert(); return; }
+      dateStr = dayMatch[1];
+      newTime = undefined;
+    } else {
+      // Dragged within time grid — startStr is "YYYY-MM-DDTHH:MM..."
+      const match = startStr.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})/);
+      if (!match) { info.revert(); return; }
+      dateStr = match[1];
+      newTime = match[2];
+    }
+
+    if (!dateStr) { info.revert(); return; }
     const m = window.moment(dateStr, "YYYY-MM-DD", true);
     if (!m.isValid()) { info.revert(); return; }
 
     const newDateUID = getDateUID(m, "day");
-    const allDay = info.event.allDay;
 
     // Debounce data update — let FullCalendar finish its animation first
     if (dropDebounceTimer) clearTimeout(dropDebounceTimer);
@@ -672,7 +685,11 @@
       dropDebounceTimer = null;
       skipNextRefetch = true;
       try {
-        updateTask(task.id, { dateUID: newDateUID, scheduledTime: allDay ? undefined : newTime });
+        updateTask(task.id, {
+          dateUID: newDateUID,
+          scheduledTime: newTime,
+          ...(allDay ? { estimatedTime: undefined } : {}),
+        });
         const updatedTask = get(tasks).find((t) => t.id === task.id);
         if (updatedTask) syncTaskToNote(updatedTask, plugin.app);
       } catch (e) { /* ignore */ }

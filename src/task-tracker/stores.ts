@@ -1,5 +1,5 @@
 import { writable, get } from "svelte/store";
-import moment from "moment";
+import moment, { type Moment } from "moment";
 
 import type CalendarPlugin from "src/main";
 import { getDateUID } from "obsidian-daily-notes-interface";
@@ -715,7 +715,7 @@ export function getExpectedEarningsForMonth(year: number, month: number): number
   if (monthTasks.length === 0) return 0;
 
   // Calculate average time per project for tasks without estimate
-  const projectAvgTime = new Map<string, number>();
+  const projectAvgTime = new Map<string, { total: number; count: number }>();
   const doneWithTime = allTasks.filter(
     (t) => t.isWorkTask && t.paymentType === "hour" && t.totalWorkTime && t.totalWorkTime > 0
   );

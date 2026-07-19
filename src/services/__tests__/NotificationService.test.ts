@@ -50,9 +50,9 @@ class MockNotification {
       globalType: typeof g.mockNotify,
     });
     if (typeof g.mockNotify === "function") {
-      try { g.mockNotify(title, opts.body); } catch {}
+      try { g.mockNotify(title, opts.body); } catch { /* ignore */ }
     }
-    try { mockNotify(title, opts.body); } catch {}
+    try { mockNotify(title, opts.body); } catch { /* ignore */ }
     // eslint-disable-next-line no-console
     console.log('mock counts', {
       local: mockNotify && (mockNotify as any).mock ? (mockNotify as any).mock.calls.length : undefined,

@@ -1,4 +1,5 @@
 import type { ISettings } from "src/settings";
+import type { ILocaleOverride } from "obsidian-calendar-ui";
 
 export function getDefaultSettings(
   overrides: Partial<ISettings> = {}
@@ -12,7 +13,8 @@ export function getDefaultSettings(
       weeklyNoteFolder: "",
       weeklyNoteFormat: "",
       weeklyNoteTemplate: "",
+      localeOverride: "default" as ILocaleOverride,
     },
     overrides
-  );
+  ) as ISettings;
 }
