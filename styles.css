@@ -3650,6 +3650,352 @@ content: attr(data-task-count);
     display: none;
   }
 
+  /* ===== MOBILE TASK MODAL (tm) — full width, touch-friendly ===== */
+  .tm {
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  .tm .modal-content {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  .tm-header {
+    padding: 14px 14px 10px;
+    position: sticky;
+    top: 0;
+    background: var(--background-primary, #1a1a2e);
+    z-index: 10;
+    border-bottom: 1px solid var(--mcp-glass-border, rgba(255,255,255,0.06));
+  }
+
+  .tm-title {
+    font-size: 18px !important;
+  }
+
+  .tm-field {
+    padding: 8px 14px;
+  }
+
+  .tm-label {
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  .tm-input,
+  .tm-select,
+  .tm-textarea {
+    font-size: 16px; /* Prevent iOS zoom */
+    height: 40px;
+    border-radius: 8px;
+    padding: 0 12px;
+  }
+
+  .tm-textarea {
+    min-height: 56px;
+    font-size: 16px;
+  }
+
+  /* Row 2 — stack vertically on mobile */
+  .tm-row-2 {
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 14px 8px;
+  }
+
+  /* Priority buttons — wrap with larger touch targets */
+  .tm-pri-btns {
+    gap: 4px;
+  }
+
+  .tm-pri-btn {
+    padding: 10px 8px;
+    min-height: 40px;
+    font-size: 11px;
+    border-radius: 10px;
+  }
+
+  /* Section header */
+  .tm-section-header {
+    padding: 10px 14px 4px;
+  }
+
+  .tm-section-title {
+    font-size: 14px;
+  }
+
+  /* Duration — larger touch targets */
+  .tm-dur-row {
+    padding: 6px 12px;
+    gap: 6px;
+    border-radius: 12px;
+  }
+
+  .tm-dur-input {
+    width: 44px;
+    font-size: 16px;
+    padding: 8px 0;
+  }
+
+  .tm-dur-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 8px;
+  }
+
+  /* Advanced section */
+  .tm-advanced {
+    margin: 4px 14px 12px;
+    border-radius: 14px;
+  }
+
+  .tm-adv-toggle {
+    padding: 12px 14px;
+  }
+
+  .tm-adv-label {
+    font-size: 13px;
+  }
+
+  /* Advanced rows — stack label + input vertically on mobile */
+  .tm-adv-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 10px 14px;
+  }
+
+  .tm-adv-label-item {
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .tm-adv-input {
+    height: 40px;
+    font-size: 16px; /* Prevent iOS zoom */
+    border-radius: 8px;
+  }
+
+  .tm-select.tm-adv-input {
+    height: 40px;
+    font-size: 16px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  .tm-adv-file-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  /* Toggle switch — larger for touch */
+  .tm-toggle {
+    width: 50px;
+    height: 28px;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .tm-toggle-slider::after {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tm-toggle-input:checked + .tm-toggle-slider::after {
+    transform: translateX(22px);
+  }
+
+  /* Days buttons — wrap on small screens */
+  .tm-days-btns {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .tm-day-btn {
+    width: 38px;
+    height: 34px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  /* Footer — full width buttons */
+  .tm-footer {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px 20px;
+    position: sticky;
+    bottom: 0;
+    background: var(--background-primary, #1a1a2e);
+    border-top: 1px solid var(--mcp-glass-border, rgba(255,255,255,0.06));
+  }
+
+  .tm-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 24px;
+    font-size: 15px;
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  /* ===== MOBILE PROJECT MODAL — full width, touch-friendly ===== */
+  .task-tracker-project-modal .modal-content {
+    padding: 14px;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    max-height: 100vh;
+    max-height: 100dvh;
+  }
+
+  .task-tracker-project-modal h2 {
+    font-size: 18px;
+    margin-bottom: 4px;
+    position: sticky;
+    top: 0;
+    background: var(--background-primary, #1e1e2e);
+    padding: 10px 0;
+    z-index: 10;
+  }
+
+  .task-tracker-modal-subtitle {
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+
+  /* New project form — compact */
+  .pm-new-project {
+    padding: 14px;
+    margin-bottom: 14px;
+    border-radius: 12px;
+  }
+
+  .pm-section-header {
+    margin-bottom: 10px;
+  }
+
+  .pm-section-title {
+    font-size: 13px;
+  }
+
+  .pm-field {
+    margin-bottom: 12px;
+  }
+
+  .pm-label {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .pm-input {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevent iOS zoom */
+    border-radius: 10px;
+  }
+
+  /* Color + Icon row — stack vertically */
+  .pm-row {
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+
+  /* Color grid — larger swatches for touch */
+  .pm-color-swatch {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Icon section */
+  .pm-icon-custom-input {
+    max-width: none;
+    font-size: 22px;
+    padding: 10px;
+    height: 44px;
+  }
+
+  .pm-icon-apply-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+  }
+
+  .pm-icon-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  /* Preview */
+  .pm-preview {
+    margin-bottom: 12px;
+  }
+
+  .pm-preview-card {
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+
+  /* Create button */
+  .pm-create-btn {
+    padding: 14px;
+    font-size: 15px;
+    min-height: 48px;
+    border-radius: 12px;
+  }
+
+  /* Project list */
+  .pm-project-item {
+    padding: 12px 10px;
+    border-radius: 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pm-project-actions {
+    opacity: 1; /* Always visible on mobile */
+  }
+
+  .pm-action-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  /* Edit modal */
+  .pm-edit-modal .modal-content {
+    padding: 14px;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pm-modal-buttons {
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+
+  .pm-cancel-btn,
+  .pm-save-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    min-height: 48px;
+    border-radius: 12px;
+    text-align: center;
+    justify-content: center;
+  }
+
   /* ===== MOBILE TASK ACTIONS — ultra compact ===== */
   .task-actions-toggle {
     padding: 2px 4px;
