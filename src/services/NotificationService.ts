@@ -5,6 +5,7 @@ import type CalendarPlugin from "src/main";
 import { tasks, projects } from "src/task-tracker/stores";
 import type { ITask, IProject } from "src/task-tracker/types";
 import type { ISettings } from "src/settings";
+import { getActiveTimer } from "src/task-tracker/TimerManager";
 
 const DEFAULT_CHECK_INTERVAL_MS = 60_000; // 1 minute
 const DEFAULT_REMINDER_MINUTES = 5;
@@ -98,8 +99,16 @@ export class NotificationService {
   }
 
   private check(): void {
+    // DEBUG: log environment for tests
+    // eslint-disable-next-line no-console
+    console.log('NotificationService.check', {
+      notificationsEnabled: this.getSettings().notificationsEnabled,
+      hasNotificationOnWindow: ("Notification" in window),
+      permission: (typeof Notification !== 'undefined' ? (Notification as any).permission : undefined),
+    });
+
     if (!this.getSettings().notificationsEnabled) return;
-    if ("Notification" in window && Notification.permission !== "granted") return;
+    if ("Notification" in window && (Notification as any).permission !== "granted") return;
 
     const allTasks = get(tasks);
     const now = Date.now();
@@ -110,6 +119,15 @@ export class NotificationService {
       // Scheduled time reminders
       if (task.scheduledTime && task.dateUID) {
         const scheduledMoment = this.getScheduledMoment(task);
+        // DEBUG: log scheduled moment info
+        // eslint-disable-next-line no-console
+        console.log('scheduled check', {
+          id: task.id,
+          title: task.title,
+          scheduledTime: task.scheduledTime,
+          dateUID: task.dateUID,
+          scheduledMomentValid: scheduledMoment ? scheduledMoment.isValid() : null,
+        });
         if (scheduledMoment && scheduledMoment.isValid()) {
           const fireAt = scheduledMoment.valueOf();
           const reminderKey = `${task.id}:reminder`;
@@ -118,6 +136,8 @@ export class NotificationService {
           const reminderMs = this.getSettings().reminderMinutesBefore * 60_000;
           if (this.getSettings().notifyReminders && now >= fireAt - reminderMs && now < fireAt && !this.firedReminders.has(reminderKey)) {
             this.firedReminders.add(reminderKey);
+            // eslint-disable-next-line no-console
+            console.log('notify: reminder', { id: task.id, title: task.title });
             this.notify(
               `📅 Calendar Remastered`,
               `⏱️ Напоминание: ${task.title}\nЗадача через ${this.getSettings().reminderMinutesBefore} мин (${task.scheduledTime})`
@@ -127,6 +147,8 @@ export class NotificationService {
           // Просрочка — сразу при наступлении запланированного времени
           if (this.getSettings().notifyOverdue && task.status === "todo" && now >= fireAt && !this.firedOverdue.has(overdueKey)) {
             this.firedOverdue.add(overdueKey);
+            // eslint-disable-next-line no-console
+            console.log('notify: overdue', { id: task.id, title: task.title });
             this.notify(
               `📅 Calendar Remastered`,
               `‼️ Просрочено: ${task.title}\nЗапланировано на ${task.scheduledTime}`
@@ -136,18 +158,23 @@ export class NotificationService {
       }
 
       // Estimated time exceeded — notify when work time exceeds estimate
-      if (this.getSettings().notifyEstimateExceeded && task.estimatedTime && task.totalWorkTime && task.status === "progress") {
+      if (this.getSettings().notifyEstimateExceeded && task.estimatedTime && task.status === "progress") {
         const estimateKey = `${task.id}:estimate-exceeded`;
         if (!this.firedEstimateExceeded.has(estimateKey)) {
           const estimatedMs = task.estimatedTime * 60_000;
-          if (task.totalWorkTime > estimatedMs) {
+          const currentSessionMs = getActiveTimer(task.id) || 0;
+          const totalMs = (task.totalWorkTime || 0) + currentSessionMs;
+          if (totalMs > estimatedMs) {
             this.firedEstimateExceeded.add(estimateKey);
             const estH = Math.floor(task.estimatedTime / 60);
             const estM = task.estimatedTime % 60;
             const estStr = estH > 0 ? `${estH}ч ${estM > 0 ? estM + 'м' : ''}` : `${estM}м`;
+            const actH = Math.floor(totalMs / 3_600_000);
+            const actM = Math.floor((totalMs % 3_600_000) / 60_000);
+            const actStr = actH > 0 ? `${actH}ч ${actM > 0 ? actM + 'м' : ''}` : `${actM}м`;
             this.notify(
               `📅 Calendar Remastered`,
-              `⏰ Превышен лимит: ${task.title}\nЗаявлено: ${estStr}`
+              `⏰ Превышен лимит: ${task.title}\nОжидается: ${estStr} · Факт: ${actStr}`
             );
           }
         }
@@ -262,9 +289,12 @@ export class NotificationService {
   }
 
   private notify(title: string, body: string): void {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (!("Notification" in window) || (Notification as any).permission !== "granted") return;
 
-    const notification = new Notification(title, {
+    // eslint-disable-next-line no-console
+    console.log('About to new Notification', Notification);
+
+    const notification = new (Notification as any)(title, {
       body,
     });
 

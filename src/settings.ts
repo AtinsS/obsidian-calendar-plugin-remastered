@@ -205,7 +205,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     const coffeeTitle = coffeeBanner.createEl("h3", { cls: "settings-coffee-title" });
     coffeeTitle.textContent = "☕ Купить автору кофе";
     const coffeeDesc = coffeeBanner.createEl("p", { cls: "settings-coffee-desc" });
-    coffeeDesc.textContent = "Если плагин оказался полезен — угощайте автора кофе!";
+    coffeeDesc.textContent = "Если плагин оказался полезен — угостите автора кофе!";
     const coffeeBtn = coffeeBanner.createEl("a", {
       cls: "settings-coffee-btn",
       text: "Поддержать",

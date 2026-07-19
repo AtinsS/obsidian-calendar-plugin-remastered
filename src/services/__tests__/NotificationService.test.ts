@@ -21,6 +21,10 @@ jest.mock("src/task-tracker/stores", () => ({
   tasks: { subscribe: jest.fn() },
 }));
 
+jest.mock("src/task-tracker/TimerManager", () => ({
+  getActiveTimer: jest.fn().mockReturnValue(null),
+}));
+
 // Mock Notification constructor
 const OriginalNotification = global.Notification;
 class MockNotification {
@@ -33,7 +37,27 @@ class MockNotification {
     this.body = opts.body;
     this.close = jest.fn();
     this.onclick = null as any;
-    mockNotify(title, opts.body);
+    // Prefer global mock helper to ensure visibility from all modules
+    const g = global as any;
+    // debug
+    // eslint-disable-next-line no-console
+    console.log('MockNotification constructed', title, opts && opts.body);
+    // eslint-disable-next-line no-console
+    console.log('mock identity', {
+      hasGlobal: typeof g.mockNotify === 'function',
+      equalsLocal: g.mockNotify === mockNotify,
+      localType: typeof mockNotify,
+      globalType: typeof g.mockNotify,
+    });
+    if (typeof g.mockNotify === "function") {
+      try { g.mockNotify(title, opts.body); } catch {}
+    }
+    try { mockNotify(title, opts.body); } catch {}
+    // eslint-disable-next-line no-console
+    console.log('mock counts', {
+      local: mockNotify && (mockNotify as any).mock ? (mockNotify as any).mock.calls.length : undefined,
+      global: g.mockNotify && g.mockNotify.mock ? g.mockNotify.mock.calls.length : undefined,
+    });
     mockNotificationInstances.push({ close: this.close, onclick: this.onclick });
   }
 }
@@ -89,12 +113,26 @@ function makeSettings(overrides: Partial<ISettings> = {}): ISettings {
     overdueCheckEnabled: false,
     defaultPaymentType: "hour",
     defaultRate: 0,
+    scheduleShowTime: true,
+    scheduleShowStatus: true,
+    scheduleShowPriority: true,
+    scheduleShowWorkBadge: true,
+    scheduleShowNoteBadge: true,
+    scheduleShowDeadline: true,
+    scheduleShowOverdue: true,
+    scheduleShowDescription: true,
+    scheduleShowNowIndicator: true,
+    scheduleShowDeadlineEvents: true,
     ...overrides,
   };
 }
 
 function makePlugin(settings: ISettings) {
-  return { options: settings } as any;
+  return {
+    options: settings,
+    loadData: jest.fn().mockResolvedValue({}),
+    saveData: jest.fn().mockResolvedValue(undefined),
+  } as any;
 }
 
 // --- Tests ---
@@ -118,6 +156,8 @@ describe("NotificationService", () => {
       writable: true,
       configurable: true,
     });
+    // Expose mockNotify globally so mocks outside this module can call it
+    (global as any).mockNotify = mockNotify;
 
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     getMock = require("svelte/store").get;
@@ -151,6 +191,9 @@ describe("NotificationService", () => {
       service.start();
 
       // Should fire overdue immediately (not after 30 min)
+      // debug: print calls count before assertion
+      // eslint-disable-next-line no-console
+      console.log('before assert mockNotify calls', (mockNotify as any).mock.calls.length);
       expect(mockNotify).toHaveBeenCalledWith(
         "📅 Calendar Remastered",
         expect.stringContaining("Просрочено")
@@ -357,6 +400,36 @@ describe("NotificationService", () => {
       service.start();
 
       expect(mockNotify).not.toHaveBeenCalledWith(
+        "📅 Calendar Remastered",
+        expect.stringContaining("Превышен лимит")
+      );
+    });
+
+    it("fires when current running session pushes total over estimate", () => {
+      const { getActiveTimer } = jest.requireMock("src/task-tracker/TimerManager");
+      getActiveTimer.mockReturnValue(15 * 60_000); // 15 min current session
+
+      const now = Date.now();
+      const scheduledMoment = moment(now + 60 * 60_000);
+      const dateUID = `day-${scheduledMoment.format("YYYY-MM-DD")}`;
+      const scheduledTime = scheduledMoment.format("HH:mm");
+
+      const task = makeTask({
+        scheduledTime,
+        dateUID,
+        status: "progress",
+        estimatedTime: 30, // 30 minutes
+        totalWorkTime: 20 * 60_000, // 20 min accumulated
+        // 20 + 15 = 35 min total > 30 min estimate
+      });
+
+      getMock.mockReturnValue([task]);
+
+      const settings = makeSettings();
+      service = new NotificationService(makePlugin(settings));
+      service.start();
+
+      expect(mockNotify).toHaveBeenCalledWith(
         "📅 Calendar Remastered",
         expect.stringContaining("Превышен лимит")
       );

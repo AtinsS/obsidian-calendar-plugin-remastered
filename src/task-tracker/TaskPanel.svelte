@@ -151,7 +151,7 @@
           completed: false,
           status: "todo",
           notePath: null,
-          boundNotePath: taskData.notePath || null,
+          boundNotePath: taskData.boundNotePath || null,
           tags: [],
           sortOrder: allTasksForDate.length,
         } as Omit<ITask, "id" | "createdAt" | "updatedAt">);

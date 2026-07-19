@@ -747,7 +747,7 @@
         dateUID: data.dateUID || dateUID,
         projectId: data.projectId || null,
         notePath: null,
-        boundNotePath: data.notePath || null,
+        boundNotePath: data.boundNotePath || null,
         priority: data.priority || "medium",
         tags: [],
         sortOrder: 0,
