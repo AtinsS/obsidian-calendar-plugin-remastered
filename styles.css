@@ -468,7 +468,6 @@ table {
 #calendar-container .day:hover {
   background: var(--mcp-accent-dim);
   border-color: var(--mcp-accent);
-  transform: scale(1.1);
   box-shadow: var(--mcp-shadow-glow);
 }
 
@@ -502,9 +501,6 @@ table {
   color: #000;
   font-weight: 700;
   border-color: var(--mcp-accent);
-  box-shadow:
-    0 0 0 3px rgba(45, 212, 191, 0.2),
-    0 0 20px var(--mcp-accent-glow);
 }
 
 /* ============================================
@@ -517,7 +513,7 @@ table {
 #calendar-container .day[data-task-count]::after {
 content: attr(data-task-count);
     position: absolute;
-    bottom: 1px;
+    bottom: 2px;
     right: 1px;
     font-size: 14px;
     font-weight: 700;
@@ -526,7 +522,6 @@ content: attr(data-task-count);
     text-align: center;
     color: #fff9f9;
     background: #a734349e;
-    border: 1px solid #44b9a8;
     border-radius: 5px;
     padding: 0px 2px;
     pointer-events: none;

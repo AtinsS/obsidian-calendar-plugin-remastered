@@ -253,12 +253,14 @@ export class NotificationService {
     if (this.lastSummaryDate === todayStr) return;
 
     // Also check vault to avoid double-send after Obsidian restart
+    // Check BOTH firedNotifications (plugin writes here) AND notificationSync (GH Actions writes here)
     if (!this.vaultSummaryChecked) {
       this.vaultSummaryChecked = true;
       try {
         const data = await this.plugin.loadData();
-        const lastSent = data?.firedNotifications?.lastSummarySent || "";
-        if (lastSent.startsWith(todayStr)) {
+        const firedSent = data?.firedNotifications?.lastSummarySent || "";
+        const syncSent = data?.notificationSync?.lastSummarySent || "";
+        if (firedSent.startsWith(todayStr) || syncSent.startsWith(todayStr)) {
           this.lastSummaryDate = todayStr;
           return;
         }
@@ -522,17 +524,23 @@ export class NotificationService {
   private saveFiredState(): void {
     const pad = (n: number) => String(n).padStart(2, "0");
     const now = new Date();
-    const data = {
+    const summaryTimestamp = this.lastSummaryDate
+      ? `${this.lastSummaryDate}T${pad(now.getHours())}:${pad(now.getMinutes())}`
+      : "";
+    const firedData = {
       reminders: [...this.firedReminders],
       overdue: [...this.firedOverdue],
       deadline: [...this.firedDeadline],
       estimateExceeded: [...this.firedEstimateExceeded],
-      lastSummarySent: this.lastSummaryDate
-        ? `${this.lastSummaryDate}T${pad(now.getHours())}:${pad(now.getMinutes())}`
-        : "",
+      lastSummarySent: summaryTimestamp,
     };
     this.plugin.loadData().then((existing) => {
-      const updated = { ...(existing || {}), firedNotifications: data };
+      const updated = { ...(existing || {}) };
+      updated.firedNotifications = firedData;
+      // Also write to notificationSync so GH Actions sees the plugin's send
+      if (summaryTimestamp && updated.notificationSync) {
+        updated.notificationSync.lastSummarySent = summaryTimestamp;
+      }
       this.plugin.saveData(updated);
     }).catch(() => { /* ignore */ });
   }

@@ -60,25 +60,6 @@ jobs:
           now = datetime.now(msk)
           today_prefix = now.strftime('%Y-%m-%d')
 
-          summary_time_str = ns.get('morningSummaryTime', '06:00')
-          try:
-              target_h, target_m = map(int, summary_time_str.split(':'))
-          except (ValueError, AttributeError):
-              target_h, target_m = 6, 0
-
-          event_name = os.environ.get('EVENT_NAME', 'schedule')
-          if event_name == 'schedule':
-              # Compare minutes with wrap-around handling (e.g. target 05:58, now 06:02)
-              # Use 15-minute window to account for GitHub Actions scheduling delays
-              now_minutes = now.hour * 60 + now.minute
-              target_minutes = target_h * 60 + target_m
-              minute_diff = now_minutes - target_minutes
-              # Allow sending if within 15 minutes AFTER the target time
-              # (before target or more than 15 min late = skip)
-              if minute_diff < 0 or minute_diff > 15:
-                  print(f'Not within sending window (target {summary_time_str}, now {now.strftime("%H:%M")}, diff={minute_diff}m), skipping')
-                  sys.exit(0)
-
           last_sent = ns.get('lastSummarySent', '')
           if last_sent.startswith(today_prefix):
               print(f'Already sent today ({last_sent}), skipping')

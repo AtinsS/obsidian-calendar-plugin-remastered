@@ -117,7 +117,7 @@ priority: medium
 4. Нажмите **Add Plugin**.
 
 ### Вручную
-1. Скачайте `main.js`, `manifest.json` и `styles.css` из раздела [Releases](https://github.com/AtinsS/obsidian-calendar-plugin-remastered/releases).
+1. Скачайте архив, либо клонируйте, выделите `main.js`, `manifest.json` и `styles.css`
 2. Поместите их в папку `.obsidian/plugins/calendar-plugin-remastered/` (создайте её, если нет).
 3. Включите плагин в *Настройки → Сторонние плагины*.
 
