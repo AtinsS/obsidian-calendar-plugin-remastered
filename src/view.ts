@@ -22,6 +22,7 @@ import {
   customTagsSource,
   streakSource,
   wordCountSource,
+  birthdaySource,
 } from "./ui/sources";
 
 import TaskPanel from "./task-tracker/TaskPanel.svelte";
@@ -173,6 +174,7 @@ export default class CalendarView extends ItemView {
       wordCountSource,
       taskDotSource,
       habitSource,
+      birthdaySource,
     ];
     this.app.workspace.trigger(TRIGGER_ON_OPEN, sources);
 

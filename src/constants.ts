@@ -6,5 +6,6 @@ export const VIEW_TYPE_MOBILE_SCHEDULE = "calendar-mobile-schedule";
 export const VIEW_TYPE_HABIT_ANALYTICS = "calendar-habit-analytics";
 export const VIEW_TYPE_FINANCE = "calendar-finance";
 export const VIEW_TYPE_FINANCIAL_ANALYTICS = "calendar-financial-analytics";
+export const VIEW_TYPE_NETWORK = "calendar-network";
 
 export const TRIGGER_ON_OPEN = "calendar:open";

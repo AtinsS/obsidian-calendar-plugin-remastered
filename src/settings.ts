@@ -51,9 +51,11 @@ export interface ISettings {
   ntfyTopic: string;
 
   // GitHub Actions notification settings
-  morningSummaryEnabled: boolean;
-  morningSummaryTime: string;
   overdueCheckEnabled: boolean;
+
+  // Birthday reminder settings
+  notifyBirthdays: boolean;
+  birthdayReminderDays: number;
 
   // Work task settings
   defaultPaymentType: "hour" | "day";
@@ -67,6 +69,9 @@ export interface ISettings {
   githubToken?: string;
   gistId?: string;
   gistUrl?: string;
+
+  // Avatar folder path
+  avatarFolderPath?: string;
   gistRawUrl?: string;
   gistAutoSync?: boolean;
 
@@ -74,6 +79,9 @@ export interface ISettings {
   accentColor?: string;
   glassBgColor?: string;
   glassOpacity?: number;
+
+  // Networking — папка для досье людей
+  personsFolderPath?: string;
 
   // Schedule display settings
   scheduleShowTime: boolean;
@@ -124,12 +132,17 @@ export const defaultSettings = Object.freeze({
   ntfyEnabled: false,
   ntfyTopic: "Calendar_Remastered",
 
-  morningSummaryEnabled: false,
-  morningSummaryTime: "06:00",
   overdueCheckEnabled: false,
+
+  notifyBirthdays: true,
+  birthdayReminderDays: 7,
 
   defaultPaymentType: "hour" as "hour" | "day",
   defaultRate: 0,
+
+  personsFolderPath: "People",
+
+  avatarFolderPath: "person-avatars",
 
   accentColor: "#5f99e1",
   glassBgColor: "#1e2332",
@@ -262,6 +275,11 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addNotificationSettings();
 
     this.containerEl.createEl("h3", {
+      text: "Нетворкинг — Досье людей",
+    });
+    this.addPersonsFolderSetting();
+
+    this.containerEl.createEl("h3", {
       text: "Рабочие задачи",
     });
     this.addWorkTaskSettings();
@@ -324,6 +342,62 @@ export class CalendarSettingsTab extends PluginSettingTab {
         text.inputEl.min = "50";
         text.inputEl.max = "10000";
         text.inputEl.style.maxWidth = "100px";
+      });
+  }
+
+  addPersonsFolderSetting(): void {
+    new Setting(this.containerEl)
+      .setName("Папка для досье")
+      .setDesc("Папка, где хранятся .md файлы людей (создаётся автоматически)")
+      .addDropdown((dropdown) => {
+        const folders = this.getVaultFolders();
+        folders.forEach((folder) => {
+          dropdown.addOption(folder, folder);
+        });
+        dropdown.addOption("__custom", "Другая...");
+        const current = this.plugin.options.personsFolderPath || "People";
+        if (!folders.includes(current)) {
+          dropdown.addOption(current, current);
+        }
+        dropdown.setValue(current);
+        dropdown.onChange(async (value) => {
+          if (value === "__custom") {
+            const modal = new FolderSuggestModal(this.app, async (folder) => {
+              this.plugin.writeOptions({ personsFolderPath: folder });
+              this.display();
+            });
+            modal.open();
+          } else {
+            this.plugin.writeOptions({ personsFolderPath: value });
+          }
+        });
+      });
+
+    new Setting(this.containerEl)
+      .setName("Папка для аватаров")
+      .setDesc("Папка, куда сохраняются аватары людей (создаётся автоматически)")
+      .addDropdown((dropdown) => {
+        const folders = this.getVaultFolders();
+        folders.forEach((folder) => {
+          dropdown.addOption(folder, folder);
+        });
+        dropdown.addOption("__custom", "Другая...");
+        const current = this.plugin.options.avatarFolderPath || "person-avatars";
+        if (!folders.includes(current)) {
+          dropdown.addOption(current, current);
+        }
+        dropdown.setValue(current);
+        dropdown.onChange(async (value) => {
+          if (value === "__custom") {
+            const modal = new FolderSuggestModal(this.app, async (folder) => {
+              this.plugin.writeOptions({ avatarFolderPath: folder });
+              this.display();
+            });
+            modal.open();
+          } else {
+            this.plugin.writeOptions({ avatarFolderPath: value });
+          }
+        });
       });
   }
 
@@ -681,6 +755,29 @@ priority: medium
       });
 
     new Setting(this.containerEl)
+      .setName("Дни рождения")
+      .setDesc("Напоминать о дне рождения за N дней")
+      .addToggle((toggle) => {
+        toggle.setValue(this.plugin.options.notifyBirthdays ?? true);
+        toggle.onChange(async (value) => {
+          this.plugin.writeOptions({ notifyBirthdays: value });
+        });
+      })
+      .addText((text) => {
+        text
+          .setPlaceholder("7")
+          .setValue(String(this.plugin.options.birthdayReminderDays ?? 7))
+          .onChange(async (value) => {
+            const num = parseInt(value, 10);
+            if (!isNaN(num) && num > 0 && num <= 365) {
+              this.plugin.writeOptions({ birthdayReminderDays: num });
+            }
+          });
+        text.inputEl.type = "number";
+        text.inputEl.style.maxWidth = "60px";
+      });
+
+    new Setting(this.containerEl)
       .setName("Отправлять в ntfy.sh")
       .setDesc("Дублировать уведомления на смартфон через ntfy.sh")
       .addToggle((toggle) => {
@@ -740,40 +837,11 @@ priority: medium
         <b>Требования:</b><br>
         1. Включите <b>Синхронизацию в корень хранилища</b> выше<br>
         2. Настройте git push в репозиторий (Obsidian Git или вручную)<br>
-        3. Скопируйте файл <code>examples/workflows/daily-summary.yml</code> в <code>.github/workflows/</code> вашего vault-репозитория<br>
-        4. Создайте токен: GitHub → Settings → Credentials → Personal access tokens (классический) с правами <code>repo</code> + <code>actions:write</code><br>
-        5. Вставьте токен в поле ниже
+        3. Создайте токен: GitHub → Settings → Credentials → Personal access tokens (классический) с правами <code>repo</code> + <code>actions:write</code><br>
+        4. Вставьте токен в поле ниже
       </p>
     `;
     this.containerEl.appendChild(ghDesc);
-
-    new Setting(this.containerEl)
-      .setName("Утренняя сводка")
-      .setDesc("Отправлять список задач на телефон каждое утро через GitHub Actions")
-      .addToggle((toggle) => {
-        toggle.setValue(this.plugin.options.morningSummaryEnabled);
-        toggle.onChange(async (value) => {
-          this.plugin.writeOptions({ morningSummaryEnabled: value });
-          this.syncNotificationSettingsToVault();
-        });
-      });
-
-    new Setting(this.containerEl)
-      .setName("Время утренней сводки")
-      .setDesc("Когда отправлять сводку (локальное время, формат ЧЧ:ММ)")
-      .addText((text) => {
-        text
-          .setPlaceholder("06:00")
-          .setValue(this.plugin.options.morningSummaryTime || "06:00")
-          .onChange(async (value) => {
-            if (/^\d{2}:\d{2}$/.test(value)) {
-              this.plugin.writeOptions({ morningSummaryTime: value });
-              this.syncNotificationSettingsToVault();
-            }
-          });
-        text.inputEl.type = "time";
-        text.inputEl.style.maxWidth = "120px";
-      });
 
     new Setting(this.containerEl)
       .setName("Проверка просроченных (GitHub Actions)")
@@ -813,246 +881,12 @@ priority: medium
         text.inputEl.style.maxWidth = "300px";
       });
 
-    new Setting(this.containerEl)
-      .setName("Тест GitHub Actions")
-      .setDesc("Запустить workflow утренней сводки в vault-репозитории")
-      .addButton((btn) =>
-        btn
-          .setButtonText("Запустить workflow")
-          .setWarning()
-          .onClick(async () => {
-            const token = this.plugin.options.workflowToken;
-            const rawRepo = this.plugin.options.vaultRepo;
-            const repo = rawRepo?.replace(/^https?:\/\/github\.com\//, "").replace(/\/+$/, "").replace(/\.git$/, "");
-
-            if (!token) {
-              alert("Сначала введите GitHub токен для Actions выше.");
-              return;
-            }
-            if (!repo) {
-              alert("Укажите vault репозиторий (owner/repo) выше.");
-              return;
-            }
-
-            btn.setButtonText("Запуск...");
-            btn.setDisabled(true);
-
-            try {
-              // Шаг 1: Проверяем доступ к репозиторию
-              try {
-                await requestUrl({
-                  url: `https://api.github.com/repos/${repo}`,
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/vnd.github.v3+json",
-                  },
-                });
-              } catch (err: unknown) {
-                const status = (err as { status?: number | string })?.status || "неизвестно";
-                alert(
-                  `Нет доступа к репозиторию (${status})\n\n` +
-                  `Репозиторий: ${repo}\n\n` +
-                  `Возможные причины:\n` +
-                  `1. Токен не имеет доступа к приватному репозиторию (нужен scope "repo")\n` +
-                  `2. Репозиторий не существует\n` +
-                  `3. Формат должен быть: owner/repo\n\n` +
-                  `Проверьте токен: GitHub → Settings → Credentials → Personal access tokens`
-                );
-                return;
-              }
-
-              // Шаг 2: Проверяем наличие workflow
-              let workflowFound = false;
-              let availableList = "";
-              try {
-                const workflowsResp = await requestUrl({
-                  url: `https://api.github.com/repos/${repo}/actions/workflows`,
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/vnd.github.v3+json",
-                  },
-                });
-                const workflows = workflowsResp.json?.workflows || [];
-                workflowFound = workflows.some((w: { path: string }) => w.path?.includes("daily-summary.yml"));
-                availableList = workflows.map((w: { name: string; path: string }) => `  - ${w.name} (${w.path})`).join("\n");
-              } catch {
-                // Если не удалось получить список workflow — попробуем всё равно
-                availableList = "(не удалось загрузить)";
-              }
-
-              if (!workflowFound) {
-                alert(
-                  `Workflow daily-summary.yml не найден!\n\n` +
-                  `Доступные workflow:\n${availableList || "  (пусто)"}\n\n` +
-                  `Убедитесь, что файл .github/workflows/daily-summary.yml существует в репозитории.`
-                );
-                return;
-              }
-
-              // Шаг 3: Запускаем workflow
-              try {
-                await requestUrl({
-                  url: `https://api.github.com/repos/${repo}/actions/workflows/daily-summary.yml/dispatches`,
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/vnd.github.v3+json",
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({ ref: "main" }),
-                });
-                alert(`Workflow запущен! Проверьте ntfy.sh через 1-2 минуты.`);
-              } catch (err: unknown) {
-                const status = (err as { status?: number | string })?.status || "неизвестно";
-                if (status === 422) {
-                  alert("Workflow уже выполняется или конфигурация неверна.");
-                } else {
-                  alert(`Ошибка запуска workflow (${status}):\n${(err as Error)?.message || "неизвестная ошибка"}`);
-                }
-              }
-            } catch (e) {
-              alert(`Неожиданная ошибка: ${e}`);
-            } finally {
-              btn.setButtonText("Запустить workflow");
-              btn.setDisabled(false);
-            }
-          })
-      );
-
-    new Setting(this.containerEl)
-      .setName("Тест утренней сводки")
-      .setDesc("Отправить тестовое уведомление со списком задач на сегодня")
-      .addButton((btn) =>
-        btn
-          .setButtonText("Отправить тест")
-          .setWarning()
-          .onClick(async () => {
-            const topic = this.plugin.options.ntfyTopic || "Calendar_Remastered";
-            try {
-              const { tasks } = await import("./task-tracker/stores");
-              const { projects } = await import("./task-tracker/stores");
-              const { get } = await import("svelte/store");
-
-              const allTasks = get(tasks);
-              const allProjects = get(projects);
-              const now = new Date();
-
-              // Локальная дата, не UTC
-              const pad = (n: number) => String(n).padStart(2, "0");
-              const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-              const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-              const yesterdayStr = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
-
-              const getProjectName = (pid: string) => {
-                const p = allProjects.find((pr) => pr.id === pid);
-                return p ? ` [${p.name}]` : "";
-              };
-
-              const overdue: string[] = [];
-              const morning: string[] = [];
-              const afternoon: string[] = [];
-              const evening: string[] = [];
-              let doneYesterday = 0;
-
-              for (const t of allTasks) {
-                if (t.status === "done" || t.completed) {
-                  const d = t.dateUID || "";
-                  if (d.includes(yesterdayStr)) doneYesterday++;
-                  continue;
-                }
-
-                const dateUID = t.dateUID || "";
-                if (!dateUID.includes(todayStr)) {
-                  const schedDate = dateUID.replace("day-", "");
-                  if (schedDate && schedDate < todayStr) {
-                    overdue.push(`${getProjectName(t.projectId)} ${t.title} (${t.scheduledTime || "нет времени"})`);
-                  }
-                  continue;
-                }
-
-                const proj = getProjectName(t.projectId);
-                const time = t.scheduledTime || "--:--";
-                const hour = parseInt(time.split(":")[0]) || 12;
-
-                // Include elapsed time for tasks in progress
-                let timerInfo = "";
-                if (t.status === "progress" && t.timerStartedAt) {
-                  const elapsed = (Date.now() - t.timerStartedAt) / 1000;
-                  if (elapsed > 0) {
-                    const hours = Math.floor(elapsed / 3600);
-                    const minutes = Math.floor((elapsed % 3600) / 60);
-                    timerInfo = hours > 0
-                      ? ` [в работе ${hours}ч ${minutes > 0 ? minutes + 'м' : ''}]`
-                      : ` [в работе ${minutes}м]`;
-                  }
-                }
-
-                const line = `${proj} ${t.title} ⏰ ${time}${timerInfo}`;
-
-                if (hour < 12) morning.push(line);
-                else if (hour < 17) afternoon.push(line);
-                else evening.push(line);
-              }
-
-              const total = overdue.length + morning.length + afternoon.length + evening.length;
-              const lines = [`📋 Задачи на сегодня (${total})`, ""];
-
-              if (overdue.length) {
-                lines.push(`🔥 Просроченные (${overdue.length}):`);
-                overdue.forEach((l, i) => lines.push(`${i + 1}. 🔴 ${l}`));
-                lines.push("");
-              }
-              if (morning.length) {
-                lines.push(`⏰ Утро (${morning.length}):`);
-                morning.forEach((l, i) => lines.push(`${i + overdue.length + 1}. 🟡 ${l}`));
-                lines.push("");
-              }
-              if (afternoon.length) {
-                lines.push(`🌆 День (${afternoon.length}):`);
-                afternoon.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + 1}. 🔵 ${l}`));
-                lines.push("");
-              }
-              if (evening.length) {
-                lines.push(`🌙 Вечер (${evening.length}):`);
-                evening.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + afternoon.length + 1}. 🟣 ${l}`));
-                lines.push("");
-              }
-
-              lines.push("📊 Статистика:");
-              lines.push(`✅ Вчера выполнено: ${doneYesterday}`);
-              lines.push(`📝 Сегодня осталось: ${total}`);
-
-              if (total === 0) {
-                lines.length = 0;
-                lines.push("📋 Задач на сегодня нет", "", "Отдыхай!");
-              }
-
-              const msg = lines.join("\n");
-
-              await requestUrl({
-                url: `https://ntfy.sh/${topic}`,
-                method: "POST",
-                body: msg,
-                headers: {
-                  Priority: "high",
-                  Tags: "calendar,clipboard",
-                },
-              });
-
-              alert(`Тестовая утренняя сводка отправлена в ${topic}`);
-            } catch (e) {
-              alert(`Ошибка отправки: ${e}`);
-            }
-          })
-      );
   }
 
   private async syncNotificationSettingsToVault(): Promise<void> {
     if (!this.plugin.options.syncToVault) return;
     const { saveNotificationSyncSettings } = await import("./io/vaultStorage");
     await saveNotificationSyncSettings(this.app, {
-      morningSummaryEnabled: this.plugin.options.morningSummaryEnabled,
-      morningSummaryTime: this.plugin.options.morningSummaryTime,
       overdueCheckEnabled: this.plugin.options.overdueCheckEnabled,
       ntfyTopic: this.plugin.options.ntfyTopic || "Calendar_Remastered",
     });

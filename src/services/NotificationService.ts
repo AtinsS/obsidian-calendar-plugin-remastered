@@ -2,10 +2,11 @@ import { get } from "svelte/store";
 import moment from "moment";
 import { requestUrl } from "obsidian";
 import type CalendarPlugin from "src/main";
-import { tasks, projects } from "src/task-tracker/stores";
-import type { ITask, IProject } from "src/task-tracker/types";
+import { tasks } from "src/task-tracker/stores";
+import type { ITask } from "src/task-tracker/types";
 import type { ISettings } from "src/settings";
 import { getActiveTimer } from "src/task-tracker/TimerManager";
+import { collectPersons } from "src/networking/personCollector";
 
 const DEFAULT_CHECK_INTERVAL_MS = 60_000; // 1 minute
 const DEFAULT_REMINDER_MINUTES = 5;
@@ -37,8 +38,7 @@ export class NotificationService {
   private firedOverdue = new Set<string>();
   private firedDeadline = new Set<string>();
   private firedEstimateExceeded = new Set<string>();
-  private lastSummaryDate = "";
-  private vaultSummaryChecked = false;
+  private firedBirthdays = new Set<string>();
 
   constructor(plugin: CalendarPlugin) {
     this.plugin = plugin;
@@ -49,7 +49,6 @@ export class NotificationService {
 
     await this.loadFiredState();
     this.requestPermission();
-    this.vaultSummaryChecked = false;
     this.timer = setInterval(() => this.check(), this.getSettings().checkIntervalMs);
     this.check(); // run immediately
     this.startNtfyListener();
@@ -65,6 +64,7 @@ export class NotificationService {
     this.firedOverdue.clear();
     this.firedDeadline.clear();
     this.firedEstimateExceeded.clear();
+    this.firedBirthdays.clear();
   }
 
   restart(): void {
@@ -72,11 +72,6 @@ export class NotificationService {
     if (this.getSettings().notificationsEnabled) {
       this.start();
     }
-  }
-
-  resetSummaryState(): void {
-    this.lastSummaryDate = "";
-    this.vaultSummaryChecked = false;
   }
 
   private getSettings(): NotificationSettings {
@@ -231,55 +226,10 @@ export class NotificationService {
       }
     }
 
+    // Проверка дней рождения
+    this.checkBirthdays();
+
     this.cleanupFiredKeys(allTasks);
-    this.checkScheduledSummary();
-  }
-
-  private async checkScheduledSummary(): Promise<void> {
-    const opts = this.plugin.options as ISettings;
-    if (!opts.morningSummaryEnabled || !opts.ntfyTopic) return;
-
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-
-    // Reset on new day
-    if (this.lastSummaryDate && this.lastSummaryDate !== todayStr) {
-      this.lastSummaryDate = "";
-      this.vaultSummaryChecked = false;
-    }
-
-    // Already sent today (in-memory check)
-    if (this.lastSummaryDate === todayStr) return;
-
-    // Also check vault to avoid double-send after Obsidian restart
-    // Check BOTH firedNotifications (plugin writes here) AND notificationSync (GH Actions writes here)
-    if (!this.vaultSummaryChecked) {
-      this.vaultSummaryChecked = true;
-      try {
-        const data = await this.plugin.loadData();
-        const firedSent = data?.firedNotifications?.lastSummarySent || "";
-        const syncSent = data?.notificationSync?.lastSummarySent || "";
-        if (firedSent.startsWith(todayStr) || syncSent.startsWith(todayStr)) {
-          this.lastSummaryDate = todayStr;
-          return;
-        }
-      } catch {
-        // ignore — proceed with in-memory check
-      }
-    }
-
-    const summaryTime = opts.morningSummaryTime || "08:00";
-    const [targetH, targetM] = summaryTime.split(":").map(Number);
-
-    // Check if current time is within a 2-minute window after target
-    // This prevents missed sends when the interval fires slightly off the exact minute
-    const nowMinutes = now.getHours() * 60 + now.getMinutes();
-    const targetMinutes = targetH * 60 + targetM;
-    if (nowMinutes >= targetMinutes && nowMinutes < targetMinutes + 2) {
-      this.lastSummaryDate = todayStr;
-      this.sendMorningSummary();
-    }
   }
 
   private getScheduledMoment(task: ITask): moment.Moment | null {
@@ -288,6 +238,64 @@ export class NotificationService {
 
     const dateStr = match[1];
     return moment(`${dateStr} ${task.scheduledTime}`, "YYYY-MM-DD HH:mm", true);
+  }
+
+  private checkBirthdays(): void {
+    const opts = this.plugin.options as ISettings;
+    if (!opts.notifyBirthdays) return;
+
+    const reminderDays = opts.birthdayReminderDays ?? 7;
+    const now = moment();
+
+    const persons = collectPersons(this.plugin.app);
+
+    for (const person of persons) {
+      if (!person.birthday) continue;
+
+      // Извлекаем месяц-день из дня рождения
+      const bdParts = person.birthday.split("-");
+      if (bdParts.length !== 3) continue;
+      const bdMonth = parseInt(bdParts[1], 10);
+      const bdDay = parseInt(bdParts[2], 10);
+      if (isNaN(bdMonth) || isNaN(bdDay)) continue;
+
+      // Вычисляем дату дня рождения в этом году
+      const thisYear = now.year();
+      let birthdayThisYear = moment(`${thisYear}-${String(bdMonth).padStart(2, "0")}-${String(bdDay).padStart(2, "0")}`, "YYYY-MM-DD");
+
+      // Если день рождения уже прошёл в этом году — берём следующий год
+      if (birthdayThisYear.isBefore(now, "day")) {
+        birthdayThisYear = moment(`${thisYear + 1}-${String(bdMonth).padStart(2, "0")}-${String(bdDay).padStart(2, "0")}`, "YYYY-MM-DD");
+      }
+
+      const daysUntil = birthdayThisYear.diff(now, "days");
+
+      // Уведомляем за N дней (один раз в день)
+      if (daysUntil === reminderDays) {
+        const key = `birthday-${person.id}-${thisYear}-${reminderDays}`;
+        if (!this.firedBirthdays.has(key)) {
+          this.firedBirthdays.add(key);
+          const age = birthdayThisYear.year() - parseInt(bdParts[0], 10);
+          this.notify(
+            `🎂 Calendar Remastered`,
+            `День рождения ${person.name} через ${reminderDays} дней (${birthdayThisYear.format("D MMMM")})${!isNaN(age) ? `, исполнится ${age} лет` : ""}`
+          );
+        }
+      }
+
+      // Сегодня день рождения!
+      if (daysUntil === 0) {
+        const key = `birthday-today-${person.id}-${thisYear}`;
+        if (!this.firedBirthdays.has(key)) {
+          this.firedBirthdays.add(key);
+          const age = thisYear - parseInt(bdParts[0], 10);
+          this.notify(
+            `🎂 Calendar Remastered`,
+            `Сегодня день рождения ${person.name}!${!isNaN(age) ? ` Ему/ей исполняется ${age} лет` : ""}`
+          );
+        }
+      }
+    }
   }
 
   private notify(title: string, body: string): void {
@@ -351,9 +359,6 @@ export class NotificationService {
           try {
             const event = JSON.parse(line.trim());
             if (event.id) this.ntfyLastId = event.id;
-            if (event.message && event.event === "message") {
-              this.handleNtfyCommand(event.message);
-            }
           } catch {
             // ignore parse errors
           }
@@ -369,114 +374,6 @@ export class NotificationService {
       clearInterval(this.ntfyPollTimer);
       this.ntfyPollTimer = null;
     }
-  }
-
-  private handleNtfyCommand(message: string): void {
-    const text = message.trim().toLowerCase();
-
-    if (text === "утренняя сводка" || text === "сводка") {
-      this.sendMorningSummary();
-    }
-  }
-
-  private sendMorningSummary(): void {
-    const opts = this.plugin.options as ISettings;
-    if (!opts.ntfyTopic) return;
-
-    const allTasks = get(tasks);
-    const allProjects = get(projects);
-
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const yesterdayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-    const yesterdayStr = `${yesterdayDate.getFullYear()}-${pad(yesterdayDate.getMonth() + 1)}-${pad(yesterdayDate.getDate())}`;
-
-    const getProjectName = (pid: string) => {
-      const p = allProjects.find((pr: IProject) => pr.id === pid);
-      return p ? ` [${p.name}]` : "";
-    };
-
-    const overdue: string[] = [];
-    const morning: string[] = [];
-    const afternoon: string[] = [];
-    const evening: string[] = [];
-    let doneYesterday = 0;
-
-    for (const t of allTasks) {
-      if (t.status === "done" || t.completed) {
-        const d = t.dateUID || "";
-        if (d.includes(yesterdayStr)) doneYesterday++;
-        continue;
-      }
-
-      const dateUID = t.dateUID || "";
-      if (!dateUID.includes(todayStr)) {
-        const schedDate = dateUID.replace("day-", "");
-        if (schedDate && schedDate < todayStr) {
-          overdue.push(`${getProjectName(t.projectId)} ${t.title} (${t.scheduledTime || "нет времени"})`);
-        }
-        continue;
-      }
-
-      const proj = getProjectName(t.projectId);
-      const time = t.scheduledTime || "--:--";
-      const hour = parseInt(time.split(":")[0]) || 12;
-
-      let timerInfo = "";
-      if (t.status === "progress" && t.timerStartedAt) {
-        const elapsed = (Date.now() - t.timerStartedAt) / 1000;
-        if (elapsed > 0) {
-          const hours = Math.floor(elapsed / 3600);
-          const minutes = Math.floor((elapsed % 3600) / 60);
-          timerInfo = hours > 0
-            ? ` [в работе ${hours}ч ${minutes > 0 ? minutes + 'м' : ''}]`
-            : ` [в работе ${minutes}м]`;
-        }
-      }
-
-      const line = `${proj} ${t.title} ⏰ ${time}${timerInfo}`;
-
-      if (hour < 12) morning.push(line);
-      else if (hour < 17) afternoon.push(line);
-      else evening.push(line);
-    }
-
-    const total = overdue.length + morning.length + afternoon.length + evening.length;
-    const lines = [`📋 Задачи на сегодня (${total})`, ""];
-
-    if (overdue.length) {
-      lines.push(`🔥 Просроченные (${overdue.length}):`);
-      overdue.forEach((l, i) => lines.push(`${i + 1}. 🔴 ${l}`));
-      lines.push("");
-    }
-    if (morning.length) {
-      lines.push(`⏰ Утро (${morning.length}):`);
-      morning.forEach((l, i) => lines.push(`${i + overdue.length + 1}. 🟡 ${l}`));
-      lines.push("");
-    }
-    if (afternoon.length) {
-      lines.push(`🌆 День (${afternoon.length}):`);
-      afternoon.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + 1}. 🔴 ${l}`));
-      lines.push("");
-    }
-    if (evening.length) {
-      lines.push(`🌙 Вечер (${evening.length}):`);
-      evening.forEach((l, i) => lines.push(`${i + overdue.length + morning.length + afternoon.length + 1}. 🟣 ${l}`));
-      lines.push("");
-    }
-
-    lines.push("📊 Статистика:");
-    lines.push(`✅ Вчера выполнено: ${doneYesterday}`);
-    lines.push(`📝 Сегодня осталось: ${total}`);
-
-    if (total === 0) {
-      lines.length = 0;
-      lines.push("📋 Задач на сегодня нет", "", "Отдыхай!");
-    }
-
-    const msg = lines.join("\n");
-    this.sendNtfy(msg);
   }
 
   private cleanupFiredKeys(activeTasks: ITask[]): void {
@@ -522,25 +419,15 @@ export class NotificationService {
   }
 
   private saveFiredState(): void {
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const now = new Date();
-    const summaryTimestamp = this.lastSummaryDate
-      ? `${this.lastSummaryDate}T${pad(now.getHours())}:${pad(now.getMinutes())}`
-      : "";
     const firedData = {
       reminders: [...this.firedReminders],
       overdue: [...this.firedOverdue],
       deadline: [...this.firedDeadline],
       estimateExceeded: [...this.firedEstimateExceeded],
-      lastSummarySent: summaryTimestamp,
     };
     this.plugin.loadData().then((existing) => {
       const updated = { ...(existing || {}) };
       updated.firedNotifications = firedData;
-      // Also write to notificationSync so GH Actions sees the plugin's send
-      if (summaryTimestamp && updated.notificationSync) {
-        updated.notificationSync.lastSummarySent = summaryTimestamp;
-      }
       this.plugin.saveData(updated);
     }).catch(() => { /* ignore */ });
   }

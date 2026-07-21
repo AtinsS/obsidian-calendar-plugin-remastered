@@ -23,6 +23,10 @@
   import {
     tasksToEvents,
   } from "./scheduleUtils";
+  import { app } from "../stores/appStore";
+  import { collectPersons } from "../networking/personCollector";
+  import { extractBirthdays, getBirthdaysForDay } from "../networking/birthdaySource";
+  // holidays —暂时隐藏
   export let plugin: CalendarPlugin;
   export let scheduleDisplay: {
     scheduleShowTime?: boolean;
@@ -371,10 +375,10 @@
     calendar.render();
   }
 
-  function fetchEvents(
-    _fetchInfo: { start: Date; end: Date },
+  async function fetchEvents(
+    fetchInfo: { start: Date; end: Date },
     successCallback: (events: any[]) => void
-  ): void {
+  ): Promise<void> {
     try {
       const allTasks = get(tasks);
       const allProjects = get(projects);
@@ -382,6 +386,35 @@
       if (scheduleDisplay.scheduleShowDeadlineEvents === false) {
         events = events.filter((e) => !e.extendedProps?.isDeadlineEvent);
       }
+
+      const appInstance = get(app);
+      if (appInstance) {
+        const start = fetchInfo.start;
+        const end = fetchInfo.end;
+
+        // Добавляем дни рождения
+        const persons = collectPersons(appInstance);
+        const birthdays = extractBirthdays(persons);
+        const current = new Date(start);
+        while (current < end) {
+          const month = current.getMonth() + 1;
+          const day = current.getDate();
+          const dayBirthdays = getBirthdaysForDay(birthdays, month, day);
+          for (const bd of dayBirthdays) {
+            const dateStr = `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, "0")}-${String(current.getDate()).padStart(2, "0")}`;
+            events.push({
+              title: `🎂 ${bd.name}`,
+              start: dateStr,
+              allDay: true,
+              display: "block",
+              classNames: ["sch-event-birthday"],
+              extendedProps: { isBirthday: true } as any,
+            } as any);
+          }
+          current.setDate(current.getDate() + 1);
+        }
+      }
+
       successCallback(events);
     } catch (e) {
       console.error("[ScheduleCalendar] fetchEvents error:", e);
@@ -401,6 +434,14 @@
 
   function renderEventContent(eventInfo: any) {
     const { time, event } = eventInfo;
+
+    // Дни рождения — рендерим с своим стилем
+    if (event.extendedProps?.isBirthday) {
+      return {
+        html: `<div class="sch-event sch-event-compact sch-event-birthday"><span class="sch-event-title">${event.title || "?"}</span></div>`,
+      };
+    }
+
     const task = resolveTask(event);
     if (!task) {
       return { html: `<div class="sch-event sch-event-compact"><span class="sch-event-title">${event.title || "?"}</span></div>` };
@@ -564,6 +605,22 @@
   }
 
   function handleEventClick(info: any): void {
+    // Birthday event → open person's note
+    if (info.event.extendedProps?.isBirthday) {
+      const personName = (info.event.title || "").replace(/^🎂\s*/, "");
+      const appInstance = get(app);
+      if (appInstance) {
+        const persons = collectPersons(appInstance);
+        const person = persons.find((p: any) => p.name === personName);
+        if (person) {
+          const file = appInstance.vault.getAbstractFileByPath(person.path);
+          if (file) {
+            appInstance.workspace.openLinkText(person.path, "", true);
+          }
+        }
+      }
+      return;
+    }
     // Deadline event → blink the parent task in the schedule
     if (info.event.extendedProps?.isDeadlineEvent) {
       const task = resolveTask(info.event);
@@ -1259,14 +1316,19 @@
     box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12);
   }
 
-  :global(.fc .fc-event:has(.sch-event)) {
+  :global(.fc .fc-event:has(.sch-event):not(:has(.sch-event-birthday))) {
     background-color: var(--event-project-color, rgba(110, 130, 160, 0.8)) !important;
     box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12) !important;
   }
 
-  :global(.fc .fc-event:has(.sch-event-compact)) {
+  :global(.fc .fc-event:has(.sch-event-compact):not(:has(.sch-event-birthday))) {
     background-color: var(--event-project-color, rgba(110, 130, 160, 0.8)) !important;
     box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  :global(.fc .fc-event:has(.sch-event-birthday)) {
+    background-color: rgba(220, 50, 50, 0.15) !important;
+    box-shadow: inset 3px 0 0 rgba(220, 50, 50, 0.6), 0 2px 8px rgba(0, 0, 0, 0.12) !important;
   }
 
   :global(.sch-event) {
@@ -1280,7 +1342,7 @@
     -webkit-backdrop-filter: blur(8px);
   }
 
-  :global(.fc .fc-event:hover) {
+  :global(.fc .fc-event:hover:not(:has(.sch-event-birthday))) {
     transform: none;
     box-shadow: inset 3px 0 0 var(--event-project-color, rgba(120, 145, 175, 1)), 0 4px 16px rgba(0, 0, 0, 0.25);
     filter: brightness(1.15);
@@ -1323,6 +1385,13 @@
   :global(.fc .fc-event-main) {
     border-radius: 8px;
     overflow: hidden;
+  }
+
+  :global(.fc .fc-event:has(.sch-event-birthday) .fc-event-main),
+  :global(.fc .fc-event:has(.sch-event-birthday) .fc-event-main-frame),
+  :global(.fc .fc-event:has(.sch-event-birthday) .fc-event-bg) {
+    background: transparent !important;
+    border-color: transparent !important;
   }
 
   :global(.sch-event-compact) {

@@ -4973,3 +4973,624 @@ content: attr(data-task-count);
   background-color: rgba(180, 60, 60, 0.85) !important;
   border-left-color: #b43c3c !important;
 }
+
+/* ============================================
+   NETWORK GRAPH — Граф связей
+   ============================================ */
+
+.network-view-container {
+  padding: 8px;
+}
+
+.network-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.network-view-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-normal);
+}
+
+.network-refresh-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--mcp-radius-sm);
+  background: var(--mcp-surface);
+  color: var(--text-normal);
+  border: 1px solid var(--mcp-glass-border);
+  cursor: pointer;
+  transition: background var(--mcp-transition);
+}
+
+.network-refresh-btn:hover {
+  background: var(--mcp-surface-hover);
+}
+
+.network-graph-wrapper {
+  width: 100%;
+  min-height: 400px;
+}
+
+.network-graph-container {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+  background: var(--mcp-glass-bg);
+  border-radius: var(--mcp-radius);
+  border: 1px solid var(--mcp-glass-border);
+}
+
+.network-graph-container svg {
+  display: block;
+}
+
+/* Узлы графа */
+.network-node circle {
+  transition: fill-opacity 0.2s;
+}
+
+.network-node:hover circle {
+  fill-opacity: 1;
+  stroke-width: 3;
+}
+
+.network-node text {
+  font-family: var(--font-interface);
+}
+
+/* Рёбра графа */
+.network-links line {
+  transition: stroke-opacity 0.2s;
+}
+
+/* Tooltip */
+.network-tooltip {
+  position: fixed;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-normal);
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.network-tooltip strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-accent);
+}
+
+/* Кнопка добавления персоны */
+.network-add-btn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--mcp-radius-sm);
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--mcp-transition);
+}
+
+.network-add-btn:hover {
+  opacity: 0.85;
+}
+
+/* ============================================
+   PERSON MODAL — Модалка досье
+   ============================================ */
+
+.person-modal .person-modal-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--text-normal);
+}
+
+.person-modal .person-field {
+  margin-bottom: 12px;
+}
+
+.person-modal .person-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.person-modal .person-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 14px;
+  font-family: var(--font-interface);
+  transition: border-color var(--mcp-transition);
+  box-sizing: border-box;
+}
+
+.person-modal .person-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.person-modal .person-section-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-accent);
+  margin: 16px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.person-modal .person-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.person-modal .person-btn {
+  padding: 8px 16px;
+  border-radius: var(--mcp-radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--mcp-transition);
+}
+
+.person-modal .person-cancel {
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.person-modal .person-cancel:hover {
+  background: var(--background-modifier-hover);
+}
+
+.person-modal .person-submit {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.person-modal .person-submit:hover {
+  opacity: 0.85;
+}
+
+/* Кастомные контакты */
+.person-custom-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.person-custom-row {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.person-custom-key {
+  width: 100px !important;
+  min-width: 100px;
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  box-sizing: border-box;
+}
+
+.person-custom-key::placeholder {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.person-custom-value {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  box-sizing: border-box;
+}
+
+.person-custom-value::placeholder {
+  color: var(--text-faint);
+}
+
+.person-custom-remove {
+  padding: 4px 8px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-error, #ef4436);
+  cursor: pointer;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.person-custom-remove:hover {
+  background: var(--mcp-danger-dim);
+}
+
+.person-add-field {
+  align-self: flex-start;
+  margin-bottom: 12px;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px dashed var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-accent);
+  cursor: pointer;
+  transition: background var(--mcp-transition);
+}
+
+.person-add-field:hover {
+  background: var(--mcp-accent-dim);
+}
+
+/* Цвет узла */
+.person-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.person-color-swatch {
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--mcp-radius-sm);
+  background: var(--background-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.person-color-hex {
+  flex: 1;
+  font-family: monospace !important;
+}
+
+.person-color-clear {
+  padding: 4px 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Аватар превью */
+.person-avatar-preview {
+  margin-top: 8px;
+}
+
+.person-avatar-preview img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--background-modifier-border);
+}
+
+/* ============================================
+   NODE CONTEXT MENU — Меню узла графа
+   ============================================ */
+
+.node-context-menu {
+  position: fixed;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--mcp-radius-sm);
+  padding: 4px;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-width: 180px;
+}
+
+.node-menu-item {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 13px;
+  font-family: var(--font-interface);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background var(--mcp-transition);
+}
+
+.node-menu-item:hover {
+  background: var(--mcp-accent-dim);
+  color: var(--text-accent);
+}
+
+/* ============================================
+   HOLIDAY MODAL — Модалка праздников
+   ============================================ */
+
+.holiday-colors {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.holiday-color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.holiday-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.holiday-color-swatch.active {
+  border-color: var(--text-normal);
+  transform: scale(1.15);
+}
+
+/* Кнопка праздников в расписании */
+.schedule-holiday-btn {
+  padding: 4px 10px;
+  border-radius: var(--mcp-radius-sm);
+  font-size: 12px;
+  cursor: pointer;
+  background: var(--mcp-surface);
+  color: var(--text-normal);
+  border: 1px solid var(--mcp-glass-border);
+  transition: background var(--mcp-transition);
+}
+
+.schedule-holiday-btn:hover {
+  background: var(--mcp-surface-hover);
+}
+
+/* События праздников в расписании */
+.sch-event-holiday {
+  border-left-width: 3px !important;
+  font-weight: 600;
+}
+
+/* Тулбар расписания */
+.schedule-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 8px;
+  gap: 6px;
+}
+
+/* Список праздников — модалка */
+.holiday-list-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.holiday-list-modal {
+  background: var(--background-primary);
+  border-radius: var(--mcp-radius);
+  border: 1px solid var(--background-modifier-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  width: 400px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.holiday-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.holiday-list-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.holiday-list-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.holiday-list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 16px;
+}
+
+.holiday-list-empty {
+  color: var(--text-faint);
+  text-align: center;
+  font-size: 13px;
+  padding: 16px 0;
+}
+
+.holiday-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.holiday-list-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.holiday-list-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-normal);
+}
+
+.holiday-list-date {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.holiday-list-delete {
+  background: none;
+  border: none;
+  color: var(--text-error, #ef4436);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+
+.holiday-list-delete:hover {
+  opacity: 1;
+  background: var(--mcp-danger-dim);
+}
+
+.holiday-list-footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--background-modifier-border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ============================================
+   NETWORK SEARCH — Поиск по навыкам
+   ============================================ */
+
+.network-search-container {
+  padding: 0 8px 8px;
+}
+
+.network-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--mcp-radius-sm);
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-family: var(--font-interface);
+  transition: border-color var(--mcp-transition);
+  box-sizing: border-box;
+}
+
+.network-search-input:focus {
+  border-color: var(--interactive-accent);
+  outline: none;
+}
+
+.network-search-input::placeholder {
+  color: var(--text-faint);
+}
+
+/* ============================================
+   BIRTHDAY MARKERS — Дни рождения в календаре
+   ============================================ */
+
+.has-birthday {
+  position: relative;
+}
+
+#calendar-container .day.has-birthday::before {
+  content: "🎂";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  font-size: 10px;
+  line-height: 1;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.birthday-dot {
+  display: none !important;
+}
+
+/* Tooltip для дня рождения при наведении */
+.day-birthday-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ============================================
+   BIRTHDAY EVENTS — Дни рождения в расписании
+   ============================================ */
+
+.sch-event-birthday {
+  background: rgba(220, 50, 50, 0.15) !important;
+  border-left: 3px solid rgba(220, 50, 50, 0.6) !important;
+  border-radius: 4px !important;
+  color: var(--text-normal) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.sch-event-birthday .fc-event-main,
+.sch-event-birthday .fc-event-main-frame,
+.sch-event-birthday .fc-event-bg {
+  background:  rgb(220 50 50 / 66%)!important;
+  border-color: rgba(220, 50, 50, 0.6) !important;
+}
+
+.sch-event-birthday .sch-event-title {
+  font-weight: 600;
+}

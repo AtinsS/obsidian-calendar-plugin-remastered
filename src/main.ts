@@ -9,6 +9,7 @@ import {
   VIEW_TYPE_HABIT_ANALYTICS,
   VIEW_TYPE_FINANCE,
   VIEW_TYPE_FINANCIAL_ANALYTICS,
+  VIEW_TYPE_NETWORK,
 } from "./constants";
 import { settings } from "./ui/stores";
 import { app as appStore } from "./stores/appStore";
@@ -26,6 +27,9 @@ import MobileScheduleView from "./views/MobileScheduleView";
 import HabitAnalyticsView from "./views/HabitAnalyticsView";
 import FinanceView from "./views/FinanceView";
 import FinancialAnalyticsView from "./views/FinancialAnalyticsView";
+import NetworkView from "./views/NetworkView";
+import { PersonModal } from "./networking/PersonModal";
+import { parsePersonNote, buildPersonNote } from "./networking/personNote";
 import { initTaskStores, reloadTaskStores, immediateSave as immediateTaskSave } from "./task-tracker/stores";
 import { cleanupTimers } from "./task-tracker/TimerManager";
 import { setSyncEnabled as setTaskSync } from "./task-tracker/storage";
@@ -55,7 +59,6 @@ export default class CalendarPlugin extends Plugin {
   private view: CalendarView;
   private syncReloadTimer: ReturnType<typeof setTimeout> | null = null;
   private notificationService: NotificationService;
-  private lastMorningSummaryTime = "";
 
   onunload(): void {
     // Flush pending debounced saves before teardown
@@ -85,6 +88,9 @@ export default class CalendarPlugin extends Plugin {
     this.app.workspace
       .getLeavesOfType(VIEW_TYPE_FINANCIAL_ANALYTICS)
       .forEach((leaf) => leaf.detach());
+    this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_NETWORK)
+      .forEach((leaf) => leaf.detach());
   }
 
   async onload(): Promise<void> {
@@ -99,13 +105,6 @@ export default class CalendarPlugin extends Plugin {
         this.options = value;
         setTaskSync(!!value.syncToVault);
         setHabitSync(!!value.syncToVault);
-
-        // When morningSummaryTime changes, reset summary state so it fires at the new time
-        const newTime = value.morningSummaryTime || "06:00";
-        if (this.lastMorningSummaryTime && this.lastMorningSummaryTime !== newTime) {
-          this.notificationService?.resetSummaryState();
-        }
-        this.lastMorningSummaryTime = newTime;
 
         this.notificationService?.restart();
       })
@@ -139,6 +138,11 @@ export default class CalendarPlugin extends Plugin {
     this.registerView(
       VIEW_TYPE_FINANCIAL_ANALYTICS,
       (leaf: WorkspaceLeaf) => new FinancialAnalyticsView(leaf, this)
+    );
+
+    this.registerView(
+      VIEW_TYPE_NETWORK,
+      (leaf: WorkspaceLeaf) => new NetworkView(leaf, this)
     );
 
     this.addCommand({
@@ -197,6 +201,18 @@ export default class CalendarPlugin extends Plugin {
       callback: () => this.activateFinancialAnalyticsView(),
     });
 
+    this.addCommand({
+      id: "open-network-graph",
+      name: "Открыть граф связей",
+      callback: () => this.activateNetworkView(),
+    });
+
+    this.addCommand({
+      id: "add-person",
+      name: "Добавить персону",
+      callback: () => this.openPersonModal(),
+    });
+
     this.addRibbonIcon("calendar-range", "Расписание", () => {
       this.activateScheduleView();
     });
@@ -213,6 +229,14 @@ export default class CalendarPlugin extends Plugin {
       this.activateFinanceView();
     });
 
+    this.addRibbonIcon("network", "Граф связей", () => {
+      this.activateNetworkView();
+    });
+
+    this.addRibbonIcon("user-plus", "Добавить персону", () => {
+      this.openPersonModal();
+    });
+
     await this.loadOptions();
 
     // Apply accent color from settings
@@ -226,8 +250,6 @@ export default class CalendarPlugin extends Plugin {
     // Sync notification settings to vault on load so GitHub Actions always has current data
     syncNotificationSettingsOnLoad(this.app, {
       syncToVault: !!this.options.syncToVault,
-      morningSummaryEnabled: !!this.options.morningSummaryEnabled,
-      morningSummaryTime: this.options.morningSummaryTime || "06:00",
       overdueCheckEnabled: !!this.options.overdueCheckEnabled,
       ntfyTopic: this.options.ntfyTopic || "Calendar_Remastered",
     }).catch((e) => console.warn("[Calendar] Failed to sync notification settings to vault:", e));
@@ -279,6 +301,16 @@ export default class CalendarPlugin extends Plugin {
         if (file instanceof TFile && file.path === "calendar-data.json") {
           debouncedSyncReload();
         }
+      })
+    );
+
+    // Синхронизация YAML ↔ тело заметки для досье людей
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (!(file instanceof TFile)) return;
+        if (!file.path.startsWith(this.options.personsFolderPath || "People")) return;
+        if (!file.path.endsWith(".md")) return;
+        this.syncPersonFile(file);
       })
     );
 
@@ -339,6 +371,49 @@ export default class CalendarPlugin extends Plugin {
 
   async activateFinancialAnalyticsView(): Promise<void> {
     return this.activateView(VIEW_TYPE_FINANCIAL_ANALYTICS);
+  }
+
+  async activateNetworkView(): Promise<void> {
+    return this.activateView(VIEW_TYPE_NETWORK);
+  }
+
+  /**
+   * Синхронизирует YAML-фронтматтер с телом заметки для файла досье.
+   * Вызывается при изменении .md файла в папке People/.
+   */
+  private syncPersonFile(file: TFile): void {
+    // Избегаем рекурсии: не обрабатываем файлы, которые мы сами только что записали
+    if (this._syncingPersonFile === file.path) return;
+
+    this.app.vault.read(file).then((content) => {
+      const person = parsePersonNote(content, file.path);
+      if (!person) return;
+
+      const newContent = buildPersonNote(person);
+      if (content !== newContent) {
+        this._syncingPersonFile = file.path;
+        this.app.vault.modify(file, newContent).then(() => {
+          this._syncingPersonFile = "";
+        });
+      }
+    });
+  }
+
+  private _syncingPersonFile = "";
+
+  openPersonModal(existingPerson?: import("./networking/types").Person): void {
+    const folderPath = this.options.personsFolderPath || "People";
+    const avatarFolderPath = this.options.avatarFolderPath || "person-avatars";
+    new PersonModal(this.app, folderPath, (_person, _filePath) => {
+      // После создания/редактирования — обновляем граф, если открыт
+      const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_NETWORK);
+      for (const leaf of leaves) {
+        const view = leaf.view as NetworkView;
+        if (view && typeof view.refreshGraph === "function") {
+          view.refreshGraph();
+        }
+      }
+    }, existingPerson, avatarFolderPath).open();
   }
 
   async loadOptions(): Promise<void> {

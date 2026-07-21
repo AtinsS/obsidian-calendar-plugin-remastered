@@ -69,8 +69,6 @@ export async function saveVaultKey(
 }
 
 export interface NotificationSyncSettings {
-  morningSummaryEnabled: boolean;
-  morningSummaryTime: string;
   overdueCheckEnabled: boolean;
   ntfyTopic: string;
 }
@@ -96,15 +94,11 @@ export async function saveNotificationSyncSettings(
  */
 export async function syncNotificationSettingsOnLoad(app: App, options: {
   syncToVault: boolean;
-  morningSummaryEnabled: boolean;
-  morningSummaryTime: string;
   overdueCheckEnabled: boolean;
   ntfyTopic: string;
 }): Promise<void> {
   if (!options.syncToVault) return;
   await saveNotificationSyncSettings(app, {
-    morningSummaryEnabled: options.morningSummaryEnabled,
-    morningSummaryTime: options.morningSummaryTime,
     overdueCheckEnabled: options.overdueCheckEnabled,
     ntfyTopic: options.ntfyTopic || "Calendar_Remastered",
   });
