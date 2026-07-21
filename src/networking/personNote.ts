@@ -1,7 +1,7 @@
 import type { Person } from "./types";
 
 /**
- * Генерирует содержимое .md файла для досье человека.
+ * Генерирует содержимое .md файла для карточки контакта.
  * YAML-фронтматтер + визуальное тело заметки.
  */
 export function buildPersonNote(person: Person): string {

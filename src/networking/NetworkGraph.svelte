@@ -303,7 +303,7 @@
 
       const openBtn = document.createElement("button");
       openBtn.className = "node-menu-item";
-      openBtn.textContent = "📄 Открыть досье";
+      openBtn.textContent = "📄 Открыть карточку контакта";
       openBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         closeMenu();

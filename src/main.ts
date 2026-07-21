@@ -306,7 +306,7 @@ export default class CalendarPlugin extends Plugin {
       })
     );
 
-    // Синхронизация YAML ↔ тело заметки для досье людей
+    // Синхронизация YAML ↔ тело заметки для карточек контактов
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
         if (!(file instanceof TFile)) return;
@@ -380,7 +380,7 @@ export default class CalendarPlugin extends Plugin {
   }
 
   /**
-   * Синхронизирует YAML-фронтматтер с телом заметки для файла досье.
+   * Синхронизирует YAML-фронтматтер с телом заметки для файла карточки контакта.
    * Вызывается при изменении .md файла в папке People/.
    */
   private syncPersonFile(file: TFile): void {

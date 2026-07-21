@@ -123,7 +123,7 @@ export default class NetworkView extends ItemView {
   }
 
   /**
-   * Открывает .md файл досье в Obsidian.
+   * Открывает .md файл карточки контакта в Obsidian.
    */
   private openDossier(person: Person): void {
     const file = this.app.vault.getAbstractFileByPath(person.path);
