@@ -107,7 +107,7 @@ describe("initFinanceStores — vault loading", () => {
     });
 
     const plugin = createMockPlugin();
-    initFinanceStores(plugin);
+    await initFinanceStores(plugin);
     await flushDebounce();
 
     const data = getMonthData("2026-07");
@@ -136,15 +136,15 @@ describe("initFinanceStores — vault loading", () => {
     });
 
     const plugin = createMockPlugin();
-    initFinanceStores(plugin);
+    await initFinanceStores(plugin);
     await flushDebounce();
 
     const store = get(financeData);
     expect(store["2026-07"]?.monthlyIncome).toBe(999);
   });
 
-  it("should NOT crash if pluginInstance is null (no init)", () => {
-    expect(() => reloadFinanceStores()).not.toThrow();
+  it("should NOT crash if pluginInstance is null (no init)", async () => {
+    expect(async () => await reloadFinanceStores()).not.toThrow();
   });
 });
 

@@ -36,18 +36,7 @@
   };
   let incomeSource: DistributionIncomeSource = "fact";
   let manualIncome = 0;
-  let recalcTimeout: ReturnType<typeof setTimeout> | null = null;
   let editingRules = false;
-
-  // Debounce map for update functions
-  const _debounceTimers: Record<string, ReturnType<typeof setTimeout>> = {};
-  function debouncedUpdate(key: string, fn: () => void, delay = 150): void {
-    if (_debounceTimers[key]) clearTimeout(_debounceTimers[key]);
-    _debounceTimers[key] = setTimeout(() => {
-      delete _debounceTimers[key];
-      fn();
-    }, delay);
-  }
   let editingGoalId: string | null = null;
   let editingMainCatId: string | null = null;
   let editingSavingsId: string | null = null;
@@ -70,6 +59,7 @@
     monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
+  // ── Load data from store when monthKey or financeData changes ──
   $: {
     $financeData;
     const newData = getMonthData(monthKey);
@@ -80,18 +70,33 @@
     }
   }
 
+  // ── Sync income from tasks/analytics (only when not editing manually) ──
+  // Guard: only sync after data has been loaded from disk and user is not in manual mode
   $: {
-    $tasks;
-    $financialAnalyticsData;
-    // Only sync income from calculated sources after finance data has been loaded from disk
-    // (monthData.monthlyIncome is 0 only when data hasn't been loaded yet)
-    if (incomeSource !== "manual" && monthData.updatedAt) {
+    const _tasks = $tasks;
+    const _analytics = $financialAnalyticsData;
+    // Use a microtask to avoid updating during the same tick as the store reload above
+    if (incomeSource !== "manual" && monthData.updatedAt && monthKey) {
       const income = getIncomeForSource(incomeSource);
       if (income !== monthData.monthlyIncome || monthData.incomeSource !== incomeSource) {
-        updateMonthData(monthKey, {
-          monthlyIncome: income,
-          incomeSource,
-        });
+        // Directly update the store without re-reading monthData
+        financeData.update((current) => ({
+          ...current,
+          [monthKey]: {
+            ...(current[monthKey] || {
+              monthlyIncome: 0,
+              lastMonthExpense: 0,
+              mainAccountCategories: [],
+              monthGoals: [],
+              savingsCategories: [],
+              distributionRules: [],
+              updatedAt: "",
+            }),
+            monthlyIncome: income,
+            incomeSource,
+            updatedAt: new Date().toISOString(),
+          },
+        }));
       }
     }
   }
@@ -166,21 +171,19 @@
         incomeSource: source,
       });
     }
-    monthData = getMonthData(monthKey);
   }
 
   function updateManualIncome(value: string) {
     manualIncome = parseFloat(value.replace(/[^0-9.,]/g, "")) || 0;
-    if (recalcTimeout) clearTimeout(recalcTimeout);
-    recalcTimeout = setTimeout(() => {
-      updateMonthData(monthKey, {
-        monthlyIncome: manualIncome,
-        incomeSource: "manual",
-      });
-      monthData = getMonthData(monthKey);
-    }, 300);
+    updateMonthData(monthKey, {
+      monthlyIncome: manualIncome,
+      incomeSource: "manual",
+    });
+    // Keep incomeSource in sync for the UI
+    incomeSource = "manual";
   }
 
+  // ── Main categories ──
   function addMainCategory() {
     const newCat: FinanceCategory = {
       id: generateCategoryId(),
@@ -192,26 +195,19 @@
     updateMonthData(monthKey, {
       mainAccountCategories: [...monthData.mainAccountCategories, newCat],
     });
-    monthData = getMonthData(monthKey);
   }
 
   function removeMainCategory(id: string) {
     updateMonthData(monthKey, {
       mainAccountCategories: monthData.mainAccountCategories.filter(c => c.id !== id),
     });
-    monthData = getMonthData(monthKey);
   }
 
   function updateMainCategory(id: string, changes: Partial<FinanceCategory>) {
-    monthData.mainAccountCategories = monthData.mainAccountCategories.map(c =>
+    const updated = monthData.mainAccountCategories.map(c =>
       c.id === id ? { ...c, ...changes } : c
     );
-    debouncedUpdate(`main-${id}`, () => {
-      updateMonthData(monthKey, {
-        mainAccountCategories: monthData.mainAccountCategories,
-      });
-      monthData = getMonthData(monthKey);
-    });
+    updateMonthData(monthKey, { mainAccountCategories: updated });
   }
 
   // ── Goals ──
@@ -226,26 +222,19 @@
     updateMonthData(monthKey, {
       monthGoals: [...(monthData.monthGoals || []), newGoal],
     });
-    monthData = getMonthData(monthKey);
   }
 
   function removeGoal(id: string) {
     updateMonthData(monthKey, {
       monthGoals: (monthData.monthGoals || []).filter(g => g.id !== id),
     });
-    monthData = getMonthData(monthKey);
   }
 
   function updateGoal(id: string, changes: Partial<MonthGoal>) {
-    monthData.monthGoals = (monthData.monthGoals || []).map(g =>
+    const updated = (monthData.monthGoals || []).map(g =>
       g.id === id ? { ...g, ...changes } : g
     );
-    debouncedUpdate(`goal-${id}`, () => {
-      updateMonthData(monthKey, {
-        monthGoals: monthData.monthGoals,
-      });
-      monthData = getMonthData(monthKey);
-    });
+    updateMonthData(monthKey, { monthGoals: updated });
   }
 
   // ── Savings ──
@@ -262,26 +251,19 @@
     updateMonthData(monthKey, {
       savingsCategories: [...monthData.savingsCategories, newCat],
     });
-    monthData = getMonthData(monthKey);
   }
 
   function removeSavingsCategory(id: string) {
     updateMonthData(monthKey, {
       savingsCategories: monthData.savingsCategories.filter(c => c.id !== id),
     });
-    monthData = getMonthData(monthKey);
   }
 
   function updateSavingsCategory(id: string, changes: Partial<SavingsCategory>) {
-    monthData.savingsCategories = monthData.savingsCategories.map(c =>
+    const updated = monthData.savingsCategories.map(c =>
       c.id === id ? { ...c, ...changes } : c
     );
-    debouncedUpdate(`savings-${id}`, () => {
-      updateMonthData(monthKey, {
-        savingsCategories: monthData.savingsCategories,
-      });
-      monthData = getMonthData(monthKey);
-    });
+    updateMonthData(monthKey, { savingsCategories: updated });
   }
 
   // ── Rules ──
@@ -295,7 +277,6 @@
   function saveRules() {
     const rules = rulesText.split("\n").filter(r => r.trim());
     updateMonthData(monthKey, { distributionRules: rules });
-    monthData = getMonthData(monthKey);
     editingRules = false;
   }
 
@@ -350,7 +331,6 @@
       } as SavingsCategory)),
       distributionRules: [...prev.distributionRules],
     });
-    monthData = getMonthData(monthKey);
   }
 
   function clearCurrentMonth(): void {
@@ -362,7 +342,6 @@
       distributionRules: [],
       monthlyIncome: 0,
     });
-    monthData = getMonthData(monthKey);
   }
 
   function clearOldMonths(): void {
@@ -374,7 +353,6 @@
   function clearAllData(): void {
     if (!confirm("Удалить ВСЕ данные финансов? Это необратимо.")) return;
     for (const k of storedKeys) deleteMonthData(k);
-    monthData = getMonthData(monthKey);
   }
 </script>
 

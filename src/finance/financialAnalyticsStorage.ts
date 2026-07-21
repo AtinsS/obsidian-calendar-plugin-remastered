@@ -25,13 +25,13 @@ let pluginInstance: CalendarPlugin = null;
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let loaded = false;
 
-export function initFinancialAnalyticsStores(plugin: CalendarPlugin): void {
+export async function initFinancialAnalyticsStores(plugin: CalendarPlugin): Promise<void> {
   pluginInstance = plugin;
-  loadFinancialAnalyticsData();
+  await loadFinancialAnalyticsData();
 }
 
-export function reloadFinancialAnalyticsStores(): void {
-  loadFinancialAnalyticsData();
+export async function reloadFinancialAnalyticsStores(): Promise<void> {
+  await loadFinancialAnalyticsData();
 }
 
 async function loadFinancialAnalyticsData(): Promise<void> {

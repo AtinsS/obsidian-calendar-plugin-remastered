@@ -247,8 +247,10 @@ export default class CalendarPlugin extends Plugin {
       applyGlassBgColor(this.options.glassBgColor, this.options.glassOpacity);
     }
 
-    // Sync notification settings to vault on load so GitHub Actions always has current data
-    syncNotificationSettingsOnLoad(this.app, {
+    // Sync notification settings to vault on load so GitHub Actions always has current data.
+    // MUST await before initTaskStores — otherwise this async write reads stale vault
+    // data and overwrites the entire calendar-data.json before stores finish loading.
+    await syncNotificationSettingsOnLoad(this.app, {
       syncToVault: !!this.options.syncToVault,
       overdueCheckEnabled: !!this.options.overdueCheckEnabled,
       ntfyTopic: this.options.ntfyTopic || "Calendar_Remastered",
@@ -263,11 +265,11 @@ export default class CalendarPlugin extends Plugin {
     // Initialize habit tracker
     initHabitStores(this);
 
-    // Initialize finance tracker
-    initFinanceStores(this);
+    // Initialize finance tracker (must await to prevent race condition where empty data overwrites vault)
+    await initFinanceStores(this);
 
-    // Initialize financial analytics
-    initFinancialAnalyticsStores(this);
+    // Initialize financial analytics (must await to prevent data loss)
+    await initFinancialAnalyticsStores(this);
 
     // Initialize GitHub Gist sync
     initGistSync(this);
@@ -281,11 +283,11 @@ export default class CalendarPlugin extends Plugin {
     // Watch for vault sync file changes (modify + create)
     const debouncedSyncReload = () => {
       if (this.syncReloadTimer) clearTimeout(this.syncReloadTimer);
-      this.syncReloadTimer = setTimeout(() => {
+      this.syncReloadTimer = setTimeout(async () => {
         reloadTaskStores(this);
         reloadHabitStores(this);
-        reloadFinanceStores();
-        reloadFinancialAnalyticsStores();
+        await reloadFinanceStores();
+        await reloadFinancialAnalyticsStores();
       }, 500);
     };
 
