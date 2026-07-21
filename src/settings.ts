@@ -80,7 +80,7 @@ export interface ISettings {
   glassBgColor?: string;
   glassOpacity?: number;
 
-  // Networking — папка для досье людей
+  // Networking — папка для карточек контактов
   personsFolderPath?: string;
 
   // Schedule display settings
@@ -275,7 +275,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     this.addNotificationSettings();
 
     this.containerEl.createEl("h3", {
-      text: "Нетворкинг — Досье людей",
+      text: "Нетворкинг — Карточки контактов",
     });
     this.addPersonsFolderSetting();
 
@@ -347,7 +347,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
 
   addPersonsFolderSetting(): void {
     new Setting(this.containerEl)
-      .setName("Папка для досье")
+      .setName("Папка для карточек контактов")
       .setDesc("Папка, где хранятся .md файлы людей (создаётся автоматически)")
       .addDropdown((dropdown) => {
         const folders = this.getVaultFolders();

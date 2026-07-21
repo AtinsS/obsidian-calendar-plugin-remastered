@@ -3,7 +3,7 @@ import type { Person, PersonContacts } from "./types";
 import { buildPersonNote } from "./personNote";
 
 /**
- * Модалка для добавления / редактирования досье человека.
+ * Модалка для добавления / редактирования карточки контакта.
  * После сохранения создаёт .md файл с YAML-фронтматтером и визуальным телом.
  */
 export class PersonModal extends Modal {
@@ -262,7 +262,7 @@ export class PersonModal extends Modal {
     cancelBtn.addEventListener("click", () => this.close());
 
     const submitBtn = footer.createEl("button", {
-      text: this.person ? "Сохранить" : "Создать досье",
+      text: this.person ? "Сохранить" : "Создать карточку контакта",
       cls: "person-btn person-submit",
     });
     submitBtn.addEventListener("click", () => this.handleSubmit());
