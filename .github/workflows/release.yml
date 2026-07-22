@@ -1,4 +1,4 @@
-name: Release
+name: ReleaseWorkflow
 on:
   push:
     tags: ['v*']
