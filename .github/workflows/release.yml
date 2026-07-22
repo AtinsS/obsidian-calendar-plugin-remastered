@@ -1,7 +1,9 @@
-name: ReleaseWorkflow
+name: Release
 on:
   push:
     tags: ['v*']
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
