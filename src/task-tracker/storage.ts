@@ -1,7 +1,7 @@
 import type CalendarPlugin from "src/main";
 
 import { ITaskTrackerData, TASK_TRACKER_DATA_VERSION } from "./types";
-import { loadVaultData, saveVaultKey } from "../io/vaultStorage";
+import { loadModuleData, saveModuleData } from "../io/vaultStorage";
 import { generateId } from "../utils/id";
 
 export { generateId };
@@ -23,9 +23,9 @@ export async function loadTaskData(
   plugin: CalendarPlugin
 ): Promise<ITaskTrackerData> {
   if (syncEnabled) {
-    const vaultData = await loadVaultData(plugin.app);
-    if (vaultData[TASK_TRACKER_KEY]) {
-      const data = vaultData[TASK_TRACKER_KEY] as unknown as ITaskTrackerData;
+    const moduleData = await loadModuleData(plugin.app, "taskTracker");
+    if (moduleData && Object.keys(moduleData).length > 0) {
+      const data = moduleData as unknown as ITaskTrackerData;
       if (data.version < TASK_TRACKER_DATA_VERSION) {
         return migrateData(data);
       }
@@ -51,7 +51,7 @@ export async function saveTaskData(
   data: ITaskTrackerData
 ): Promise<void> {
   if (syncEnabled) {
-    await saveVaultKey(plugin.app, TASK_TRACKER_KEY, data);
+    await saveModuleData(plugin.app, "taskTracker", data as unknown as Record<string, unknown>);
     return;
   }
 

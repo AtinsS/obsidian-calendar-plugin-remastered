@@ -1,6 +1,6 @@
 import { writable, get } from "svelte/store";
 import type CalendarPlugin from "../main";
-import { loadVaultData, saveVaultKey } from "../io/vaultStorage";
+import { loadModuleData, saveModuleData } from "../io/vaultStorage";
 
 export interface ManualIncomeSource {
   id: string;
@@ -37,10 +37,10 @@ export async function reloadFinancialAnalyticsStores(): Promise<void> {
 async function loadFinancialAnalyticsData(): Promise<void> {
   if (!pluginInstance) return;
 
-  // Always uses vaultStorage (calendar-data.json)
-  const vaultData = await loadVaultData(pluginInstance.app);
-  if (vaultData.financialAnalytics) {
-    const savedData = vaultData.financialAnalytics as IFinancialAnalyticsData;
+  // Always uses vaultStorage (split-file format)
+  const moduleData = await loadModuleData(pluginInstance.app, "financialAnalytics");
+  if (moduleData && Object.keys(moduleData).length > 0) {
+    const savedData = moduleData as unknown as IFinancialAnalyticsData;
     // Ensure incomeCategories always exists (migration from old format)
     financialAnalyticsData.set({
       manualIncomeSources: savedData.manualIncomeSources || [],
@@ -57,7 +57,7 @@ async function debouncedSave(): Promise<void> {
     if (!pluginInstance) return;
 
     // Use queued save to prevent race conditions with other modules
-    await saveVaultKey(pluginInstance.app, "financialAnalytics", get(financialAnalyticsData));
+    await saveModuleData(pluginInstance.app, "financialAnalytics", get(financialAnalyticsData) as unknown as Record<string, unknown>);
   }, 300);
 }
 
@@ -67,7 +67,7 @@ export async function immediateAnalyticsSave(): Promise<void> {
     clearTimeout(saveTimeout);
     saveTimeout = null;
   }
-  await saveVaultKey(pluginInstance.app, "financialAnalytics", get(financialAnalyticsData));
+  await saveModuleData(pluginInstance.app, "financialAnalytics", get(financialAnalyticsData) as unknown as Record<string, unknown>);
 }
 
 let idCounter = 0;

@@ -1,7 +1,7 @@
 import type CalendarPlugin from "src/main";
 import type { IHabitTrackerData } from "./types";
 import { HABIT_TRACKER_DATA_VERSION } from "./types";
-import { loadVaultData, saveVaultKey } from "../io/vaultStorage";
+import { loadModuleData, saveModuleData } from "../io/vaultStorage";
 import { generateId } from "../utils/id";
 
 export { generateId };
@@ -20,9 +20,9 @@ export async function loadHabitData(
   plugin: CalendarPlugin
 ): Promise<IHabitTrackerData> {
   if (syncEnabled) {
-    const vaultData = await loadVaultData(plugin.app);
-    if (vaultData[HABIT_TRACKER_KEY]) {
-      return vaultData[HABIT_TRACKER_KEY] as unknown as IHabitTrackerData;
+    const moduleData = await loadModuleData(plugin.app, "habitTracker");
+    if (moduleData && Object.keys(moduleData).length > 0) {
+      return moduleData as unknown as IHabitTrackerData;
     }
     return {
       habits: [],
@@ -48,7 +48,7 @@ export async function saveHabitData(
   data: IHabitTrackerData
 ): Promise<void> {
   if (syncEnabled) {
-    await saveVaultKey(plugin.app, HABIT_TRACKER_KEY, data);
+    await saveModuleData(plugin.app, "habitTracker", data as unknown as Record<string, unknown>);
     return;
   }
 

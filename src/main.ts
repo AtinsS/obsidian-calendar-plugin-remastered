@@ -44,7 +44,7 @@ import { initFinanceStores, reloadFinanceStores, immediateFinanceSave } from "./
 import { initFinancialAnalyticsStores, reloadFinancialAnalyticsStores, immediateAnalyticsSave } from "./finance/financialAnalyticsStorage";
 import { NotificationService } from "./services/NotificationService";
 import { initGistSync } from "./services/GistSyncService";
-import { syncNotificationSettingsOnLoad } from "./io/vaultStorage";
+import { syncNotificationSettingsOnLoad, migrateFromSingleFile, VAULT_DATA_DIR } from "./io/vaultStorage";
 
 declare global {
   interface Window {
@@ -256,6 +256,9 @@ export default class CalendarPlugin extends Plugin {
       ntfyTopic: this.options.ntfyTopic || "Calendar_Remastered",
     }).catch((e) => console.warn("[Calendar] Failed to sync notification settings to vault:", e));
 
+    // Migrate legacy calendar-data.json to per-module files (one-time, idempotent)
+    await migrateFromSingleFile(this.app);
+
     // Initialize task tracker
     initTaskStores(this);
     setupNoteTaskSync(this.app, this);
@@ -291,16 +294,19 @@ export default class CalendarPlugin extends Plugin {
       }, 500);
     };
 
+    const isInVaultDataDir = (file: TFile) =>
+      file.path.startsWith(`${VAULT_DATA_DIR}/`) || file.path === "calendar-data.json";
+
     this.registerEvent(
       this.app.vault.on("modify", (file) => {
-        if (file instanceof TFile && file.path === "calendar-data.json") {
+        if (file instanceof TFile && isInVaultDataDir(file)) {
           debouncedSyncReload();
         }
       })
     );
     this.registerEvent(
       this.app.vault.on("create", (file) => {
-        if (file instanceof TFile && file.path === "calendar-data.json") {
+        if (file instanceof TFile && isInVaultDataDir(file)) {
           debouncedSyncReload();
         }
       })

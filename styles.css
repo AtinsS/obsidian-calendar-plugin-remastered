@@ -423,6 +423,11 @@ table {
   color: var(--mcp-text);
 }
 
+/* Hide calendar dot indicators from obsidian-calendar-ui */
+svg.dot.filled {
+  display: none !important;
+}
+
 /* ============================================
    CALENDAR GRID
    ============================================ */

@@ -20,7 +20,11 @@ jobs:
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC || 'Calendar_Remastered' }}
         run: |
-          if [ ! -f "calendar-data.json" ]; then
+          TASKS_FILE="calendar-data/tasks.json"
+          NOTIF_FILE="calendar-data/notifications.json"
+
+          if [ ! -f "$TASKS_FILE" ]; then
+            echo "No tasks file found at $TASKS_FILE, skipping"
             exit 0
           fi
 
@@ -28,16 +32,24 @@ jobs:
           import json, os, subprocess, sys
           from datetime import datetime, timedelta, timezone
 
-          with open('calendar-data.json') as f:
-              data = json.load(f)
+          tasks_file = '$TASKS_FILE'
+          notif_file = '$NOTIF_FILE'
 
-          ns = data.get('notificationSync', {})
+          with open(tasks_file) as f:
+              tasks_data = json.load(f)
+
+          notif_data = {}
+          if os.path.exists(notif_file):
+              with open(notif_file) as f:
+                  notif_data = json.load(f)
+
+          ns = notif_data
           if not ns.get('overdueCheckEnabled'):
               print('Overdue check disabled in settings, skipping')
               sys.exit(0)
 
           topic = ns.get('ntfyTopic') or os.environ.get('NTFY_TOPIC', 'Calendar_Remastered')
-          tasks = data.get('taskTracker', {}).get('tasks', [])
+          tasks = tasks_data.get('tasks', [])
 
           msk = timezone(timedelta(hours=3))
           now = datetime.now(msk)
@@ -111,15 +123,15 @@ jobs:
 
           ns['lastOverdueCheck'] = now.strftime('%Y-%m-%dT%H:%M')
           ns['overdueChecksToday'] = today_checks[-100:]
-          with open('calendar-data.json', 'w') as f:
-              json.dump(data, f, indent=2)
+          with open(notif_file, 'w') as f:
+              json.dump(notif_data, f, indent=2)
           "
 
-      - name: Commit updated calendar-data.json
+      - name: Commit updated notifications
         if: success()
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          git add calendar-data.json
+          git add calendar-data/notifications.json
           git diff --staged --quiet || git commit -m "Update dedup state after overdue check"
           git push

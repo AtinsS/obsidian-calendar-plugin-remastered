@@ -508,7 +508,7 @@ export class CalendarSettingsTab extends PluginSettingTab {
     new Setting(this.containerEl)
       .setName("Синхронизация в корень хранилища")
       .setDesc(
-        "Сохранять данные в calendar-data.json в корне хранилища вместо папки плагина. Позволяет синхронизировать задачи и привычки через Obsidian Sync, iCloud или Git."
+        "Сохранять данные в папку calendar-data/ в корне хранилища вместо папки плагина. Позволяет синхронизировать задачи и привычки через Obsidian Sync, iCloud или Git."
       )
       .addToggle((toggle) => {
         toggle.setValue(this.plugin.options.syncToVault);
@@ -524,10 +524,10 @@ export class CalendarSettingsTab extends PluginSettingTab {
     desc.style.marginTop = "8px";
     desc.innerHTML = `
       <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
-        <b>Remotely Save:</b> В настройках плагина добавьте <code>calendar-data.json</code> в список синхронизируемых файлов (Include Files).
+        <b>Remotely Save:</b> В настройках плагина добавьте папку <code>calendar-data/</code> в список синхронизируемых файлов (Include Files).
       </p>
       <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
-        <b>Obsidian Sync:</b> Включите синхронизацию файлов — <code>calendar-data.json</code> будет синхронизирован автоматически.
+        <b>Obsidian Sync:</b> Включите синхронизацию файлов — папка <code>calendar-data/</code> будет синхронизирована автоматически.
       </p>
       <p style="margin: 4px 0; font-size: 12px; color: var(--text-faint);">
         <b>iCloud / Google Drive:</b> Убедитесь, что хранилище синхронизируется полностью.

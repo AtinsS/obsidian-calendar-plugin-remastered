@@ -219,9 +219,9 @@
 
     if (!confirm(`Удалить ${completedTasks.length} выполненных задач?`)) return;
 
-    // Delete associated note files only for note tasks
+    // Delete associated note files for all completed tasks with a notePath
     for (const task of completedTasks) {
-      if (task.notePath && task.isNoteTask) {
+      if (task.notePath) {
         const file = appInstance.vault.getAbstractFileByPath(task.notePath);
         if (file) {
           await appInstance.vault.delete(file);
